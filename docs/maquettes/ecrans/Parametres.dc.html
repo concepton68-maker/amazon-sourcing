@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Paramètres</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#1F4FD1;text-decoration:none}a:hover{color:#163A9E}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; color: #15181D; background: #F6F7F9">
+<nav aria-label="Navigation principale" style="flex: 1 1 220px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; padding: 0 12px 16px">[NOM DE L'OUTIL]</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Tableau de bord</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Sourcing</div>
+<a href="Analyse.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>Analyse produit</a>
+<a href="Sourcing.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>Sourcing fichiers</a>
+<a href="Surveillance.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Surveillance</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Gestion</div>
+<a href="Lots.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path></svg>Achats &amp; lots</a>
+<a href="Fournisseurs.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 4h14v12H1z"></path><path d="M15 9h4l4 4v3h-8z"></path><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="19" r="2"></circle></svg>Fournisseurs</a>
+<a href="Stock.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>Stock &amp; réappro</a>
+<a href="Remboursements.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Remboursements</a>
+<a href="Conformite.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>Conformité Europe</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Réglages</div>
+<a href="Parametres.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; background: #E8EEFC; color: #1F4FD1; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Paramètres</a>
+<a href="Compte.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>Compte &amp; abonnement</a>
+<div style="margin-top: auto; padding: 16px 12px 0; border-top: 1px solid #E3E6EB; font-size: 13px; color: #59616E">Compte : Europe + États-Unis · 6 places de marché</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Paramètres</h1>
+<p style="margin: 4px 0 0; color: #59616E; font-size: 15px">Ces réglages s'appliquent à toutes les analyses, au sourcing et aux alertes.</p>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 22px; border-radius: 8px; border: none; background: #1F4FD1; color: #FFFFFF; font: 600 15px Inter, sans-serif; cursor: pointer">Enregistrer</button>
+</div>
+
+<section aria-labelledby="tva" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="tva" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Fiscalité par pays</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px">
+<thead><tr style="text-align: left; color: #59616E; font-size: 13px">
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Pays</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Régime</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">N° de TVA / taxe</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Taux standard</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Remarque</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{tax}}" as="t" hint-placeholder-count="6">
+<tr>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EEF0F3; font-weight: 600">{{t.cc}}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EEF0F3"><select aria-label="Régime {{t.cc}}" style="min-height: 40px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 8px; font: 14px Inter, sans-serif; background: #FFFFFF"><option>{{t.reg}}</option><option>Non assujetti</option><option>Assujetti</option></select></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EEF0F3"><input type="text" aria-label="Numéro {{t.cc}}" value="{{t.num}}" style="min-height: 40px; width: 100%; box-sizing: border-box; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 14px Inter, sans-serif"></input></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{t.rate}}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #EEF0F3; color: #59616E">{{t.note}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<section aria-labelledby="seuils" style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="seuils" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Seuils d'achat</h2>
+<sc-for list="{{thresholds}}" as="s" hint-placeholder-count="5">
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; color: #3A414C">{{s.label}}
+<input type="text" value="{{s.value}}" style="min-height: 40px; width: 110px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 14px Inter, sans-serif; text-align: right"></input></label>
+</sc-for>
+</section>
+
+<section aria-labelledby="couts" style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="couts" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Coûts par défaut (par unité)</h2>
+<sc-for list="{{costs}}" as="s" hint-placeholder-count="5">
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; color: #3A414C">{{s.label}}
+<input type="text" value="{{s.value}}" style="min-height: 40px; width: 110px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 14px Inter, sans-serif; text-align: right"></input></label>
+</sc-for>
+</section>
+
+<section aria-labelledby="alertes" style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<h2 id="alertes" style="margin: 0 0 6px; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Alertes</h2>
+<sc-for list="{{alerts}}" as="a" hint-placeholder-count="6">
+<button type="button" role="switch" aria-checked="{{a.checked}}" onClick="{{a.toggle}}" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; padding: 0; border: none; background: none; cursor: pointer; font: 14px Inter, sans-serif; color: #3A414C; text-align: left">
+<span>{{a.label}}</span>
+<span style="{{a.track}}"><span style="{{a.knob}}"></span></span>
+</button>
+</sc-for>
+<div style="font-size: 13px; color: #59616E; margin-top: 6px">Envoi : e-mail et notification dans l'outil.</div>
+</section>
+</div>
+
+<section aria-labelledby="pref" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end">
+<h2 id="pref" style="margin: 0; flex: 1 1 100%; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Préférences</h2>
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Devise d'affichage<select style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 15px Inter, sans-serif; background: #FFFFFF"><option>Euro (€)</option><option>Dollar ($)</option><option>Livre (£)</option></select></label>
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Langue<select style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 15px Inter, sans-serif; background: #FFFFFF"><option>Français</option><option>English</option><option>Deutsch</option></select></label>
+<label style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Méthode de coût du stock<select style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 15px Inter, sans-serif; background: #FFFFFF"><option>Par lot (premier entré, premier sorti)</option><option>Coût moyen</option></select></label>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { on: { rupture: true, prix: true, vendeur: true, amazon: true, roi: true, conf: true, remb: false } }; }
+  renderVals() {
+    const tax = [
+      { cc: 'France', reg: 'Assujetti', num: 'FR00 000000000', rate: '20 %', note: 'Taux réduits par produit possibles' },
+      { cc: 'Allemagne', reg: 'Assujetti', num: 'DE000000000', rate: '19 %', note: '' },
+      { cc: 'Italie', reg: 'Assujetti', num: 'IT00000000000', rate: '22 %', note: '' },
+      { cc: 'Espagne', reg: 'Assujetti', num: 'ESX0000000X', rate: '21 %', note: '' },
+      { cc: 'Royaume-Uni', reg: 'Non assujetti', num: '', rate: '20 %', note: 'TVA sur les frais Amazon comptée comme coût' },
+      { cc: 'États-Unis', reg: 'Hors taxe', num: '', rate: '—', note: 'Taxe de vente collectée par Amazon, prix affichés HT' },
+    ];
+    const thresholds = [
+      { label: 'ROI minimum', value: '30 %' }, { label: 'Profit minimum par unité', value: '3,00 €' },
+      { label: 'Ventes estimées minimum / mois', value: '10' }, { label: 'Écart max. prix actuel / moyenne 90 j', value: '20 %' },
+      { label: 'Vendeurs FBA maximum', value: '10' },
+    ];
+    const costs = [
+      { label: 'Envoi vers Amazon', value: '0,40 €' }, { label: 'Préparation / étiquetage', value: '0,20 €' },
+      { label: 'Provision retours', value: '2 %' }, { label: 'Stockage estimé', value: '0,10 €' },
+      { label: 'Autres', value: '0,00 €' },
+    ];
+    const labels = { rupture: 'Rupture prévue sous 15 jours', prix: 'Baisse de prix de plus de 10 %', vendeur: 'Nouveau vendeur FBA sur mes produits', amazon: 'Amazon arrive ou quitte un listing', roi: 'Produit surveillé devenu rentable', conf: 'Obligation de conformité manquante', remb: 'Nouveau remboursement détecté' };
+    const alerts = Object.keys(labels).map((k) => {
+      const on = this.state.on[k];
+      return { label: labels[k], checked: on ? 'true' : 'false',
+        toggle: () => this.setState({ on: { ...this.state.on, [k]: !on } }),
+        track: 'flex: none; width: 44px; height: 24px; border-radius: 999px; position: relative; background: ' + (on ? '#1F4FD1' : '#C9CFD8'),
+        knob: 'position: absolute; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; left: ' + (on ? '23px' : '3px') };
+    });
+    return { tax, thresholds, costs, alerts };
+  }
+}
+</script>
+</body>
+</html>

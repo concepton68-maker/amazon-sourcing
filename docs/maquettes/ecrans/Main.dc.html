@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Tableau de bord</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#1F4FD1;text-decoration:none}a:hover{color:#163A9E}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; color: #15181D; background: #F6F7F9">
+
+<nav aria-label="Navigation principale" style="flex: 1 1 220px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; padding: 0 12px 16px">[NOM DE L'OUTIL]</div>
+<a href="Main.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; background: #E8EEFC; color: #1F4FD1; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Tableau de bord</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Sourcing</div>
+<a href="Analyse.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>Analyse produit</a>
+<a href="Sourcing.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>Sourcing fichiers</a>
+<a href="Surveillance.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Surveillance</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Gestion</div>
+<a href="Lots.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path></svg>Achats &amp; lots</a>
+<a href="Fournisseurs.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 4h14v12H1z"></path><path d="M15 9h4l4 4v3h-8z"></path><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="19" r="2"></circle></svg>Fournisseurs</a>
+<a href="Stock.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>Stock &amp; réappro</a>
+<a href="Remboursements.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Remboursements</a>
+<a href="Conformite.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>Conformité Europe</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Réglages</div>
+<a href="Parametres.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Paramètres</a>
+<a href="Compte.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>Compte &amp; abonnement</a>
+<div style="margin-top: auto; padding: 16px 12px 0; border-top: 1px solid #E3E6EB; font-size: 13px; color: #59616E">Compte : Europe + États-Unis · 6 places de marché</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Tableau de bord</h1>
+<p style="margin: 4px 0 0; color: #59616E; font-size: 15px">30 derniers jours · montants convertis en € · données fictives</p>
+</div>
+<div role="group" aria-label="Places de marché" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{mps}}" as="mp" hint-placeholder-count="6">
+<button onClick="{{mp.pick}}" style="{{mp.style}}">{{mp.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<section aria-label="Indicateurs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px">
+<sc-for list="{{kpis}}" as="k" hint-placeholder-count="5">
+<div style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 13px; color: #59616E; font-weight: 500">{{k.label}}</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700">{{k.value}}</div>
+<div style="{{k.subStyle}}">{{k.sub}}</div>
+</div>
+</sc-for>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px">
+<section aria-labelledby="todo" style="flex: 1 1 380px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="todo" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 19px">À faire aujourd'hui</h2>
+<p style="margin: 0; font-size: 14px; color: #59616E">L'assistant analyse vos ventes, stocks et lots, et propose des actions.</p>
+<sc-for list="{{todos}}" as="t" hint-placeholder-count="4">
+<div style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 10px; border: 1px solid #E3E6EB">
+<div style="{{t.dotStyle}}"></div>
+<div style="flex: 1; min-width: 0">
+<div style="font-weight: 600; font-size: 15px">{{t.title}}</div>
+<div style="font-size: 14px; color: #59616E; margin-top: 2px">{{t.detail}}</div>
+</div>
+<a href="{{t.href}}" style="flex: none; min-height: 40px; display: flex; align-items: center; padding: 0 14px; border-radius: 8px; border: 1px solid #C9D3F0; font-size: 14px; font-weight: 600">{{t.cta}}</a>
+</div>
+</sc-for>
+</section>
+
+<section aria-labelledby="chart" style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+<h2 id="chart" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 19px">Profit net réel par semaine</h2>
+<div style="display: flex; gap: 14px; font-size: 13px; color: #59616E">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #1F4FD1"></span>Réel</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #B9C8F2"></span>Prévu au sourcing</span>
+</div>
+</div>
+<div role="img" aria-label="Histogramme : profit réel comparé au profit prévu sur 6 semaines" style="display: flex; align-items: flex-end; gap: 18px; height: 220px; padding-top: 10px; border-bottom: 1px solid #E3E6EB">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="6">
+<div style="flex: 1; display: flex; align-items: flex-end; gap: 4px; height: 100%">
+<div style="{{b.planStyle}}"></div>
+<div style="{{b.realStyle}}"></div>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; gap: 18px; font-size: 12px; color: #59616E">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="6"><div style="flex: 1; text-align: center">{{b.label}}</div></sc-for>
+</div>
+</section>
+</div>
+
+<section aria-labelledby="top" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="top" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 19px">Produits : prévu vs réel</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px">
+<thead><tr style="text-align: left; color: #59616E; font-size: 13px">
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; font-weight: 600">Produit</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; font-weight: 600">Place</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; font-weight: 600; text-align: right">Vendus</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; font-weight: 600; text-align: right">Profit réel</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; font-weight: 600; text-align: right">ROI prévu</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; font-weight: 600; text-align: right">ROI réel</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; font-weight: 600">Cause principale de l'écart</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; font-weight: 500">{{r.name}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3">{{r.mp}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{r.sold}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{r.profit}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right; color: #59616E">{{r.plan}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right"><span style="{{r.realStyle}}">{{r.real}}</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; color: #3A414C">{{r.cause}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { mp: 'Toutes' }; }
+  renderVals() {
+    const pill = (on) => 'min-height: 40px; padding: 0 16px; border-radius: 999px; font: 600 14px Inter, sans-serif; cursor: pointer; border: 1px solid ' + (on ? '#1F4FD1; background: #1F4FD1; color: #FFFFFF' : '#D5DAE1; background: #FFFFFF; color: #3A414C');
+    const mps = ['Toutes', 'FR', 'DE', 'IT', 'ES', 'UK', 'US'].map((m) => ({ label: m, style: pill(this.state.mp === m), pick: () => this.setState({ mp: m }) }));
+    const sub = (c) => 'font-size: 13px; font-weight: 600; color: ' + c;
+    const kpis = [
+      { label: "Chiffre d'affaires", value: '18 420 €', sub: '+6 % vs mois précédent', subStyle: sub('#18794E') },
+      { label: 'Profit net réel', value: '3 105 €', sub: 'après frais, TVA, retours', subStyle: sub('#59616E') },
+      { label: 'ROI réel moyen', value: '27 %', sub: 'prévu au sourcing : 33 %', subStyle: sub('#B4530A') },
+      { label: 'Stock immobilisé', value: '9 870 €', sub: '412 unités chez Amazon', subStyle: sub('#59616E') },
+      { label: 'Remboursements dus', value: '146 €', sub: '7 cas détectés, 0 % de commission', subStyle: sub('#1F4FD1') },
+    ];
+    const dot = (c) => 'flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: ' + c;
+    const todos = [
+      { title: '5 produits en rupture d’ici 12 jours', detail: 'Commande suggérée : 3 fournisseurs, 1 240 € au total.', cta: 'Préparer', href: 'Lots.dc.html', dotStyle: dot('#B42318') },
+      { title: 'Lot L-0412 : ROI réel 14 % au lieu de 32 %', detail: 'Prix de vente tombé de 24,90 € à 21,50 € (3 nouveaux vendeurs FBA).', cta: 'Comprendre', href: 'Lots.dc.html', dotStyle: dot('#B4530A') },
+      { title: '7 remboursements FBA possibles', detail: 'Unités perdues ou endommagées en entrepôt. Dossiers pré-remplis.', cta: 'Réclamer', href: 'Main.dc.html', dotStyle: dot('#1F4FD1') },
+      { title: 'Fichier fournisseur analysé : 38 produits rentables', detail: 'Grossiste B · 2 140 lignes · ROI cible 30 %.', cta: 'Voir', href: 'Sourcing.dc.html', dotStyle: dot('#18794E') },
+    ];
+    const data = [[620, 540], [700, 690], [680, 610], [760, 720], [820, 700], [800, 755]];
+    const max = 900;
+    const bars = data.map((d, i) => ({
+      label: 'S' + (40 + i),
+      planStyle: 'flex: 1; border-radius: 4px 4px 0 0; background: #B9C8F2; height: ' + Math.round(d[0] / max * 100) + '%',
+      realStyle: 'flex: 1; border-radius: 4px 4px 0 0; background: #1F4FD1; height: ' + Math.round(d[1] / max * 100) + '%',
+    }));
+    const tag = (ok) => 'display: inline-block; padding: 3px 8px; border-radius: 6px; font-weight: 600; ' + (ok ? 'background: #E6F4EC; color: #18794E' : 'background: #FDF0E6; color: #8F4208');
+    const rows = [
+      { name: 'Gourde inox 750 ml', mp: 'FR', sold: 64, profit: '281 €', plan: '35 %', real: '38 %', realOk: true, cause: 'Prix de vente stable, frais conformes' },
+      { name: 'Lampe frontale LED', mp: 'DE', sold: 41, profit: '96 €', plan: '32 %', real: '14 %', realOk: false, cause: 'Baisse du prix (nouveaux vendeurs)' },
+      { name: 'Set de couteaux 5 pièces', mp: 'IT', sold: 18, profit: '154 €', plan: '28 %', real: '26 %', realOk: true, cause: 'Frais FBA +0,22 € (changement de taille)' },
+      { name: 'Puzzle 1000 pièces', mp: 'FR', sold: 52, profit: '118 €', plan: '30 %', real: '19 %', realOk: false, cause: 'Retours 9 % + stockage longue durée' },
+      { name: 'Câble USB-C 2 m (lot de 3)', mp: 'ES', sold: 77, profit: '203 €', plan: '31 %', real: '33 %', realOk: true, cause: 'Buy Box détenue 92 % du temps' },
+      { name: 'Bouteille isotherme 1 L', mp: 'US', sold: 58, profit: '231 €', plan: '34 %', real: '36 %', realOk: true, cause: 'Ventes plus rapides que prévu' },
+    ].map((r) => ({ ...r, realStyle: tag(r.realOk) }));
+    return { mps, kpis, todos, bars, rows };
+  }
+}
+</script>
+</body>
+</html>

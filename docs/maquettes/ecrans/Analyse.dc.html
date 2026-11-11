@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Analyse produit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#1F4FD1;text-decoration:none}a:hover{color:#163A9E}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; color: #15181D; background: #F6F7F9">
+
+<nav aria-label="Navigation principale" style="flex: 1 1 220px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; padding: 0 12px 16px">[NOM DE L'OUTIL]</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Tableau de bord</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Sourcing</div>
+<a href="Analyse.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; background: #E8EEFC; color: #1F4FD1; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>Analyse produit</a>
+<a href="Sourcing.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>Sourcing fichiers</a>
+<a href="Surveillance.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Surveillance</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Gestion</div>
+<a href="Lots.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path></svg>Achats &amp; lots</a>
+<a href="Fournisseurs.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 4h14v12H1z"></path><path d="M15 9h4l4 4v3h-8z"></path><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="19" r="2"></circle></svg>Fournisseurs</a>
+<a href="Stock.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>Stock &amp; réappro</a>
+<a href="Remboursements.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Remboursements</a>
+<a href="Conformite.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>Conformité Europe</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Réglages</div>
+<a href="Parametres.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Paramètres</a>
+<a href="Compte.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>Compte &amp; abonnement</a>
+<div style="margin-top: auto; padding: 16px 12px 0; border-top: 1px solid #E3E6EB; font-size: 13px; color: #59616E">Compte : Europe + États-Unis · 6 places de marché</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Analyse produit</h1>
+
+<form aria-label="Rechercher un produit" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
+<label style="flex: 3 1 240px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">ASIN, EAN, UPC ou ISBN
+<input type="text" value="3700000000017" style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 12px; font: 15px Inter, sans-serif"></input></label>
+<label style="flex: 1 1 130px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Prix d'achat HT
+<input type="text" value="8,50 €" style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 12px; font: 15px Inter, sans-serif"></input></label>
+<label style="flex: 1 1 130px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Place de marché
+<select style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 15px Inter, sans-serif; background: #FFFFFF"><option>Amazon.fr</option><option>Amazon.de</option><option>Amazon.it</option><option>Amazon.es</option><option>Amazon.co.uk</option><option>Amazon.com (États-Unis)</option></select></label>
+<div role="group" aria-label="Régime de TVA" style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Régime TVA
+<div style="display: flex; gap: 6px">
+<button type="button" onClick="{{setA}}" style="{{btnA}}">Assujetti</button>
+<button type="button" onClick="{{setN}}" style="{{btnN}}">Non assujetti</button>
+</div></div>
+<button type="button" style="min-height: 44px; padding: 0 22px; border-radius: 8px; border: none; background: #1F4FD1; color: #FFFFFF; font: 600 15px Inter, sans-serif; cursor: pointer">Analyser</button>
+</form>
+
+<section aria-label="Verdict" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center">
+<div style="width: 88px; height: 88px; border-radius: 10px; background: #EEF0F3; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #59616E; text-align: center">Photo produit</div>
+<div style="flex: 1 1 320px; min-width: 0">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<span style="padding: 6px 12px; border-radius: 999px; background: #E6F4EC; color: #18794E; font-weight: 700; font-size: 14px; letter-spacing: 0.02em">ACHETER</span>
+<span style="font-size: 13px; color: #59616E">B0DEMO0001 · Sports · BSR 4 200 · Marque : MarqueDemo</span>
+</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600; margin-top: 8px">Gourde inox 750 ml</div>
+<p style="margin: 6px 0 0; font-size: 15px; color: #3A414C">ROI et profit au-dessus de vos seuils, vente autorisée sur votre compte, aucune alerte. Achetez jusqu'à <strong>{{maxBuy}}</strong> pour garder 30 % de ROI.</p>
+</div>
+<a href="Lots.dc.html" style="min-height: 44px; display: flex; align-items: center; padding: 0 18px; border-radius: 8px; background: #15181D; color: #FFFFFF; font-weight: 600; font-size: 15px">Créer un achat (lot)</a>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px">
+<section aria-labelledby="calc" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 id="calc" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Calcul du profit</h2>
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="6">
+<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 6px 0; border-bottom: 1px solid #EEF0F3">
+<span style="color: #3A414C">{{l.label}}</span><span style="font-variant-numeric: tabular-nums; font-weight: 500">{{l.value}}</span>
+</div>
+</sc-for>
+<div style="display: flex; justify-content: space-between; align-items: baseline; padding-top: 6px">
+<span style="font-weight: 700">Profit net</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: #18794E">{{profit}}</span>
+</div>
+<div style="display: flex; gap: 16px; font-size: 14px; color: #3A414C"><span>ROI <strong>{{roi}}</strong></span><span>Marge <strong>{{marge}}</strong></span></div>
+<div style="font-size: 13px; color: #59616E; background: #F6F7F9; border-radius: 8px; padding: 10px">Scénario prudent (prix moyen 90 j : 23,50 €) : profit {{prudent}}</div>
+</section>
+
+<section aria-labelledby="marche" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="marche" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Marché (90 jours)</h2>
+<div role="img" aria-label="Courbe du prix Buy Box sur 90 jours entre 21,90 et 26 euros" style="height: 120px; display: flex; align-items: flex-end; gap: 3px; border-bottom: 1px solid #E3E6EB">
+<sc-for list="{{spark}}" as="s" hint-placeholder-count="30"><div style="{{s.style}}"></div></sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-size: 14px">
+<div><div style="color: #59616E; font-size: 12px">Prix Buy Box actuel</div><strong>24,90 €</strong></div>
+<div><div style="color: #59616E; font-size: 12px">Min / max 90 j</div><strong>21,90 / 26,00 €</strong></div>
+<div><div style="color: #59616E; font-size: 12px">Achetés le mois dernier</div><strong>100+</strong> <span style="font-size: 12px; color: #59616E">(badge Amazon)</span></div>
+<div><div style="color: #59616E; font-size: 12px">Part estimée pour vous</div><strong>~20 / mois</strong> <span style="font-size: 12px; color: #59616E">(estimation)</span></div>
+<div><div style="color: #59616E; font-size: 12px">Vendeurs</div><strong>4 FBA · 1 FBM</strong></div>
+<div><div style="color: #59616E; font-size: 12px">Amazon vendeur</div><strong>Non</strong></div>
+</div>
+</section>
+
+<section aria-labelledby="checks" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 id="checks" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Vérifications</h2>
+<sc-for list="{{checks}}" as="c" hint-placeholder-count="6">
+<div style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px">
+<span style="{{c.badgeStyle}}">{{c.badge}}</span>
+<div><div style="font-weight: 600">{{c.title}}</div><div style="color: #59616E; font-size: 13px">{{c.src}}</div></div>
+</div>
+</sc-for>
+</section>
+</div>
+
+<section aria-labelledby="multi" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="multi" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Même produit sur les autres places de marché</h2>
+<p style="margin: 0; font-size: 13px; color: #59616E">États-Unis : prix hors taxe, prix d'achat converti en dollars au taux du jour, frais d'envoi vers les entrepôts américains à saisir.</p>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px">
+<thead><tr style="text-align: left; color: #59616E; font-size: 13px">
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Place</th><th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Prix</th><th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Profit</th><th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">ROI</th><th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Autorisé</th><th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Verdict</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{mps}}" as="m" hint-placeholder-count="5">
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; font-weight: 600">{{m.mp}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{m.price}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{m.profit}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{m.roi}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3">{{m.ok}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3"><span style="{{m.vStyle}}">{{m.v}}</span></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tva: 'A' }; }
+  renderVals() {
+    const a = this.state.tva === 'A';
+    const seg = (on) => 'flex: 1; min-height: 44px; border-radius: 8px; font: 600 14px Inter, sans-serif; cursor: pointer; border: 1px solid ' + (on ? '#1F4FD1; background: #E8EEFC; color: #1F4FD1' : '#C9CFD8; background: #FFFFFF; color: #3A414C');
+    const lines = a ? [
+      { label: 'Prix de vente (Buy Box, TTC)', value: '24,90 €' },
+      { label: 'TVA collectée 20 %', value: '− 4,15 €' },
+      { label: "Prix d'achat HT", value: '− 8,50 €' },
+      { label: 'Commission Amazon', value: '− 3,74 €' },
+      { label: 'Frais FBA', value: '− 4,15 €' },
+      { label: 'Envoi, préparation, retours', value: '− 0,00 €' },
+    ] : [
+      { label: 'Prix de vente (Buy Box, TTC)', value: '24,90 €' },
+      { label: "Prix d'achat TTC (TVA non récupérable)", value: '− 10,20 €' },
+      { label: 'Commission Amazon', value: '− 3,74 €' },
+      { label: 'Frais FBA', value: '− 4,15 €' },
+      { label: 'TVA sur frais Amazon (non récupérable)', value: '− 1,58 €' },
+      { label: 'Envoi, préparation, retours', value: '− 0,00 €' },
+    ];
+    const pts = [23.1,23.4,22.8,22.0,21.9,22.5,23.0,23.6,24.0,23.8,23.2,23.5,24.4,25.1,26.0,25.6,24.9,24.2,23.7,23.4,23.0,23.3,23.9,24.3,24.6,24.8,24.5,24.7,24.9,24.9];
+    const spark = pts.map((p) => ({ style: 'flex: 1; border-radius: 2px 2px 0 0; background: #1F4FD1; opacity: 0.85; height: ' + Math.round((p - 20) / 6.5 * 100) + '%' }));
+    const badge = (ok) => 'flex: none; min-width: 28px; text-align: center; padding: 2px 6px; border-radius: 6px; font-size: 12px; font-weight: 700; ' + (ok ? 'background: #E6F4EC; color: #18794E' : 'background: #FDF0E6; color: #8F4208');
+    const checks = [
+      { badge: 'OK', ok: true, title: 'Vous êtes autorisé à vendre', src: 'Source : API Amazon, votre compte' },
+      { badge: 'OK', ok: true, title: 'Pas de matière dangereuse (hazmat)', src: 'Source : API Amazon, éligibilité FBA' },
+      { badge: 'OK', ok: true, title: 'Vendu à l’unité (pas de lot)', src: 'Source : catalogue Amazon' },
+      { badge: 'OK', ok: true, title: 'Prix actuel cohérent avec la moyenne 90 j', src: 'Source : historique Keepa' },
+      { badge: '?', ok: false, title: 'Risque de plainte de marque', src: 'Aucune source officielle : à vérifier vous-même' },
+    ].map((c) => ({ ...c, badgeStyle: badge(c.ok) }));
+    const vs = (v) => 'padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; ' + (v === 'ACHETER' ? 'background: #E6F4EC; color: #18794E' : v === 'PASSER' ? 'background: #FDECEA; color: #A41E14' : 'background: #FDF0E6; color: #8F4208');
+    const mps = [
+      { mp: 'Amazon.de', price: '24,90 €', profit: a ? '4,53 €' : '5,41 €', roi: '53 %', ok: 'Oui', v: 'ACHETER' },
+      { mp: 'Amazon.fr', price: '24,90 €', profit: a ? '4,36 €' : '5,23 €', roi: '51 %', ok: 'Oui', v: 'ACHETER' },
+      { mp: 'Amazon.it', price: '22,40 €', profit: a ? '2,61 €' : '3,02 €', roi: '31 %', ok: 'Oui', v: 'À VÉRIFIER' },
+      { mp: 'Amazon.es', price: '21,90 €', profit: a ? '2,19 €' : '2,60 €', roi: '26 %', ok: 'Oui', v: 'À VÉRIFIER' },
+      { mp: 'Amazon.com', price: '27,99 $', profit: '6,10 $', roi: '62 %', ok: 'Oui', v: 'ACHETER' },
+      { mp: 'Amazon.co.uk', price: '19,99 £', profit: '—', roi: '—', ok: 'Approbation requise', v: 'PASSER' },
+    ].map((m) => ({ ...m, vStyle: vs(m.v) }));
+    return {
+      setA: () => this.setState({ tva: 'A' }), setN: () => this.setState({ tva: 'N' }),
+      btnA: seg(a), btnN: seg(!a), lines, spark, checks, mps,
+      profit: a ? '4,36 €' : '5,23 €', roi: '51 %', marge: a ? '18 %' : '21 %',
+      prudent: a ? '3,40 € · ROI 40 %' : '4,08 € · ROI 40 %', maxBuy: a ? '9,89 € HT' : '9,89 € HT',
+    };
+  }
+}
+</script>
+</body>
+</html>

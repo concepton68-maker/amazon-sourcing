@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Compte et abonnement</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#1F4FD1;text-decoration:none}a:hover{color:#163A9E}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; color: #15181D; background: #F6F7F9">
+<nav aria-label="Navigation principale" style="flex: 1 1 220px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; padding: 0 12px 16px">[NOM DE L'OUTIL]</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Tableau de bord</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Sourcing</div>
+<a href="Analyse.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>Analyse produit</a>
+<a href="Sourcing.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>Sourcing fichiers</a>
+<a href="Surveillance.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Surveillance</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Gestion</div>
+<a href="Lots.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path></svg>Achats &amp; lots</a>
+<a href="Fournisseurs.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 4h14v12H1z"></path><path d="M15 9h4l4 4v3h-8z"></path><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="19" r="2"></circle></svg>Fournisseurs</a>
+<a href="Stock.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>Stock &amp; réappro</a>
+<a href="Remboursements.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Remboursements</a>
+<a href="Conformite.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>Conformité Europe</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Réglages</div>
+<a href="Parametres.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Paramètres</a>
+<a href="Compte.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; background: #E8EEFC; color: #1F4FD1; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>Compte &amp; abonnement</a>
+<div style="margin-top: auto; padding: 16px 12px 0; border-top: 1px solid #E3E6EB; font-size: 13px; color: #59616E">Compte : Europe + États-Unis · 6 places de marché</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Compte &amp; abonnement</h1>
+<p style="margin: 4px 0 0; color: #59616E; font-size: 15px">Connectez vos comptes Amazon par région. Vos données restent les vôtres.</p>
+</div>
+
+<section aria-labelledby="amz" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 id="amz" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Comptes Amazon connectés</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px">
+<sc-for list="{{regions}}" as="r" hint-placeholder-count="3">
+<div style="border: 1px solid #E3E6EB; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><strong style="font-size: 16px">{{r.name}}</strong><span style="{{r.badgeStyle}}">{{r.status}}</span></div>
+<div style="font-size: 14px; color: #3A414C">{{r.mps}}</div>
+<div style="font-size: 13px; color: #59616E">{{r.detail}}</div>
+<button type="button" style="{{r.btnStyle}}">{{r.cta}}</button>
+</div>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 13px; color: #59616E">La connexion passe par la page d'autorisation officielle d'Amazon. L'outil ne voit jamais votre mot de passe.</p>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<section aria-labelledby="keepa" style="flex: 1 1 360px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="keepa" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Historique Keepa (optionnel)</h2>
+<p style="margin: 0; font-size: 14px; color: #3A414C">Ajoutez votre propre clé API Keepa pour obtenir l'historique avant votre inscription. Sans clé, l'outil construit son propre historique à partir du jour de connexion.</p>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Clé API Keepa
+<input type="password" value="xxxxxxxxxxxxxxxx" style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 12px; font: 15px Inter, sans-serif"></input></label>
+<div style="font-size: 13px; color: #18794E; font-weight: 600">Clé valide · 1 240 jetons restants · consommation de ce mois : 3 870 jetons</div>
+</section>
+
+<section aria-labelledby="donnees" style="flex: 1 1 360px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 id="donnees" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Vos données</h2>
+<sc-for list="{{privacy}}" as="p" hint-placeholder-count="4">
+<div style="display: flex; gap: 10px; font-size: 14px; color: #3A414C"><span style="flex: none; color: #18794E; font-weight: 700" aria-hidden="true">✓</span><span>{{p}}</span></div>
+</sc-for>
+<button type="button" style="align-self: flex-start; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #C9CFD8; background: #FFFFFF; font: 600 14px Inter, sans-serif; color: #15181D; cursor: pointer">Exporter toutes mes données</button>
+</section>
+</div>
+
+<section aria-labelledby="formules" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<h2 id="formules" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Formules</h2>
+<div role="group" aria-label="Facturation" style="display: flex; gap: 6px">
+<button type="button" onClick="{{setM}}" style="{{mStyle}}">Mensuel</button>
+<button type="button" onClick="{{setY}}" style="{{yStyle}}">Annuel</button>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
+<sc-for list="{{plans}}" as="pl" hint-placeholder-count="3">
+<div style="{{pl.cardStyle}}">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><strong style="font-family: 'Space Grotesk', sans-serif; font-size: 20px">{{pl.name}}</strong><span style="{{pl.tagStyle}}">{{pl.tag}}</span></div>
+<div style="font-size: 14px; color: #59616E">{{pl.for}}</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700">{{pl.price}}</div>
+<sc-for list="{{pl.feats}}" as="f" hint-placeholder-count="5"><div style="font-size: 14px; color: #3A414C; display: flex; gap: 8px"><span aria-hidden="true" style="color: #1F4FD1">•</span>{{f}}</div></sc-for>
+<button type="button" style="{{pl.btnStyle}}">{{pl.cta}}</button>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<sc-for list="{{promises}}" as="pr" hint-placeholder-count="4"><span style="padding: 8px 12px; border-radius: 999px; background: #E6F4EC; color: #18794E; font-size: 13px; font-weight: 600">{{pr}}</span></sc-for>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { y: false }; }
+  renderVals() {
+    const b = (c, bg) => 'padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; background: ' + bg + '; color: ' + c;
+    const primary = 'min-height: 44px; border-radius: 8px; border: none; background: #1F4FD1; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer';
+    const secondary = 'min-height: 44px; border-radius: 8px; border: 1px solid #C9CFD8; background: #FFFFFF; color: #15181D; font: 600 14px Inter, sans-serif; cursor: pointer';
+    const regions = [
+      { name: 'Europe', status: 'Connecté', on: true, mps: 'France, Allemagne, Italie, Espagne, Royaume-Uni', detail: 'Autorisé le 02/09 · dernière collecte 03:42', cta: 'Gérer' },
+      { name: 'Amérique du Nord', status: 'Connecté', on: true, mps: 'États-Unis', detail: 'Autorisé le 14/10 · dernière collecte 03:51', cta: 'Gérer' },
+      { name: 'Extrême-Orient', status: 'Non connecté', on: false, mps: 'Japon, Australie, Singapour', detail: 'Optionnel', cta: 'Connecter' },
+    ].map((r) => ({ ...r, badgeStyle: r.on ? b('#18794E', '#E6F4EC') : b('#3A414C', '#EEF0F3'), btnStyle: r.on ? secondary : primary }));
+    const privacy = [
+      'Jamais partagées avec d’autres clients',
+      'Supprimées sous 30 jours si vous déconnectez Amazon',
+      'Clés et jetons d’accès chiffrés',
+      'Exportables à tout moment (Excel / CSV)',
+    ];
+    const y = this.state.y;
+    const seg = (on) => 'min-height: 40px; padding: 0 14px; border-radius: 999px; font: 600 14px Inter, sans-serif; cursor: pointer; border: 1px solid ' + (on ? '#1F4FD1; background: #1F4FD1; color: #FFFFFF' : '#D5DAE1; background: #FFFFFF; color: #3A414C');
+    const card = (hl) => 'border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; border: ' + (hl ? '2px solid #1F4FD1' : '1px solid #E3E6EB');
+    const plans = [
+      { name: 'Essentiel', tag: '', for: 'Démarrer et sourcer', price: y ? '[PRIX ANNUEL] / mois' : '[PRIX] / mois', hl: false, cta: 'Choisir',
+        feats: ['Analyse produit illimitée', 'Sourcing fichiers : [N] lignes / mois', 'Surveillance : [N] produits', 'Toutes les places de marché', 'Remboursements sans commission'] },
+      { name: 'Pro', tag: 'Recommandé', for: 'Revendeur actif', price: y ? '[PRIX ANNUEL] / mois' : '[PRIX] / mois', hl: true, cta: 'Formule actuelle',
+        feats: ['Tout Essentiel', 'Achats & lots : prévu vs réel', 'Stock, réappro, fournisseurs', 'Conformité Europe', 'Sourcing fichiers : [N] lignes / mois'] },
+      { name: 'Équipe', tag: '', for: 'Plusieurs utilisateurs', price: y ? '[PRIX ANNUEL] / mois' : '[PRIX] / mois', hl: false, cta: 'Choisir',
+        feats: ['Tout Pro', '[N] utilisateurs avec droits', 'Volumes étendus', 'Accès API', 'Support prioritaire'] },
+    ].map((p) => ({ ...p, cardStyle: card(p.hl), tagStyle: p.tag ? b('#1F4FD1', '#E8EEFC') : 'display: none', btnStyle: p.hl ? secondary : primary }));
+    const promises = ['Aucun passage automatique à une formule supérieure', 'Résiliable à tout moment', 'Pas de commission sur vos remboursements', 'Prix affichés sans option cachée'];
+    return { regions, privacy, plans, promises, setM: () => this.setState({ y: false }), setY: () => this.setState({ y: true }), mStyle: seg(!y), yStyle: seg(y) };
+  }
+}
+</script>
+</body>
+</html>

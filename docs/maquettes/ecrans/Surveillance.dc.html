@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Surveillance et découverte</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#1F4FD1;text-decoration:none}a:hover{color:#163A9E}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; color: #15181D; background: #F6F7F9">
+
+<nav aria-label="Navigation principale" style="flex: 1 1 220px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; padding: 0 12px 16px">[NOM DE L'OUTIL]</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Tableau de bord</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Sourcing</div>
+<a href="Analyse.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>Analyse produit</a>
+<a href="Sourcing.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>Sourcing fichiers</a>
+<a href="Surveillance.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; background: #E8EEFC; color: #1F4FD1; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Surveillance</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Gestion</div>
+<a href="Lots.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path></svg>Achats &amp; lots</a>
+<a href="Fournisseurs.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 4h14v12H1z"></path><path d="M15 9h4l4 4v3h-8z"></path><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="19" r="2"></circle></svg>Fournisseurs</a>
+<a href="Stock.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>Stock &amp; réappro</a>
+<a href="Remboursements.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Remboursements</a>
+<a href="Conformite.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>Conformité Europe</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Réglages</div>
+<a href="Parametres.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Paramètres</a>
+<a href="Compte.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>Compte &amp; abonnement</a>
+<div style="margin-top: auto; padding: 16px 12px 0; border-top: 1px solid #E3E6EB; font-size: 13px; color: #59616E">Compte : Europe + États-Unis · 6 places de marché</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Surveillance &amp; découverte</h1>
+<p style="margin: 4px 0 0; color: #59616E; font-size: 15px">Aucun produit suivi au hasard : chacun a une raison. On découvre avec des filtres ciblés, puis on surveille ce qui vous concerne.</p>
+</div>
+
+<div role="tablist" aria-label="Mode" style="display: flex; gap: 6px; border-bottom: 1px solid #E3E6EB">
+<button type="button" role="tab" aria-selected="{{tabS}}" onClick="{{goS}}" style="{{tabSStyle}}">Surveillance</button>
+<button type="button" role="tab" aria-selected="{{tabD}}" onClick="{{goD}}" style="{{tabDStyle}}">Découverte</button>
+</div>
+
+<sc-if value="{{isS}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section aria-label="Pourquoi ces produits sont suivis" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px">
+<sc-for list="{{sources}}" as="s" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<div style="{{s.tagStyle}}">{{s.tag}}</div>
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700">{{s.n}}</div>
+<div style="font-weight: 600; font-size: 15px">{{s.title}}</div>
+<div style="font-size: 13px; color: #59616E">{{s.rule}}</div>
+</div>
+</sc-for>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 14px 18px; font-size: 14px">
+<span style="width: 10px; height: 10px; border-radius: 50%; background: #18794E"></span>
+<strong>Collecte de cette nuit terminée à 03:42</strong>
+<span style="color: #59616E">2 547 produits photographiés · 6 places de marché · historique interne : 41 jours · Keepa : 0 jeton utilisé</span>
+</div>
+
+<section aria-labelledby="alertes" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<h2 id="alertes" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Produits suivis et alertes</h2>
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #C9CFD8; background: #FFFFFF; font: 600 14px Inter, sans-serif; color: #15181D; cursor: pointer">+ Ajouter un produit</button>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px">
+<thead><tr style="text-align: left; color: #59616E; font-size: 13px">
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Produit</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Place</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Pourquoi suivi</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Prix</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">30 j</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Vendeurs</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Alerte</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">État</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{watch}}" as="w" hint-placeholder-count="6">
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; font-weight: 500">{{w.name}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3">{{w.mp}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3"><span style="{{w.oStyle}}">{{w.origin}}</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{w.price}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right; font-weight: 600">{{w.trend}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{w.sellers}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; color: #3A414C">{{w.rule}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3"><span style="{{w.sStyle}}">{{w.state}}</span></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{isD}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<section aria-label="Sources de découverte" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<sc-for list="{{disc}}" as="d" hint-placeholder-count="3">
+<button type="button" onClick="{{d.pick}}" style="{{d.style}}">
+<div style="display: flex; justify-content: space-between; gap: 8px; width: 100%; align-items: center"><strong style="font-size: 16px">{{d.title}}</strong><span style="{{d.badgeStyle}}">{{d.badge}}</span></div>
+<div style="font-size: 14px; color: #3A414C; text-align: left">{{d.desc}}</div>
+<div style="font-size: 13px; color: #59616E">Coût : {{d.cost}}</div>
+</button>
+</sc-for>
+</section>
+
+<form aria-label="Filtres de recherche" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Filtres : Keepa Product Finder</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Place de marché<select style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 15px Inter, sans-serif; background: #FFFFFF"><option>Amazon.fr</option><option>Amazon.de</option><option>Amazon.com</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Catégorie<select style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 10px; font: 15px Inter, sans-serif; background: #FFFFFF"><option>Cuisine et maison</option><option>Jeux et jouets</option><option>Sports et loisirs</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">BSR maximum<input type="text" value="20 000" style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 12px; font: 15px Inter, sans-serif"></input></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Vendeurs FBA max<input type="text" value="5" style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 12px; font: 15px Inter, sans-serif"></input></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3A414C">Prix de vente<input type="text" value="15 € – 60 €" style="min-height: 44px; border: 1px solid #C9CFD8; border-radius: 8px; padding: 0 12px; font: 15px Inter, sans-serif"></input></label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; color: #3A414C"><input type="checkbox" checked="checked" style="width: 20px; height: 20px"></input>Amazon absent du listing</label>
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<span style="font-size: 13px; color: #59616E">Estimation : 10 jetons + 1 par tranche de 100 produits trouvés. Seuls les produits rentables sont ensuite analysés en détail.</span>
+<button type="button" style="min-height: 44px; padding: 0 22px; border-radius: 8px; border: none; background: #1F4FD1; color: #FFFFFF; font: 600 15px Inter, sans-serif; cursor: pointer">Lancer la recherche</button>
+</div>
+</form>
+
+<section aria-labelledby="trouves" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="trouves" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Trouvés : 312 produits · 14 rentables avec vos fournisseurs connus</h2>
+<sc-for list="{{found}}" as="f" hint-placeholder-count="4">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #E3E6EB; border-radius: 10px">
+<div style="min-width: 0; flex: 1 1 280px"><div style="font-weight: 600">{{f.name}}</div><div style="font-size: 13px; color: #59616E">{{f.meta}}</div></div>
+<span style="font-size: 14px; color: #3A414C; flex: 1 1 200px">{{f.hint}}</span>
+<button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #C9D3F0; background: #FFFFFF; color: #1F4FD1; font: 600 14px Inter, sans-serif; cursor: pointer">Surveiller</button>
+</div>
+</sc-for>
+</section>
+</div>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'S', src: 'finder' }; }
+  renderVals() {
+    const s = this.state.tab === 'S';
+    const tab = (on) => 'min-height: 44px; padding: 0 18px; border: none; background: none; cursor: pointer; font: 600 15px Inter, sans-serif; margin-bottom: -1px; border-bottom: 3px solid ' + (on ? '#1F4FD1; color: #1F4FD1' : 'transparent; color: #59616E');
+    const tag = (c, bg) => 'align-self: flex-start; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; background: ' + bg + '; color: ' + c;
+    const sources = [
+      { tag: 'Stock', n: '212', title: 'Vos produits en stock', rule: 'Suivis tant qu’ils sont en stock ou vendus', tagStyle: tag('#1F4FD1', '#E8EEFC') },
+      { tag: 'Analysé', n: '486', title: 'Produits analysés', rule: 'Suivis 90 jours après chaque analyse', tagStyle: tag('#5B3FB5', '#EFEAFB') },
+      { tag: 'Fournisseur', n: '1 812', title: 'Catalogues fournisseurs', rule: '2 grossistes · réanalysés à chaque nouvelle liste de prix', tagStyle: tag('#18794E', '#E6F4EC') },
+      { tag: 'Manuel', n: '37', title: 'Votre liste', rule: 'Ajoutés par vous, avec une alerte', tagStyle: tag('#8F4208', '#FDF0E6') },
+    ];
+    const oc = { Stock: ['#1F4FD1', '#E8EEFC'], 'Analysé': ['#5B3FB5', '#EFEAFB'], Fournisseur: ['#18794E', '#E6F4EC'], Manuel: ['#8F4208', '#FDF0E6'] };
+    const pill = (c, bg) => 'padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; white-space: nowrap; background: ' + bg + '; color: ' + c;
+    const watch = [
+      { name: 'Gourde inox 750 ml', mp: 'FR', origin: 'Stock', price: '24,90 €', trend: '+2 %', sellers: '4', rule: 'Stock < 15 jours de ventes', state: 'Déclenchée', on: true },
+      { name: 'Lampe frontale LED', mp: 'DE', origin: 'Stock', price: '21,50 €', trend: '−14 %', sellers: '7', rule: 'Prix −10 % sur 30 j', state: 'Déclenchée', on: true },
+      { name: 'Moulin à épices manuel', mp: 'FR', origin: 'Fournisseur', price: '18,90 €', trend: '+9 %', sellers: '3', rule: 'ROI > 30 % avec prix fournisseur', state: 'Déclenchée', on: true },
+      { name: 'Thermos 500 ml', mp: 'US', origin: 'Analysé', price: '22,99 $', trend: '0 %', sellers: '5', rule: 'Amazon quitte le listing', state: 'En attente', on: false },
+      { name: 'Planche à découper bambou', mp: 'IT', origin: 'Manuel', price: '16,40 €', trend: '−3 %', sellers: '2', rule: 'Prix > 18 €', state: 'En attente', on: false },
+      { name: 'Puzzle 1000 pièces', mp: 'FR', origin: 'Stock', price: '17,99 €', trend: '+1 %', sellers: '6', rule: 'Nouveau vendeur FBA', state: 'En attente', on: false },
+    ].map((w) => ({ ...w, oStyle: pill(oc[w.origin][0], oc[w.origin][1]), sStyle: w.on ? pill('#A41E14', '#FDECEA') : pill('#3A414C', '#EEF0F3') }));
+    const card = (on) => 'display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 18px; border-radius: 12px; cursor: pointer; font-family: Inter, sans-serif; color: #15181D; text-align: left; border: 1px solid ' + (on ? '#1F4FD1; background: #E8EEFC' : '#E3E6EB; background: #FFFFFF');
+    const disc = [
+      { id: 'finder', title: 'Recherche par critères', desc: 'Keepa Product Finder : catégorie, BSR, nombre de vendeurs, prix, Amazon absent.', cost: '10 jetons + 1 / 100 produits', badge: 'Disponible', badgeStyle: pill('#18794E', '#E6F4EC') },
+      { id: 'best', title: 'Meilleures ventes', desc: 'Les meilleures ventes d’une catégorie, croisées avec vos catalogues fournisseurs.', cost: '50 jetons par liste', badge: 'Disponible', badgeStyle: pill('#18794E', '#E6F4EC') },
+      { id: 'aff', title: 'Catalogues d’enseignes', desc: 'Flux produits Awin / Rakuten (prix, EAN) rapprochés d’Amazon pour l’arbitrage.', cost: 'à déterminer', badge: 'Conditions à vérifier', badgeStyle: pill('#8F4208', '#FDF0E6') },
+    ].map((d) => ({ ...d, style: card(this.state.src === d.id), pick: () => this.setState({ src: d.id }) }));
+    const found = [
+      { name: 'Moulin à épices manuel', meta: 'Amazon.fr · BSR 6 400 · 3 vendeurs FBA · Amazon absent', hint: 'Grossiste A le vend 7,20 € HT : ROI estimé 41 %' },
+      { name: 'Boîte hermétique verre (lot de 4)', meta: 'Amazon.fr · BSR 11 200 · 2 vendeurs FBA · Amazon absent', hint: 'Non présent chez vos fournisseurs' },
+      { name: 'Égouttoir pliable silicone', meta: 'Amazon.fr · BSR 18 900 · 4 vendeurs FBA · Amazon absent', hint: 'Grossiste B le vend 5,90 € HT : ROI estimé 22 %' },
+      { name: 'Couvercles extensibles silicone', meta: 'Amazon.fr · BSR 3 100 · 5 vendeurs FBA · Amazon absent', hint: 'Non présent chez vos fournisseurs' },
+    ];
+    return {
+      isS: s, isD: !s, tabS: s ? 'true' : 'false', tabD: s ? 'false' : 'true',
+      goS: () => this.setState({ tab: 'S' }), goD: () => this.setState({ tab: 'D' }),
+      tabSStyle: tab(s), tabDStyle: tab(!s), sources, watch, disc, found,
+    };
+  }
+}
+</script>
+</body>
+</html>

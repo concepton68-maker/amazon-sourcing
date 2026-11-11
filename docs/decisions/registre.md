@@ -1,0 +1,15 @@
+# Registre des décisions
+
+Une ligne par décision. Numérotation unique `D-AMZ-nnn`. Dates en heure de Paris.
+
+| N° | Date | Décision | Raison | Source / statut |
+|---|---|---|---|---|
+| D-AMZ-001 | 11/11/2026 | Outil personnel d'abord, architecture prête pour plusieurs clients (chaque donnée rattachée à un compte) ; pas de super-administration pour l'instant | Vente prévue ensuite ; séparer les données après coup coûte cher | Décision de l'utilisateur |
+| D-AMZ-002 | 11/11/2026 | Toutes les places de marché gérées, **États-Unis inclus dès le départ** | Plus gros marché | Décision de l'utilisateur |
+| D-AMZ-003 | 11/11/2026 | Données d'un client jamais partagées avec un autre ; supprimées sous 30 jours après déconnexion d'Amazon | Politique d'usage SP-API 4.4 et 4.6 ; politique de protection des données | Texte Amazon lu le 11/11/2026 (`docs/recherches/2026-11-11-donnees-et-outils-verifies.md`) |
+| D-AMZ-004 | 11/11/2026 | API Creators (ex-PA-API) exclue | Licence Associates : interdite dans un outil pour vendeurs Amazon | Texte Amazon lu le 11/11/2026 |
+| D-AMZ-005 | 11/11/2026 | Keepa : clé fournie par l'utilisateur, optionnelle ; historique interne construit chaque nuit | Pas de coût Keepa par client ; limite le risque lié à l'article 4.3 | Analyse ; conditions Keepa et lecture Amazon de 4.3 **à confirmer par écrit** |
+| D-AMZ-006 | 11/11/2026 | Pile technique : Python (FastAPI) + Postgres + React, en Docker | Même famille que Syllig (Pipe en FastAPI, Postgres, Caddy) | Proposition, à confirmer |
+| D-AMZ-007 | 11/11/2026 | Hébergement sur le VPS de Syllig, isolé : projet Docker, base et domaine à part, mémoire plafonnée | Serveur sans swap (doc Syllig) ; cookies Syllig posés sur `.syllig.com` | Proposition, à confirmer |
+| D-AMZ-008 | 11/11/2026 | Fichiers fournisseurs : seuls les en-têtes et quelques lignes masquées partent à l'IA | Minimisation des données (règle IA de Syllig, D413) | Proposition, à confirmer |
+| D-AMZ-009 | 11/11/2026 | Pas de workflow GitHub automatique pour l'instant | Budget de minutes GitHub dépassé (règle Syllig 1.1) ; tests lancés en local | À revoir si le budget le permet |

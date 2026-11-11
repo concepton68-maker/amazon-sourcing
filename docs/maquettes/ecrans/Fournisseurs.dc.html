@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fournisseurs et bons de commande</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#1F4FD1;text-decoration:none}a:hover{color:#163A9E}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; font-family: Inter, system-ui, sans-serif; color: #15181D; background: #F6F7F9">
+<nav aria-label="Navigation principale" style="flex: 1 1 220px; max-width: 100%; background: #FFFFFF; border-right: 1px solid #E3E6EB; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
+<div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; padding: 0 12px 16px">[NOM DE L'OUTIL]</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Tableau de bord</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Sourcing</div>
+<a href="Analyse.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>Analyse produit</a>
+<a href="Sourcing.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>Sourcing fichiers</a>
+<a href="Surveillance.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Surveillance</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Gestion</div>
+<a href="Lots.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path></svg>Achats &amp; lots</a>
+<a href="Fournisseurs.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; background: #E8EEFC; color: #1F4FD1; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 4h14v12H1z"></path><path d="M15 9h4l4 4v3h-8z"></path><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="19" r="2"></circle></svg>Fournisseurs</a>
+<a href="Stock.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>Stock &amp; réappro</a>
+<a href="Remboursements.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Remboursements</a>
+<a href="Conformite.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>Conformité Europe</a>
+<div style="padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #59616E">Réglages</div>
+<a href="Parametres.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>Paramètres</a>
+<a href="Compte.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 15px; color: #3A414C">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>Compte &amp; abonnement</a>
+<div style="margin-top: auto; padding: 16px 12px 0; border-top: 1px solid #E3E6EB; font-size: 13px; color: #59616E">Compte : Europe + États-Unis · 6 places de marché</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div>
+<h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">Fournisseurs &amp; commandes</h1>
+<p style="margin: 4px 0 0; color: #59616E; font-size: 15px">Qui vous fait vraiment gagner de l'argent, et ce que vous leur avez commandé.</p>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid #C9CFD8; background: #FFFFFF; font: 600 15px Inter, sans-serif; color: #15181D; cursor: pointer">+ Ajouter un fournisseur</button>
+</div>
+
+<section aria-labelledby="sup" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="sup" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Fournisseurs</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px">
+<thead><tr style="text-align: left; color: #59616E; font-size: 13px">
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Fournisseur</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Dernière liste de prix</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Produits rentables</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Acheté (12 mois)</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">ROI prévu</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">ROI réel</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Délai moyen</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Fiabilité</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{sups}}" as="s" hint-placeholder-count="3">
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3"><div style="font-weight: 600">{{s.name}}</div><div style="font-size: 12px; color: #59616E">{{s.kind}}</div></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3">{{s.list}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{s.ok}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{s.spent}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right; color: #59616E">{{s.plan}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right"><span style="{{s.realStyle}}">{{s.real}}</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{s.delay}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; color: #3A414C">{{s.rel}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<section aria-labelledby="po" style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<h2 id="po" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px">Bons de commande</h2>
+<div role="group" aria-label="Filtrer par statut" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button type="button" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button></sc-for>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 860px">
+<thead><tr style="text-align: left; color: #59616E; font-size: 13px">
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">N°</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Fournisseur</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Date</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Lignes</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">Montant HT</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB; text-align: right">ROI prévu</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Statut</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #E3E6EB">Suite</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{pos}}" as="p" hint-placeholder-count="5">
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; font-weight: 600">{{p.id}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3">{{p.sup}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3">{{p.date}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{p.lines}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{p.amount}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right">{{p.roi}}</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3"><span style="{{p.sStyle}}">{{p.status}}</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3"><a href="{{p.href}}" style="font-weight: 600">{{p.next}}</a></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; font-size: 13px; color: #59616E">À réception chez Amazon, chaque ligne du bon de commande devient un lot : le ROI prévu est figé et comparé aux ventes réelles dans « Achats &amp; lots ».</p>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: 'Tous' }; }
+  renderVals() {
+    const tag = (ok) => 'display: inline-block; padding: 3px 8px; border-radius: 6px; font-weight: 600; ' + (ok ? 'background: #E6F4EC; color: #18794E' : 'background: #FDF0E6; color: #8F4208');
+    const sups = [
+      { name: 'Grossiste A', kind: 'Distributeur · France', list: '03/11 · 1 120 lignes', ok: '24', spent: '6 840 €', plan: '33 %', real: '34 %', good: true, delay: '6 j', rel: 'Livraisons complètes 11/11' },
+      { name: 'Grossiste B', kind: 'Grossiste · Allemagne', list: '08/11 · 2 140 lignes', ok: '38', spent: '9 310 €', plan: '31 %', real: '21 %', good: false, delay: '9 j', rel: '2 livraisons incomplètes sur 9' },
+      { name: 'MarqueDemo', kind: 'Marque en direct', list: '15/10 · 85 lignes', ok: '9', spent: '2 150 €', plan: '36 %', real: '37 %', good: true, delay: '4 j', rel: 'Livraisons complètes 4/4' },
+    ].map((s) => ({ ...s, realStyle: tag(s.good) }));
+    const pill = (on) => 'min-height: 40px; padding: 0 14px; border-radius: 999px; font: 600 14px Inter, sans-serif; cursor: pointer; border: 1px solid ' + (on ? '#1F4FD1; background: #1F4FD1; color: #FFFFFF' : '#D5DAE1; background: #FFFFFF; color: #3A414C');
+    const filters = ['Tous', 'Brouillon', 'Envoyé', 'Reçu'].map((l) => ({ label: l, style: pill(this.state.f === l), pick: () => this.setState({ f: l }) }));
+    const st = { Brouillon: ['#3A414C', '#EEF0F3'], 'Envoyé': ['#1F4FD1', '#E8EEFC'], 'Reçu': ['#18794E', '#E6F4EC'] };
+    const all = [
+      { id: 'BC-0034', sup: 'Grossiste B', date: '11/11', lines: 3, amount: '730 €', roi: '32 %', status: 'Brouillon', next: 'Envoyer au fournisseur', href: 'Fournisseurs.dc.html' },
+      { id: 'BC-0033', sup: 'Grossiste A', date: '11/11', lines: 2, amount: '510 €', roi: '35 %', status: 'Brouillon', next: 'Envoyer au fournisseur', href: 'Fournisseurs.dc.html' },
+      { id: 'BC-0031', sup: 'MarqueDemo', date: '04/11', lines: 5, amount: '1 180 €', roi: '36 %', status: 'Envoyé', next: 'Préparer l’envoi Amazon', href: 'Fournisseurs.dc.html' },
+      { id: 'BC-0028', sup: 'Grossiste A', date: '12/08', lines: 4, amount: '1 340 €', roi: '35 %', status: 'Reçu', next: 'Voir les lots', href: 'Lots.dc.html' },
+      { id: 'BC-0026', sup: 'Grossiste B', date: '05/09', lines: 6, amount: '1 960 €', roi: '31 %', status: 'Reçu', next: 'Voir les lots', href: 'Lots.dc.html' },
+    ];
+    const pos = all.filter((p) => this.state.f === 'Tous' || p.status === this.state.f).map((p) => ({ ...p, sStyle: 'padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; background: ' + st[p.status][1] + '; color: ' + st[p.status][0] }));
+    return { sups, filters, pos };
+  }
+}
+</script>
+</body>
+</html>
