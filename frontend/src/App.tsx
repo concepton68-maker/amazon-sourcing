@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DetailLot, ResumeLot, detailLot, listerLots } from "./api";
+import { AnalyseVue } from "./Analyse";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
 function signeClasse(v: string | null): string {
@@ -73,7 +74,7 @@ function Detail({ d }: { d: DetailLot }) {
           </div>
         </div>
 
-        <div className="carte">
+        {d.vendues > 0 && <div className="carte">
           <h3>{t("causes.titre")}</h3>
           <ul className="causes" role="list">
             {d.causes.map((c) => {
@@ -91,26 +92,25 @@ function Detail({ d }: { d: DetailLot }) {
               );
             })}
           </ul>
-        </div>
+        </div>}
       </div>
     </section>
   );
 }
 
-export function App() {
+function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: boolean) => void }) {
   const [lots, setLots] = useState<ResumeLot[] | null>(null);
-  const [demo, setDemo] = useState(false);
   const [orphelines, setOrphelines] = useState(0);
-  const [choisi, setChoisi] = useState<string>();
+  const [choisi, setChoisi] = useState<string | undefined>(lotInitial);
   const [detail, setDetail] = useState<DetailLot | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
     listerLots().then((r) => {
       setLots(r.lots); setDemo(r.demo); setOrphelines(r.ventes_non_rattachees);
-      if (r.lots.length) setChoisi(r.lots[0].id);
+      if (r.lots.length && !lotInitial) setChoisi(r.lots[0].id);
     }).catch((e) => setErreur(e.message));
-  }, []);
+  }, [lotInitial, setDemo]);
 
   useEffect(() => {
     if (!choisi) return;
@@ -119,21 +119,47 @@ export function App() {
   }, [choisi]);
 
   return (
+    <div className="contenu">
+      <aside className="colonne" aria-labelledby="titre-lots">
+        <h1 id="titre-lots">{t("lots.titre")}</h1>
+        {lots === null ? <p>{t("chargement")}</p> : <Liste lots={lots} choisi={choisi} choisir={setChoisi} />}
+        {orphelines > 0 && <p className="alerte">{t("lots.non_rattachees", { n: orphelines })}</p>}
+      </aside>
+      {erreur ? <p role="alert" className="alerte">{t(erreur.startsWith("erreur.") ? erreur : `erreur.${erreur}`)}</p>
+        : detail ? <Detail d={detail} /> : choisi && <p>{t("chargement")}</p>}
+    </div>
+  );
+}
+
+type Vue = "analyse" | "lots";
+const vueDepuisAdresse = (): Vue => (window.location.hash === "#lots" ? "lots" : "analyse");
+
+export function App() {
+  const [vue, setVue] = useState<Vue>(vueDepuisAdresse());
+  const [demo, setDemo] = useState(false);
+  const [lotInitial, setLotInitial] = useState<string>();
+
+  useEffect(() => {
+    const suivre = () => setVue(vueDepuisAdresse());
+    window.addEventListener("hashchange", suivre);
+    return () => window.removeEventListener("hashchange", suivre);
+  }, []);
+  useEffect(() => { listerLots().then((r) => setDemo(r.demo)).catch(() => undefined); }, []);
+
+  const lotCree = (id: string) => { setLotInitial(id); window.location.hash = "#lots"; };
+
+  return (
     <div className="page">
       <header className="barre-haut">
         <span className="marque">{t("app.nom")}</span>
-        <nav aria-label="Navigation principale"><a href="/" aria-current="page">{t("nav.lots")}</a></nav>
+        <nav aria-label="Navigation principale">
+          <a href="#analyse" aria-current={vue === "analyse" ? "page" : undefined}>{t("nav.analyse")}</a>
+          <a href="#lots" aria-current={vue === "lots" ? "page" : undefined}>{t("nav.lots")}</a>
+        </nav>
         {demo && <span className="badge-demo">{t("demo")}</span>}
       </header>
-      <main className="contenu">
-        <aside className="colonne" aria-labelledby="titre-lots">
-          <h1 id="titre-lots">{t("lots.titre")}</h1>
-          {lots === null ? <p>{t("chargement")}</p> : <Liste lots={lots} choisi={choisi} choisir={setChoisi} />}
-          {orphelines > 0 && <p className="alerte">{t("lots.non_rattachees", { n: orphelines })}</p>}
-        </aside>
-        {erreur ? <p role="alert" className="alerte">{t(erreur.startsWith("erreur.") ? erreur : `erreur.${erreur}`)}</p>
-          : detail ? <Detail d={detail} /> : choisi && <p>{t("chargement")}</p>}
-      </main>
+      {vue === "analyse" ? <main className="contenu-plein"><AnalyseVue lotCree={lotCree} /></main>
+        : <main><LotsVue key={lotInitial ?? "lots"} lotInitial={lotInitial} setDemo={setDemo} /></main>}
     </div>
   );
 }

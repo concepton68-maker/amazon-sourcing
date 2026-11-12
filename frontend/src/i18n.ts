@@ -25,3 +25,20 @@ export function pourcent(valeur: string | null): string {
 export function dateCourte(iso: string): string {
   return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(iso));
 }
+
+// Messages codés [RM-AMZ-027] : les paramètres sont formatés selon leur nature.
+const POURCENTS = new Set(["roi", "seuil", "taux", "pct", "amplitude"]);
+const MONTANTS = new Set(["profit", "montant", "prix", "moyenne"]);
+
+export interface Msg { code: string; params: Record<string, string | number | null> }
+
+export function message(msg: Msg, devise: string): string {
+  const p: Record<string, string> = {};
+  for (const [k, v] of Object.entries(msg.params)) {
+    if (v === null) p[k] = "—";
+    else if (POURCENTS.has(k)) p[k] = pourcent(String(v));
+    else if (MONTANTS.has(k)) p[k] = monnaie(String(v), devise);
+    else p[k] = String(v);
+  }
+  return t(`msg.${msg.code}`, p);
+}

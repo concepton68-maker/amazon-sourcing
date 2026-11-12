@@ -17,6 +17,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 from .marketplaces import Marketplace
+from .messages import Message, m
 
 REGIMES_TVA = ("assujetti", "non_assujetti", "hors_taxe")
 
@@ -62,7 +63,7 @@ class ResultatRentabilite:
     prix_achat_max_pour_roi: Optional[float]  # prix d'achat max (même base que la saisie) pour atteindre le ROI cible
     roi_cible: float
     regime_tva: str
-    hypotheses: list[str] = field(default_factory=list)
+    hypotheses: list[Message] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -88,10 +89,10 @@ def calculer_rentabilite(
     if prix_vente <= 0:
         raise ValueError("Le prix de vente doit être positif.")
 
-    hyp: list[str] = []
+    hyp: list[Message] = []
     if not mp.prix_ttc or mp.taux_tva_standard == 0:
         if regime_tva != "hors_taxe":
-            hyp.append(f"{mp.code} : prix affichés hors taxe ou TVA non modélisée -> calcul sans TVA.")
+            hyp.append(m("HYP_HORS_TAXE", mp=mp.code))
         regime_tva = "hors_taxe"
 
     t_vente = mp.taux_tva_standard if taux_tva_vente is None else taux_tva_vente
@@ -102,22 +103,22 @@ def calculer_rentabilite(
     if regime_tva == "assujetti":
         prix_ht = prix_vente / (1 + t_vente)
         tva_collectee = prix_vente - prix_ht
-        hyp.append(f"TVA collectée au taux {t_vente:.1%} (taux standard {mp.code} sauf surcharge ; vérifier les taux réduits).")
+        hyp.append(m("HYP_TVA_COLLECTEE", taux=t_vente, mp=mp.code))
     else:
         prix_ht = prix_vente
         tva_collectee = 0.0
         if regime_tva == "non_assujetti":
-            hyp.append("Non assujetti : aucune TVA reversée ni récupérée.")
+            hyp.append(m("HYP_NON_ASSUJETTI"))
 
     # --- Coût d'achat ---
     if regime_tva == "assujetti":
         cout_achat = couts.prix_achat / (1 + t_achat) if couts.prix_achat_ttc else couts.prix_achat
         if couts.prix_achat_ttc:
-            hyp.append(f"TVA sur achat récupérée au taux {t_achat:.1%}.")
+            hyp.append(m("HYP_TVA_ACHAT_RECUPEREE", taux=t_achat))
     elif regime_tva == "non_assujetti":
         cout_achat = couts.prix_achat if couts.prix_achat_ttc else couts.prix_achat * (1 + t_achat)
         if not couts.prix_achat_ttc:
-            hyp.append(f"Prix d'achat saisi HT : TVA {t_achat:.1%} ajoutée comme coût (non récupérable).")
+            hyp.append(m("HYP_TVA_ACHAT_COUT", taux=t_achat))
     else:
         cout_achat = couts.prix_achat
 
@@ -125,17 +126,17 @@ def calculer_rentabilite(
     frais_ht = frais.total_ht
     if regime_tva == "non_assujetti":
         tva_frais = frais_ht * t_frais
-        hyp.append(f"TVA sur frais Amazon ({t_frais:.1%}) comptée comme coût (non récupérable).")
+        hyp.append(m("HYP_TVA_FRAIS_COUT", taux=t_frais))
     else:
         tva_frais = 0.0
     if frais.source != "sp-api":
-        hyp.append(f"Frais Amazon issus de : {frais.source} (non confirmés par l'API Amazon).")
+        hyp.append(m("HYP_FRAIS_NON_CONFIRMES", source=frais.source))
 
     # --- Autres coûts ---
     retours = couts.taux_retours * prix_vente
     autres = couts.envoi_entrepot + couts.preparation + couts.stockage_estime + couts.autres_couts + retours
     if couts.taux_retours:
-        hyp.append(f"Provision retours : {couts.taux_retours:.1%} du prix de vente.")
+        hyp.append(m("HYP_PROVISION_RETOURS", taux=couts.taux_retours))
 
     profit = prix_ht - cout_achat - frais_ht - tva_frais - autres
     roi = profit / cout_achat if cout_achat > 0 else None
@@ -183,5 +184,5 @@ def estimer_frais(prix_vente: float, taux_commission: float = 0.15, fba: float =
     return FraisAmazon(
         commission=prix_vente * taux_commission,
         fba=fba,
-        source=f"estimation (commission {taux_commission:.0%}, FBA saisi)",
+        source="estimation",
     )

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .analyse import Fournisseurs, Seuils, analyser_asin, resoudre_asins
 from .marketplaces import MARKETPLACES, get_marketplace
+from .messages import texte_fr
 from .profit import REGIMES_TVA, ParametresCout
 from .providers.base import ErreurFournisseur
 
@@ -103,7 +104,7 @@ def afficher(a, devise: str) -> str:
                          ("Hypothèses de calcul", r.hypotheses if r else [])):
         if liste:
             L.append(f"{titre} :")
-            L += [f"  • {x}" for x in liste]
+            L += [f"  • {texte_fr(x)}" for x in liste]
     return "\n".join(L)
 
 
