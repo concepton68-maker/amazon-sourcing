@@ -58,26 +58,8 @@ for i in $(seq 1 60); do curl -fsS http://127.0.0.1:8830/api/sante >/dev/null 2>
 curl -fsS http://127.0.0.1:8830/api/sante >/dev/null || { echo "L'application ne répond pas. Rien n'est perdu : relancez l'installation."; exit 1; }
 echo "Application démarrée."
 
-etape "6/7 Mise à jour automatique (toutes les 5 minutes, depuis main)"
-install -m 755 "$DOSSIER/deploy/serveur/mettre-a-jour.sh" /usr/local/bin/syllig-vente-mettre-a-jour
-cat > /etc/systemd/system/syllig-vente-maj.service <<UNIT
-[Unit]
-Description=Syllig Vente - mise a jour depuis GitHub
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/syllig-vente-mettre-a-jour
-UNIT
-cat > /etc/systemd/system/syllig-vente-maj.timer <<UNIT
-[Unit]
-Description=Syllig Vente - verifier les nouvelles versions
-[Timer]
-OnBootSec=2min
-OnUnitActiveSec=5min
-[Install]
-WantedBy=timers.target
-UNIT
-systemctl daemon-reload
-systemctl enable --now syllig-vente-maj.timer
+etape "6/7 Mise à jour automatique, sauvegarde et purge de nuit"
+bash "$DOSSIER/deploy/serveur/configurer.sh"
 
 etape "7/7 Premier compte"
 N=$("${DC[@]}" exec -T postgres psql -U postgres -d amz -tAc "SELECT count(*) FROM amz.utilisateurs" | tr -d '[:space:]')
