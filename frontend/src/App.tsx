@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { DetailLot, ResumeLot, detailLot, listerLots } from "./api";
 import { AnalyseVue } from "./Analyse";
 import { SourcingVue } from "./Sourcing";
+import { Connexion } from "./Connexion";
+import { NonConnecte, deconnecter, moi } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
 function signeClasse(v: string | null): string {
@@ -141,6 +143,17 @@ const vueDepuisAdresse = (): Vue => {
 export function App() {
   const [vue, setVue] = useState<Vue>(vueDepuisAdresse());
   const [demo, setDemo] = useState(false);
+  const [etat, setEtat] = useState<"verification" | "requise" | "ok">("verification");
+  const [avecConnexion, setAvecConnexion] = useState(false);
+  const verifier = () => moi().then((m) => { setDemo(m.demo); setAvecConnexion(m.connexion); setEtat("ok"); })
+    .catch((e) => setEtat(e instanceof NonConnecte ? "requise" : "ok"));
+  useEffect(() => { verifier(); }, []);  // eslint-disable-line
+  useEffect(() => {
+    const perdu = (e: PromiseRejectionEvent) => { if (e.reason instanceof NonConnecte) setEtat("requise"); };
+    window.addEventListener("unhandledrejection", perdu);
+    return () => window.removeEventListener("unhandledrejection", perdu);
+  }, []);
+  const sortir = async () => { await deconnecter(); setEtat("requise"); };
   const [lotInitial, setLotInitial] = useState<string>();
 
   useEffect(() => {
@@ -148,12 +161,13 @@ export function App() {
     window.addEventListener("hashchange", suivre);
     return () => window.removeEventListener("hashchange", suivre);
   }, []);
-  useEffect(() => { listerLots().then((r) => setDemo(r.demo)).catch(() => undefined); }, []);
 
   const [analyseInitiale, setAnalyseInitiale] = useState<{ code: string; prix: number }>();
   const lotCree = (id: string) => { setLotInitial(id); window.location.hash = "#lots"; };
   const analyser = (code: string, prix: number) => { setAnalyseInitiale({ code, prix }); window.location.hash = "#analyse"; };
 
+  if (etat === "verification") return null;
+  if (etat === "requise") return <Connexion connecte={verifier} />;
   return (
     <div className="page">
       <header className="barre-haut">
@@ -164,6 +178,7 @@ export function App() {
           <a href="#lots" aria-current={vue === "lots" ? "page" : undefined}>{t("nav.lots")}</a>
         </nav>
         {demo && <span className="badge-demo">{t("demo")}</span>}
+        {avecConnexion && <button type="button" className="lien sortie" onClick={sortir}>{t("connexion.sortir")}</button>}
       </header>
       {vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
         : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue analyser={analyser} /></main>

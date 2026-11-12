@@ -1,35 +1,35 @@
-"""API web de Syllig Vente — écran « Achats & lots » [RM-AMZ-024, 025, 026].
+"""API web de Syllig Vente.
 
-Lancement : `AMZ_MODE=dev python -m sourcing serveur` (D-AMZ-017 : aucun autre mode tant que la
-connexion des utilisateurs n'existe pas). Les montants sont des chaînes décimales avec leur devise ;
-les textes sont des codes traduits par l'interface.
+Modes (D-AMZ-019) : `AMZ_MODE=dev` = démonstration sans connexion (données fictives) ;
+`AMZ_MODE=prod` = Postgres + connexion obligatoire. Le compte vendeur vient toujours de la
+session, jamais de la requête [RM-AMZ-039]. Montants en chaînes ou nombres avec leur devise ;
+textes = codes traduits par l'interface.
 """
 from __future__ import annotations
 
 import os
 import pathlib
-from decimal import Decimal
-from typing import Optional
-
 import uuid
 from collections import OrderedDict
 from datetime import date
+from decimal import Decimal
+from typing import Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import Response
-from pydantic import BaseModel, Field
-from fastapi.responses import FileResponse
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
-from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
-from .depot import AccesRefuse
 from . import fichier as fich
-from .messages import texte_fr
-from .traitement import Traitements, export_csv
+from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
+from .auth import Authentification, ErreurAuth
+from .depot import AccesRefuse
 from .lots import Lot, ResultatLot, decomposer_ecart, prevision_depuis_analyse, rattacher_fifo
 from .marketplaces import MARKETPLACES, get_marketplace
+from .messages import texte_fr
 from .profit import REGIMES_TVA, ParametresCout
 from .providers.base import ErreurFournisseur
+from .traitement import Traitements, export_csv
 
 DIST = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
@@ -149,23 +149,103 @@ def _analyse_json(a: AnalyseProduit, jeton: str) -> dict:
     }
 
 
-def creer_app(depot, compte_id: str, servir_interface: bool = True, demo: bool = False,
+COOKIE = "sv_session"
+ENTETE_ANTI_CSRF = "x-syllig-vente"
+
+
+class DemandeConnexion(BaseModel):
+    courriel: str = Field(min_length=3, max_length=254)
+    mot_de_passe: str = Field(min_length=1, max_length=1024)
+
+
+def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool = True, demo: bool = False,
               fournisseurs: Optional[Fournisseurs] = None, seuils: Optional[Seuils] = None,
-              traitement_en_fond: bool = True) -> FastAPI:
-    app = FastAPI(title="Syllig Vente", docs_url="/api/docs", openapi_url="/api/openapi.json")
+              traitement_en_fond: bool = True, auth: Optional[Authentification] = None,
+              cookie_secure: bool = True) -> FastAPI:
+    """`auth` absent : un seul compte fixe (`compte_demo`), mode démonstration. `auth` présent : sessions."""
+    if auth is None and not compte_demo:
+        raise ValueError("compte_demo requis sans authentification")
+    app = FastAPI(title="Syllig Vente", docs_url="/api/docs" if auth is None else None,
+                  openapi_url="/api/openapi.json" if auth is None else None)
     fournisseurs = fournisseurs or Fournisseurs()
     seuils = seuils or Seuils()
-    analyses: "OrderedDict[str, tuple[AnalyseProduit, ParametresCout]]" = OrderedDict()  # gardées côté serveur
-    utilisees: set[str] = set()  # [RM-AMZ-029] une analyse, un lot
-    fichiers: "OrderedDict[str, tuple[str, fich.Table]]" = OrderedDict()
+    analyses: "OrderedDict[str, tuple[str, AnalyseProduit, ParametresCout]]" = OrderedDict()
+    utilisees: set[str] = set()                   # [RM-AMZ-029] une analyse, un lot
+    fichiers: "OrderedDict[str, tuple[str, str, fich.Table]]" = OrderedDict()
     traitements = Traitements()
 
+    @app.middleware("http")
+    async def anti_csrf(request: Request, appel_suivant):
+        """[RM-AMZ-040] Hors démo, toute requête qui modifie doit porter l'en-tête dédié."""
+        if auth is not None and request.url.path.startswith("/api/") \
+                and request.method in ("POST", "PUT", "PATCH", "DELETE") \
+                and request.headers.get(ENTETE_ANTI_CSRF) != "1":
+            return JSONResponse({"detail": "ENTETE_MANQUANT"}, status_code=403)
+        return await appel_suivant(request)
+
+    def compte(request: Request) -> str:
+        """[RM-AMZ-039] Le compte vient de la session ; jamais d'un paramètre de la requête."""
+        if auth is None:
+            return compte_demo
+        s = auth.session_valide(request.cookies.get(COOKIE))
+        if s is None:
+            raise HTTPException(401, "NON_CONNECTE")
+        return s.compte_id
+
+    # ------------------------------------------------------------- session [RM-AMZ-037, 038]
+    @app.post("/api/session")
+    def connexion(d: DemandeConnexion):
+        if auth is None:
+            raise HTTPException(404, "MODE_DEMO")
+        try:
+            jeton, _ = auth.connecter(d.courriel, d.mot_de_passe)
+        except ErreurAuth as e:
+            raise HTTPException(401 if e.args[0] == "IDENTIFIANTS_INVALIDES" else 429, e.args[0]) from None
+        r = JSONResponse({"ok": True})
+        r.set_cookie(COOKIE, jeton, httponly=True, samesite="lax", secure=cookie_secure, path="/",
+                     max_age=int(30 * 24 * 3600))
+        return r
+
+    @app.delete("/api/session")
+    def deconnexion(request: Request):
+        if auth is not None:
+            auth.deconnecter(request.cookies.get(COOKIE))
+        r = JSONResponse({"ok": True})
+        r.delete_cookie(COOKIE, path="/")
+        return r
+
+    @app.get("/api/moi")
+    def moi(c: str = Depends(compte)):
+        return {"compte_id": c, "demo": demo, "connexion": auth is not None}
+
+    # ------------------------------------------------------------- lots
+    def resultats(c: str):
+        return rattacher_fifo(depot.lots(c), depot.ventes(c))
+
+    @app.get("/api/lots")
+    def lister_lots(c: str = Depends(compte)):
+        res, orphelines = resultats(c)
+        lots = sorted((_resume(r) for r in res.values()), key=lambda x: x["date_achat"], reverse=True)
+        return {"lots": lots, "ventes_non_rattachees": len(orphelines), "demo": demo}
+
+    @app.get("/api/lots/{lot_id}")
+    def detail_lot(lot_id: str, c: str = Depends(compte)):
+        try:
+            depot.lot(c, lot_id)
+        except AccesRefuse:
+            raise HTTPException(404, "LOT_INTROUVABLE") from None
+        res, _ = resultats(c)
+        if lot_id not in res:                   # version remplacée : on montre la version en vigueur
+            raise HTTPException(404, "LOT_REMPLACE")
+        return _detail(res[lot_id])
+
+    # ------------------------------------------------------------- analyse [RM-AMZ-028]
     @app.get("/api/places")
     def places():
         return [{"code": m.code, "domaine": m.domaine, "devise": m.devise} for m in MARKETPLACES.values()]
 
     @app.post("/api/analyse")
-    def analyser(d: DemandeAnalyse):
+    def analyser(d: DemandeAnalyse, c: str = Depends(compte)):
         try:
             mp = get_marketplace(d.marketplace)
         except ValueError:
@@ -183,30 +263,52 @@ def creer_app(depot, compte_id: str, servir_interface: bool = True, demo: bool =
         for asin in asins:
             a = analyser_asin(mp, asin, couts, fournisseurs, d.regime_tva, seuils, d.prix_vente, d.taux_tva)
             jeton = str(uuid.uuid4())
-            analyses[jeton] = (a, couts)
+            analyses[jeton] = (c, a, couts)
             while len(analyses) > 500:
                 analyses.popitem(last=False)
             sortie.append(_analyse_json(a, jeton))
         return {"analyses": sortie}
 
+    @app.post("/api/lots", status_code=201)
+    def creer_lot(d: DemandeLot, c: str = Depends(compte)):
+        """[RM-AMZ-029] La prévision vient de l'analyse gardée côté serveur, jamais du navigateur."""
+        if d.jeton_analyse in utilisees:
+            raise HTTPException(409, "ANALYSE_DEJA_UTILISEE")
+        trouve = analyses.get(d.jeton_analyse)
+        if trouve is None or trouve[0] != c:     # [RM-AMZ-039] analyse d'un autre compte = introuvable
+            raise HTTPException(404, "ANALYSE_EXPIREE")
+        _, a, couts = trouve
+        if a.rentabilite is None:
+            raise HTTPException(409, "ANALYSE_SANS_RENTABILITE")
+        mp = get_marketplace(a.marketplace)
+        sources = ["prix:" + a.origine_prix, "frais:" + (a.frais.source if a.frais else "aucun")]
+        lot = Lot(c, a.asin, a.marketplace, d.quantite, d.date_achat or date.today(),
+                  prevision_depuis_analyse(a.rentabilite, couts, mp.devise, sources),
+                  fournisseur=(d.fournisseur or "").strip() or None, designation=a.catalogue.titre)
+        depot.ajouter_lot(c, lot)
+        del analyses[d.jeton_analyse]
+        utilisees.add(d.jeton_analyse)
+        return {"id": lot.id}
+
     # ------------------------------------------------------------- sourcing par fichier [RM-AMZ-030 à 035]
     @app.post("/api/sourcing/fichiers", status_code=201)
-    async def deposer_fichier(fichier: UploadFile = File(...)):
+    async def deposer_fichier(fichier: UploadFile = File(...), c: str = Depends(compte)):
         contenu = await fichier.read(fich.MAX_OCTETS + 1)
         try:
             table = fich.lire(contenu, fichier.filename or "")
         except fich.FichierInvalide as e:
             raise HTTPException(422, e.args[0]) from None
         fid = str(uuid.uuid4())
-        fichiers[fid] = (fichier.filename or "", table)
-        while len(fichiers) > 20:
+        fichiers[fid] = (c, fichier.filename or "", table)
+        while len(fichiers) > 50:
             fichiers.popitem(last=False)
         return {"fichier_id": fid, "nom": fichier.filename, "entetes": table.entetes, "apercu": table.lignes[:5],
                 "nb_lignes": len(table.lignes), "colonnes": fich.proposer_colonnes(table.entetes)}
 
     @app.post("/api/sourcing/fichiers/{fid}/traitements", status_code=201)
-    def lancer_traitement(fid: str, d: DemandeTraitement):
-        if fid not in fichiers:
+    def lancer_traitement(fid: str, d: DemandeTraitement, c: str = Depends(compte)):
+        f = fichiers.get(fid)
+        if f is None or f[0] != c:
             raise HTTPException(404, "FICHIER_EXPIRE")
         try:
             mp = get_marketplace(d.marketplace)
@@ -216,108 +318,70 @@ def creer_app(depot, compte_id: str, servir_interface: bool = True, demo: bool =
             raise HTTPException(422, "REGIME_TVA_INCONNU")
         colonnes = {r: d.colonnes.get(r) for r in fich.ROLES}
         try:
-            prep = fich.preparer(fichiers[fid][1], colonnes, d.prix_par_carton)
+            prep = fich.preparer(f[2], colonnes, d.prix_par_carton)
         except fich.FichierInvalide as e:
             raise HTTPException(422, e.args[0]) from None
-        t = traitements.lancer(compte_id, prep, mp, fournisseurs, depot, d.regime_tva, d.achat_ttc, seuils,
+        t = traitements.lancer(c, prep, mp, fournisseurs, depot, d.regime_tva, d.achat_ttc, seuils,
                                en_fond=traitement_en_fond)
         return {"traitement_id": t.id}
 
     @app.get("/api/sourcing/traitements/{tid}")
-    def suivre_traitement(tid: str):
-        t = traitements.obtenir(compte_id, tid)
+    def suivre_traitement(tid: str, c: str = Depends(compte)):
+        t = traitements.obtenir(c, tid)
         if t is None:
             raise HTTPException(404, "TRAITEMENT_INTROUVABLE")
         res = t.tries()
-        compte = lambda v: sum(1 for r in res if r.verdict == v and r.statut == "ANALYSEE")  # noqa: E731
+        n = lambda v: sum(1 for r in res if r.verdict == v and r.statut == "ANALYSEE")  # noqa: E731
         return {
             "statut": t.statut, "total": t.total, "faits": t.faits, "marketplace": t.marketplace,
             "devise": get_marketplace(t.marketplace).devise,
-            "compteurs": {"ACHETER": compte("ACHETER"), "A_VERIFIER": compte("A_VERIFIER"), "PASSER": compte("PASSER"),
+            "compteurs": {"ACHETER": n("ACHETER"), "A_VERIFIER": n("A_VERIFIER"), "PASSER": n("PASSER"),
                           "INTROUVABLE": sum(1 for r in res if r.statut == "INTROUVABLE"),
                           "ERREUR_SOURCE": sum(1 for r in res if r.statut == "ERREUR_SOURCE"),
                           "REJETEE": len(t.rejets), "DOUBLON": len(t.doublons), "MEMOIRE": t.appariements_memoire},
             "resultats": [_resultat_json(r) for r in res],
-            "rejets": [{"ligne": n, "message": msg.to_dict()} for n, msg in t.rejets],
-            "doublons": [{"ligne": n, "code": c} for n, c in t.doublons],
+            "rejets": [{"ligne": k, "message": msg.to_dict()} for k, msg in t.rejets],
+            "doublons": [{"ligne": k, "code": code} for k, code in t.doublons],
         }
 
     @app.get("/api/sourcing/traitements/{tid}/export.csv")
-    def exporter(tid: str):
-        t = traitements.obtenir(compte_id, tid)
+    def exporter(tid: str, c: str = Depends(compte)):
+        t = traitements.obtenir(c, tid)
         if t is None:
             raise HTTPException(404, "TRAITEMENT_INTROUVABLE")
         return Response(export_csv(t, texte_fr), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="sourcing-{tid[:8]}.csv"'})
 
-    @app.post("/api/lots", status_code=201)
-    def creer_lot(d: DemandeLot):
-        """[RM-AMZ-029] La prévision vient de l'analyse gardée côté serveur, jamais du navigateur."""
-        if d.jeton_analyse in utilisees:
-            raise HTTPException(409, "ANALYSE_DEJA_UTILISEE")
-        trouve = analyses.get(d.jeton_analyse)
-        if trouve is None:
-            raise HTTPException(404, "ANALYSE_EXPIREE")
-        a, couts = trouve
-        if a.rentabilite is None:
-            raise HTTPException(409, "ANALYSE_SANS_RENTABILITE")
-        mp = get_marketplace(a.marketplace)
-        sources = ["prix:" + a.origine_prix, "frais:" + (a.frais.source if a.frais else "aucun")]
-        lot = Lot(compte_id, a.asin, a.marketplace, d.quantite, d.date_achat or date.today(),
-                  prevision_depuis_analyse(a.rentabilite, couts, mp.devise, sources),
-                  fournisseur=(d.fournisseur or "").strip() or None, designation=a.catalogue.titre)
-        depot.ajouter_lot(compte_id, lot)
-        del analyses[d.jeton_analyse]
-        utilisees.add(d.jeton_analyse)
-        return {"id": lot.id}
-
-    def resultats():
-        res, orphelines = rattacher_fifo(depot.lots(compte_id), depot.ventes(compte_id))
-        return res, orphelines
-
-    @app.get("/api/lots")
-    def lister_lots():
-        res, orphelines = resultats()
-        lots = sorted((_resume(r) for r in res.values()), key=lambda x: x["date_achat"], reverse=True)
-        return {"lots": lots, "ventes_non_rattachees": len(orphelines), "demo": demo}
-
-    @app.get("/api/lots/{lot_id}")
-    def detail_lot(lot_id: str):
-        try:
-            depot.lot(compte_id, lot_id)
-        except AccesRefuse:
-            raise HTTPException(404, "LOT_INTROUVABLE") from None
-        res, _ = resultats()
-        if lot_id not in res:                   # version remplacée : on montre la version en vigueur
-            raise HTTPException(404, "LOT_REMPLACE")
-        return _detail(res[lot_id])
-
+    # ------------------------------------------------------------- interface
     if servir_interface and DIST.exists():
         app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
 
         @app.get("/{chemin:path}", include_in_schema=False)
         def interface(chemin: str):
+            if chemin.startswith("api/"):
+                raise HTTPException(404, "INTROUVABLE")
             return FileResponse(DIST / "index.html")
     return app
 
 
 def app_depuis_environnement() -> FastAPI:
-    """D-AMZ-017 : refuse de démarrer hors mode dev tant que la connexion des utilisateurs n'existe pas."""
-    if os.environ.get("AMZ_MODE") != "dev":
-        raise SystemExit("AMZ_MODE=dev requis : l'authentification n'existe pas encore (D-AMZ-017).")
-    url = os.environ.get("AMZ_DATABASE_URL")
-    if url:
-        import psycopg
-
-        from .db import DepotPostgres
-        compte = os.environ.get("AMZ_COMPTE_ID")
-        if not compte:
-            raise SystemExit("AMZ_COMPTE_ID requis avec AMZ_DATABASE_URL.")
+    """D-AMZ-019 : `dev` = démonstration sans connexion ; `prod` = Postgres + connexion obligatoire."""
+    mode = os.environ.get("AMZ_MODE")
+    if mode == "dev":
+        from .demo_donnees import construire
+        from .providers.demo import FournisseurDemo
+        depot, c = construire()
+        d = FournisseurDemo()
+        return creer_app(depot, c, demo=True, fournisseurs=Fournisseurs([d], d, d, d, d))
+    if mode == "prod":
+        url = os.environ.get("AMZ_DATABASE_URL")
+        if not url:
+            raise SystemExit("AMZ_DATABASE_URL requis en mode prod.")
+        from .auth import StockAuthPostgres
         from .cli import construire_fournisseurs
+        from .db import DepotPostgres, Reserve
+        reserve = Reserve(url)
         f, _ = construire_fournisseurs(demo=False)
-        return creer_app(DepotPostgres(psycopg.connect(url, autocommit=True)), compte, fournisseurs=f)
-    from .demo_donnees import construire
-    from .providers.demo import FournisseurDemo
-    depot, compte = construire()
-    d = FournisseurDemo()
-    return creer_app(depot, compte, demo=True, fournisseurs=Fournisseurs([d], d, d, d, d))
+        return creer_app(DepotPostgres(reserve), auth=Authentification(StockAuthPostgres(reserve)), fournisseurs=f,
+                         cookie_secure=True)
+    raise SystemExit("AMZ_MODE doit valoir dev ou prod (D-AMZ-019).")

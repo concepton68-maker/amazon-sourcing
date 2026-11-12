@@ -184,5 +184,14 @@
   "erreur.COLONNE_INVALIDE": "Colonne invalide",
   "erreur.FICHIER_EXPIRE": "Fichier expiré : le déposer à nouveau",
   "erreur.TRAITEMENT_INTROUVABLE": "Analyse introuvable",
-  "msg.L_PRIX_ABSENT": "Prix absent"
+  "msg.L_PRIX_ABSENT": "Prix absent",
+  "connexion.titre": "Connexion",
+  "connexion.courriel": "Courriel",
+  "connexion.mdp": "Mot de passe",
+  "connexion.valider": "Se connecter",
+  "connexion.sortir": "Déconnexion",
+  "erreur.IDENTIFIANTS_INVALIDES": "Courriel ou mot de passe incorrect",
+  "erreur.TROP_D_ESSAIS": "Trop d'essais : réessayer dans 15 minutes",
+  "erreur.NON_CONNECTE": "Session expirée : se reconnecter",
+  "erreur.ENTETE_MANQUANT": "Requête refusée"
 }

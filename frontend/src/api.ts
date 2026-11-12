@@ -13,8 +13,14 @@ export interface DetailLot extends ResumeLot {
   sources: string[]; version: number;
 }
 
+// [RM-AMZ-040] en-tête exigé sur toute requête qui modifie
+const ENTETE = { "x-syllig-vente": "1" };
+
+export class NonConnecte extends Error {}
+
 async function lire<T>(url: string): Promise<T> {
-  const r = await fetch(url);
+  const r = await fetch(url, { credentials: "same-origin" });
+  if (r.status === 401) throw new NonConnecte("NON_CONNECTE");
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail ?? "erreur.chargement");
   return r.json();
 }
@@ -43,7 +49,9 @@ export interface DemandeAnalyse {
 }
 
 async function envoyer<T>(url: string, corps: unknown): Promise<T> {
-  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corps) });
+  const r = await fetch(url, { method: "POST", credentials: "same-origin",
+    headers: { "content-type": "application/json", ...ENTETE }, body: JSON.stringify(corps) });
+  if (r.status === 401 && !url.endsWith("/api/session")) throw new NonConnecte("NON_CONNECTE");
   if (!r.ok) {
     const d = (await r.json().catch(() => ({}))).detail;
     throw new Error(typeof d === "string" ? d : "saisie");
@@ -73,7 +81,8 @@ export interface Suivi {
 export async function deposerFichier(f: File): Promise<Fichier> {
   const corps = new FormData();
   corps.append("fichier", f);
-  const r = await fetch("/api/sourcing/fichiers", { method: "POST", body: corps });
+  const r = await fetch("/api/sourcing/fichiers", { method: "POST", body: corps, headers: ENTETE, credentials: "same-origin" });
+  if (r.status === 401) throw new NonConnecte("NON_CONNECTE");
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail ?? "chargement");
   return r.json();
 }
@@ -82,3 +91,9 @@ export const lancerTraitement = (fid: string, d: { colonnes: Colonnes; marketpla
   envoyer<{ traitement_id: string }>(`/api/sourcing/fichiers/${encodeURIComponent(fid)}/traitements`, d);
 export const suivreTraitement = (tid: string) => lire<Suivi>(`/api/sourcing/traitements/${encodeURIComponent(tid)}`);
 export const urlExport = (tid: string) => `/api/sourcing/traitements/${encodeURIComponent(tid)}/export.csv`;
+
+export const moi = () => lire<{ compte_id: string; demo: boolean; connexion: boolean }>("/api/moi");
+export const connecter = (courriel: string, mot_de_passe: string) =>
+  envoyer<{ ok: boolean }>("/api/session", { courriel, mot_de_passe });
+export const deconnecter = () =>
+  fetch("/api/session", { method: "DELETE", headers: ENTETE, credentials: "same-origin" });

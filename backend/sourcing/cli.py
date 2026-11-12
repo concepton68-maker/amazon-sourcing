@@ -55,6 +55,14 @@ def construire_fournisseurs(demo: bool) -> tuple[Fournisseurs, list[str]]:
     return f, notes
 
 
+def creer_utilisateur(depot, auth, nom_compte: str, courriel: str, mot_de_passe: str):
+    """[RM-AMZ-041] Crée un compte vendeur et son premier utilisateur. Renvoie (compte_id, utilisateur)."""
+    import uuid
+    compte_id = str(uuid.uuid4())
+    depot.creer_compte(compte_id, nom_compte)
+    return compte_id, auth.creer_utilisateur(compte_id, courriel, mot_de_passe)
+
+
 def _m(v, devise="", pct=False):
     if v is None:
         return "n/d"
@@ -114,7 +122,10 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("places", help="Lister les places de marché gérées")
-    srv = sub.add_parser("serveur", help="Interface web (AMZ_MODE=dev requis)")
+    cu = sub.add_parser("creer-utilisateur", help="Créer un compte vendeur et son utilisateur (AMZ_DATABASE_URL requis)")
+    cu.add_argument("--courriel", required=True)
+    cu.add_argument("--compte", required=True, help="Nom du compte vendeur")
+    srv = sub.add_parser("serveur", help="Interface web (AMZ_MODE=dev ou prod)")
     srv.add_argument("--port", type=int, default=8820)
     sub.add_parser("parcours-demo", help="Parcours complet sur données fictives (analyse → lot → ventes → écart)")
 
@@ -137,6 +148,31 @@ def main(argv=None) -> int:
         s.add_argument("--json", action="store_true", help="Sortie JSON")
 
     a = p.parse_args(argv)
+
+    if a.cmd == "creer-utilisateur":
+        import getpass
+
+        import psycopg
+
+        from .auth import Authentification, ErreurAuth, StockAuthPostgres
+        from .db import DepotPostgres
+        url = os.environ.get("AMZ_DATABASE_URL")
+        if not url:
+            print("AMZ_DATABASE_URL requis.", file=sys.stderr)
+            return 2
+        mdp = getpass.getpass("Mot de passe (12 caractères au moins) : ")
+        if mdp != getpass.getpass("Confirmer : "):
+            print("Les deux saisies diffèrent.", file=sys.stderr)
+            return 2
+        with psycopg.connect(url, autocommit=True) as conn:
+            try:
+                cid, u = creer_utilisateur(DepotPostgres(conn), Authentification(StockAuthPostgres(conn)),
+                                           a.compte, a.courriel, mdp)
+            except ErreurAuth as e:
+                print(f"Refusé : {e.args[0]}", file=sys.stderr)
+                return 2
+        print(f"Compte {cid} créé, utilisateur {u.courriel}.")
+        return 0
 
     if a.cmd == "serveur":
         import uvicorn

@@ -164,6 +164,19 @@ class TestDepotPostgres(ContratDepot, unittest.TestCase):
         with self.assertRaises(self.psycopg.errors.CheckViolation):
             self.owner.execute("UPDATE amz.lots SET quantite = 99 WHERE id = %s", (uuid.UUID(l.id),))
 
+    def test_authentification_postgres(self):
+        """[RM-AMZ-036 à 038] Utilisateur et session en base, avec le rôle de l'application ; jeton jamais stocké."""
+        from sourcing.auth import Authentification, StockAuthPostgres
+        auth = Authentification(StockAuthPostgres(self.app))
+        auth.creer_utilisateur(A, "a@exemple.fr", "un-mot-de-passe-solide")
+        jeton, s = auth.connecter("A@exemple.fr", "un-mot-de-passe-solide")
+        self.assertEqual(s.compte_id, A)
+        self.assertEqual(auth.session_valide(jeton).compte_id, A)
+        stockes = [r[0] for r in self.owner.execute("SELECT jeton_hash FROM amz.sessions").fetchall()]
+        self.assertNotIn(jeton, stockes)
+        auth.deconnecter(jeton)
+        self.assertIsNone(auth.session_valide(jeton))
+
     def test_application_ne_supprime_rien(self):
         """La suppression est réservée à la purge (rôle propriétaire)."""
         self.d.ajouter_lot(A, lot(A))

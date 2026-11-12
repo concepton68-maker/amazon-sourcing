@@ -15,6 +15,8 @@ import uuid
 from datetime import date, datetime, timezone
 from typing import Optional
 
+import contextlib
+
 import psycopg
 
 from .depot import DELAI_SUPPRESSION, AccesRefuse
@@ -47,6 +49,25 @@ def migrer(conn: psycopg.Connection) -> list[str]:
     return appliquees
 
 
+# ------------------------------------------------------------------ connexions
+class Reserve:
+    """Réserve de connexions (plusieurs requêtes en parallèle) ; chaque connexion en autocommit."""
+
+    def __init__(self, url: str, taille_max: int = 10):
+        from psycopg_pool import ConnectionPool
+        self.pool = ConnectionPool(url, min_size=1, max_size=taille_max, kwargs={"autocommit": True}, open=True)
+
+    def connexion(self):
+        return self.pool.connection()
+
+
+def connexion(source):
+    """Une connexion psycopg (tests, scripts) ou une `Reserve` (application)."""
+    if isinstance(source, Reserve):
+        return source.connexion()
+    return contextlib.nullcontext(source)
+
+
 # ------------------------------------------------------------------ dépôt cloisonné
 def _uuid(x: str) -> uuid.UUID:
     try:
@@ -56,15 +77,15 @@ def _uuid(x: str) -> uuid.UUID:
 
 
 class DepotPostgres:
-    def __init__(self, conn: psycopg.Connection) -> None:
-        self.conn = conn
+    def __init__(self, source) -> None:
+        self.source = source            # connexion psycopg ou Reserve
 
     def _executer(self, compte_id: str, sql: str, params=()):
-        with self.conn.transaction():
-            self.conn.execute("SELECT set_config('app.compte_id', %s, true)", (str(_uuid(compte_id)),))
+        with connexion(self.source) as conn, conn.transaction():
+            conn.execute("SELECT set_config('app.compte_id', %s, true)", (str(_uuid(compte_id)),))
             try:
-                return self.conn.execute(sql, params).fetchall() if sql.lstrip().upper().startswith("SELECT") \
-                    else self.conn.execute(sql, params)
+                cur = conn.execute(sql, params)
+                return cur.fetchall() if sql.lstrip().upper().startswith("SELECT") else None
             except psycopg.errors.InsufficientPrivilege as e:  # politique de cloisonnement violée
                 raise AccesRefuse("donnée d'un autre compte") from e
 
