@@ -35,3 +35,11 @@ Source commune : notes `docs/recherches/notes/api-financiere/finances_spapi.md` 
 | RM-AMZ-021 | **Types de frais** : la liste des `breakdownType` n'est pas publiée. Classement par une table modifiable (vente, taxe, frais Amazon, retours, stockage, autres) ; un type inconnu est compté en « autres » **et** signalé, jamais ignoré. Seules les ventilations finales (sans sous-ventilation) sont additionnées. | « open-ended string… handle unknown values » (notes § 2) ; noms des types **non vérifiés** | lu / non lu | avertissement | `test_types_inconnus_signales`, `test_pas_de_double_comptage` | codé |
 | RM-AMZ-022 | **Aucune donnée personnelle d'acheteur** : ni rôle restreint, ni `BUYER`/`RECIPIENT`, ni rapport contenant des données d'acheteurs. Seuls les identifiants de commande sont conservés. | Notes § 5–6 | lu | bloquant | `test_aucune_donnee_acheteur` | codé |
 | RM-AMZ-023 | **Montants différés** (`DEFERRED`) : comptés dans le profit du lot mais affichés à part comme « à encaisser » jusqu'à leur libération. | Statuts `DEFERRED`, `RELEASED`, `DEFERRED_RELEASED` (notes § 2) ; affichage : métier | lu / métier | — | `test_montant_differe` | codé |
+
+## Lot 3 : écran « Achats & lots »
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-024 | **Statut d'un lot** : *en vente* tant que des unités restent ; *écoulé* quand toutes les unités sont rattachées à des ventes. Aucun autre statut n'est déduit. | Choix de l'outil | métier | — | `test_api_statut_lot` | à coder |
+| RM-AMZ-025 | **Base de comparaison** : prévu et réel sont comparés sur les **unités vendues** (même quantité des deux côtés) ; le profit prévu du lot entier est affiché à part. | Choix de l'outil | métier | — | `test_api_detail_lot` | à coder |
+| RM-AMZ-026 | **Écran sans texte en dur** : l'API renvoie des codes (`statut`, `cause`) et des montants avec leur devise ; l'interface les traduit (fichier `fr.json`) et formate selon la langue. | D-AMZ-010 | métier | — | `test_api_codes_sans_texte` | à coder |
