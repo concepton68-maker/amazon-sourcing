@@ -86,15 +86,24 @@ class VenteReelle:
     retours: Montant
     stockage: Montant
     autres: Montant
+    commande: Optional[str] = None   # identifiant de commande Amazon (jamais de donnée d'acheteur)
+    differe: bool = False            # [RM-AMZ-023] montant pas encore libéré par Amazon
+
+    @property
+    def net(self) -> Montant:
+        return self.chiffre_affaires_ht - self.frais_amazon - self.retours - self.stockage - self.autres
 
 
 @dataclass
 class Allocation:
     vente: VenteReelle
     quantite: int
+    part_fixe: Optional[Decimal] = None  # ajustement sans quantité : part de la commande portée par le lot
 
     @property
     def part(self) -> Decimal:
+        if self.part_fixe is not None:
+            return self.part_fixe
         return Decimal(self.quantite) / Decimal(self.vente.quantite)
 
 
@@ -137,6 +146,15 @@ class ResultatLot:
         c = self.cout.valeur
         return self.profit_reel.valeur / c if c > 0 else None
 
+    @property
+    def a_encaisser(self) -> Montant:
+        """[RM-AMZ-023] Part du net encore différée par Amazon (incluse dans le profit)."""
+        total = Montant.zero(self.lot.prevision.devise)
+        for a in self.allocations:
+            if a.vente.differe:
+                total = total + a.vente.net * a.part
+        return total
+
 
 def rattacher_fifo(lots: Iterable[Lot], ventes: Iterable[VenteReelle]) -> tuple[dict[str, ResultatLot], list[Allocation]]:
     """[RM-AMZ-012] Renvoie (résultats par id de lot, ventes non rattachées).
@@ -154,7 +172,9 @@ def rattacher_fifo(lots: Iterable[Lot], ventes: Iterable[VenteReelle]) -> tuple[
     def cle(x):
         return (x.compte_id, x.asin, x.marketplace)
 
-    for v in sorted(ventes, key=lambda v: v.jour):
+    par_commande: dict[tuple, list[tuple[str, int]]] = {}
+    ventes = sorted(ventes, key=lambda v: v.jour)
+    for v in ventes:                       # 1) ventes avec quantité, premier entré premier sorti
         if v.quantite <= 0:
             continue
         a_placer = v.quantite
@@ -169,8 +189,20 @@ def rattacher_fifo(lots: Iterable[Lot], ventes: Iterable[VenteReelle]) -> tuple[
             resultats[l.id].allocations.append(Allocation(v, q))
             restant[l.id] -= q
             a_placer -= q
+            if v.commande:
+                par_commande.setdefault(cle(v) + (v.commande,), []).append((l.id, q))
         if a_placer:
             orphelines.append(Allocation(v, a_placer))
+    for v in ventes:                       # 2) [RM-AMZ-019] ajustements sans quantité : lots de la même commande
+        if v.quantite > 0:
+            continue
+        repartition = par_commande.get(cle(v) + (v.commande,)) if v.commande else None
+        if not repartition:
+            orphelines.append(Allocation(v, 0, Decimal(1)))
+            continue
+        total = sum(q for _, q in repartition)
+        for lot_id, q in repartition:
+            resultats[lot_id].allocations.append(Allocation(v, 0, Decimal(q) / Decimal(total)))
     return resultats, orphelines
 
 

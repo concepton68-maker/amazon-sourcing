@@ -93,14 +93,15 @@ class DepotPostgres:
         ide = id_externe or uuid.uuid4().hex
         self._executer(compte_id, """
             INSERT INTO amz.ventes (id, compte_id, id_externe, asin, marketplace, jour, quantite, devise,
-                chiffre_affaires_ht, frais_amazon, retours, stockage, autres)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                chiffre_affaires_ht, frais_amazon, retours, stockage, autres, commande, differe)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (compte_id, id_externe) DO UPDATE SET
                 chiffre_affaires_ht = EXCLUDED.chiffre_affaires_ht, frais_amazon = EXCLUDED.frais_amazon,
-                retours = EXCLUDED.retours, stockage = EXCLUDED.stockage, autres = EXCLUDED.autres""",
+                retours = EXCLUDED.retours, stockage = EXCLUDED.stockage, autres = EXCLUDED.autres,
+                differe = EXCLUDED.differe""",
             (uuid.uuid4(), _uuid(compte_id), ide, vente.asin, vente.marketplace, vente.jour, vente.quantite,
              vente.chiffre_affaires_ht.devise, vente.chiffre_affaires_ht.valeur, vente.frais_amazon.valeur,
-             vente.retours.valeur, vente.stockage.valeur, vente.autres.valeur))
+             vente.retours.valeur, vente.stockage.valeur, vente.autres.valeur, vente.commande, vente.differe))
 
     # -------------------------------------------------------------- lecture
     _COLS_LOT = ("id, compte_id, asin, marketplace, quantite, date_achat, fournisseur, devise, prix_vente_ht, "
@@ -124,9 +125,10 @@ class DepotPostgres:
 
     def ventes(self, compte_id: str) -> list[VenteReelle]:
         rows = self._executer(compte_id, """SELECT compte_id, asin, marketplace, jour, quantite, devise,
-            chiffre_affaires_ht, frais_amazon, retours, stockage, autres FROM amz.ventes ORDER BY jour""")
+            chiffre_affaires_ht, frais_amazon, retours, stockage, autres, commande, differe
+            FROM amz.ventes ORDER BY jour""")
         return [VenteReelle(str(c), a, m, j, q, Montant(ca, d), Montant(f, d), Montant(r, d), Montant(s, d),
-                            Montant(o, d)) for (c, a, m, j, q, d, ca, f, r, s, o) in rows]
+                            Montant(o, d), cmd, dif) for (c, a, m, j, q, d, ca, f, r, s, o, cmd, dif) in rows]
 
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:

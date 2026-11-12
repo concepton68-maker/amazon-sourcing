@@ -183,6 +183,21 @@ class ClientSPAPI:
         return parser_restrictions(data)
 
 
+    # ------------------------------------------------------------------ finances
+    def page_transactions(self, mp: Marketplace, posted_after=None, posted_before=None,
+                          next_token: Optional[str] = None, commande: Optional[str] = None) -> dict:
+        """Une page de `GET /finances/2024-06-19/transactions` [RM-AMZ-016]. Rôle « Finance and Accounting ».
+        Jamais de paramètre donnant accès aux données d'acheteurs [RM-AMZ-022]."""
+        params: dict[str, str] = {}
+        if commande:
+            params.update(relatedIdentifierName="ORDER_ID", relatedIdentifierValue=commande)
+        else:
+            params.update(postedAfter=posted_after.isoformat(), postedBefore=posted_before.isoformat())
+        if next_token:
+            params["nextToken"] = next_token
+        return self._appel(mp, "GET", "/finances/2024-06-19/transactions", params=params)
+
+
 # ====================================================================== parseurs
 # Séparés du client pour être testables sans accès réseau.
 
@@ -285,3 +300,4 @@ def parser_restrictions(data: dict) -> InfosRestrictions:
                 res.approbation_requise = True
             res.motifs.append(f"{code} : {raison.get('message', '')}".strip(" :"))
     return res
+

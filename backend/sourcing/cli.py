@@ -113,6 +113,7 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("places", help="Lister les places de marché gérées")
+    sub.add_parser("parcours-demo", help="Parcours complet sur données fictives (analyse → lot → ventes → écart)")
 
     for nom, aide in (("analyse", "Analyser un produit sur une place de marché"),
                       ("comparer", "Comparer un produit sur plusieurs places de marché")):
@@ -133,6 +134,11 @@ def main(argv=None) -> int:
         s.add_argument("--json", action="store_true", help="Sortie JSON")
 
     a = p.parse_args(argv)
+
+    if a.cmd == "parcours-demo":
+        from .demo_parcours import executer
+        print(executer())
+        return 0
 
     if a.cmd == "places":
         for m in MARKETPLACES.values():
