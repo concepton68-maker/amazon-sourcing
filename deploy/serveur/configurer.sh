@@ -8,6 +8,15 @@ install -m 755 "$S/sauvegarder.sh" /usr/local/bin/syllig-vente-sauvegarder
 install -m 755 "$S/purger.sh" /usr/local/bin/syllig-vente-purger
 install -d -m 700 /var/backups/syllig-vente
 
+# [RM-AMZ-074] clé de chiffrement des identifiants saisis sur le site : tirée au sort une fois, reste sur le serveur
+ENV="$DOSSIER/deploy/.env"
+if ! grep -q '^AMZ_CLE_CHIFFREMENT=.\{64\}$' "$ENV"; then
+  sed -i '/^AMZ_CLE_CHIFFREMENT=/d' "$ENV"
+  echo "AMZ_CLE_CHIFFREMENT=$(openssl rand -hex 32)" >> "$ENV"
+  chmod 600 "$ENV"
+  docker compose -p syllig-vente -f "$DOSSIER/deploy/docker-compose.prod.yml" --env-file "$ENV" up -d app >/dev/null 2>&1 || true
+fi
+
 unite() {  # nom, description, commande, planification du minuteur
   printf '[Unit]\nDescription=%s\n[Service]\nType=oneshot\nExecStart=%s\n' "$2" "$3" > "/etc/systemd/system/$1.service"
   printf '[Unit]\nDescription=%s\n[Timer]\n%s\nPersistent=true\n[Install]\nWantedBy=timers.target\n' "$2" "$4" > "/etc/systemd/system/$1.timer"

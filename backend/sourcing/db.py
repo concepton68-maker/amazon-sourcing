@@ -338,6 +338,22 @@ class DepotPostgres:
             ON CONFLICT (compte_id, asin) DO UPDATE SET donnees = EXCLUDED.donnees, maj = now()""",
             (_uuid(compte_id), fiche.asin, json.dumps(fiche.to_dict())))
 
+    # -------------------------------------------------------------- connexions [RM-AMZ-072]
+    def connexions(self, compte_id: str) -> dict:
+        from .connexions import Connexion
+        return {s: Connexion(s, bytes(c), m) for s, c, m in self._executer(
+            compte_id, "SELECT source, chiffre, maj FROM amz.connexions")}
+
+    def enregistrer_connexion(self, compte_id: str, source: str, chiffre: bytes) -> None:
+        self._executer(compte_id, """INSERT INTO amz.connexions (compte_id, source, chiffre) VALUES (%s, %s, %s)
+            ON CONFLICT (compte_id, source) DO UPDATE SET chiffre = EXCLUDED.chiffre, maj = now()""",
+            (_uuid(compte_id), source, chiffre))
+
+    def supprimer_connexion(self, compte_id: str, source: str) -> bool:
+        avant = source in self.connexions(compte_id)
+        self._executer(compte_id, "DELETE FROM amz.connexions WHERE source = %s", (source,))
+        return avant
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         self._executer(compte_id, "UPDATE amz.comptes SET revoque_le = coalesce(revoque_le, %s)", (jour,))
