@@ -14,6 +14,7 @@ echo.
 echo Premiere connexion. Si le serveur demande de changer le mot de passe :
 echo   "Current password" = mot de passe du courriel d OVH, puis deux fois votre nouveau mot de passe (a garder pour vous).
 ssh -t -o StrictHostKeyChecking=accept-new %UTIL%@%IP% "echo Connexion au serveur reussie."
+if errorlevel 1 goto erreur
 echo.
 echo Envoi du programme d installation (mot de passe du serveur : le nouveau s il a ete change)...
 scp -o StrictHostKeyChecking=accept-new installer.sh %UTIL%@%IP%:/tmp/installer-syllig-vente.sh
@@ -26,6 +27,7 @@ pause
 exit /b 0
 :erreur
 echo.
-echo Une etape a echoue. Faites une capture de cette fenetre et envoyez-la a Claude.
+echo Une etape a echoue. Mot de passe refuse ? Collez-le par un clic droit (Ctrl+V ne marche pas ici) ou tapez-le a la main.
+echo Sinon, faites une capture de cette fenetre et envoyez-la a Claude.
 pause
 exit /b 1
