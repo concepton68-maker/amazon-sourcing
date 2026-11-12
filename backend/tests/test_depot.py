@@ -260,10 +260,18 @@ class TestDepotPostgres(ContratDepot, unittest.TestCase):
     def test_authentification_postgres(self):
         """[RM-AMZ-036 à 038] Utilisateur et session en base, avec le rôle de l'application ; jeton jamais stocké."""
         from sourcing.auth import Authentification, StockAuthPostgres
-        auth = Authentification(StockAuthPostgres(self.app))
+        from sourcing.auth import pas_de, totp
+        from datetime import datetime, timezone
+        auth = Authentification(StockAuthPostgres(self.app), cle=lambda: bytes(32))
         auth.creer_utilisateur(A, "a@exemple.fr", "un-mot-de-passe-solide")
         jeton, s = auth.connecter("A@exemple.fr", "un-mot-de-passe-solide")
-        self.assertEqual(s.compte_id, A)
+        self.assertEqual((s.compte_id, s.niveau), (A, "ENROLER"))
+        secret, _ = auth.debuter_enrolement(s)                              # [RM-AMZ-076] colonnes et droits en base
+        codes = auth.confirmer_enrolement(s, totp(secret, pas_de(datetime.now(timezone.utc))))
+        self.assertEqual(auth.session_valide(jeton).niveau, "COMPLET")
+        _, s2 = auth.connecter("a@exemple.fr", "un-mot-de-passe-solide")
+        auth.verifier_code(s2, codes[3])
+        self.assertEqual(len(auth.stock.par_courriel("a@exemple.fr").codes_secours), 9)
         self.assertEqual(auth.session_valide(jeton).compte_id, A)
         stockes = [r[0] for r in self.owner.execute("SELECT jeton_hash FROM amz.sessions").fetchall()]
         self.assertNotIn(jeton, stockes)

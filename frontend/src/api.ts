@@ -94,7 +94,7 @@ export const urlExport = (tid: string) => `/api/sourcing/traitements/${encodeURI
 
 export const moi = () => lire<{ compte_id: string; demo: boolean; connexion: boolean }>("/api/moi");
 export const connecter = (courriel: string, mot_de_passe: string) =>
-  envoyer<{ ok: boolean }>("/api/session", { courriel, mot_de_passe });
+  envoyer<{ ok: boolean; etape: string }>("/api/session", { courriel, mot_de_passe });
 export const deconnecter = () =>
   fetch("/api/session", { method: "DELETE", headers: ENTETE, credentials: "same-origin" });
 
@@ -215,3 +215,21 @@ export const lireConnexions = () => lire<Connexions>("/api/connexions");
 export const ecrireConnexion = (source: string, valeurs: Record<string, string>) =>
   requete<{ enregistree: boolean }>("PUT", `/api/connexions/${source}`, valeurs);
 export const retirerConnexion = (source: string) => requete<{ retiree: boolean }>("DELETE", `/api/connexions/${source}`);
+
+// ------------------------------------------------------------ double authentification [RM-AMZ-075, 076]
+export async function etapeSession(): Promise<string | null> {
+  const r = await fetch("/api/session/etape", { credentials: "same-origin" });
+  return r.ok ? (await r.json()).etape : null;
+}
+async function etapeAuth<T>(url: string, corps: unknown): Promise<T> {
+  const r = await fetch(url, { method: "POST", credentials: "same-origin",
+    headers: { "content-type": "application/json", ...ENTETE }, body: JSON.stringify(corps) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "saisie");
+  return j;
+}
+export const changerMotDePasse = (nouveau: string) => etapeAuth<{ etape: string }>("/api/session/mot-de-passe", { nouveau });
+export const debuterEnrolement = () => etapeAuth<{ secret: string; uri: string; qr: string }>("/api/session/enrolement", {});
+export const confirmerEnrolement = (code: string) =>
+  etapeAuth<{ etape: string; codes_secours: string[] }>("/api/session/enrolement/confirmer", { code });
+export const envoyerCode = (code: string) => etapeAuth<{ etape: string }>("/api/session/code", { code });
