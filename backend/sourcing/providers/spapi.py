@@ -197,6 +197,76 @@ class ClientSPAPI:
             params["nextToken"] = next_token
         return self._appel(mp, "GET", "/finances/2024-06-19/transactions", params=params)
 
+    # ------------------------------------------------------------------ stock [RM-AMZ-045]
+    def page_inventaire(self, mp: Marketplace, next_token: Optional[str] = None) -> dict:
+        """Une page de `GET /fba/inventory/v1/summaries`, photo complète (sans startDateTime). Rôle Amazon Fulfillment."""
+        params = {"details": "true", "granularityType": "Marketplace", "granularityId": mp.marketplace_id,
+                  "marketplaceIds": mp.marketplace_id}
+        if next_token:
+            params["nextToken"] = next_token
+        return self._appel(mp, "GET", "/fba/inventory/v1/summaries", params=params)
+
+    # ------------------------------------------------------------------ rapports (Reports API 2021-06-30)
+    def rapport(self, mp: Marketplace, type_rapport: str, debut=None, fin=None, options: Optional[dict] = None,
+                attendre=time.sleep, delai_max: float = 900) -> str:
+        """Demande un rapport, attend qu'il soit prêt, le télécharge et le décompresse. Non testé sur un vrai compte."""
+        import gzip
+        corps: dict[str, Any] = {"reportType": type_rapport, "marketplaceIds": [mp.marketplace_id]}
+        if debut:
+            corps["dataStartTime"] = debut.isoformat()
+        if fin:
+            corps["dataEndTime"] = fin.isoformat()
+        if options:
+            corps["reportOptions"] = options
+        rid = self._appel(mp, "POST", "/reports/2021-06-30/reports", json=corps)["reportId"]
+        ecoule, pause = 0.0, 15.0
+        while True:
+            etat = self._appel(mp, "GET", f"/reports/2021-06-30/reports/{rid}")
+            statut = etat.get("processingStatus")
+            if statut == "DONE":
+                break
+            if statut in ("CANCELLED", "FATAL"):
+                raise ErreurFournisseur(f"Rapport {type_rapport} : {statut}")
+            if ecoule >= delai_max:
+                raise ErreurFournisseur(f"Rapport {type_rapport} : délai dépassé")
+            attendre(pause)
+            ecoule += pause
+        doc = self._appel(mp, "GET", f"/reports/2021-06-30/documents/{etat['reportDocumentId']}")
+        r = self.session.get(doc["url"], timeout=120)
+        if r.status_code != 200:
+            raise ErreurFournisseur(f"Téléchargement du rapport {type_rapport} : {r.status_code}")
+        brut = gzip.decompress(r.content) if doc.get("compressionAlgorithm") == "GZIP" else r.content
+        for enc in ("utf-8-sig", "cp1252"):
+            try:
+                return brut.decode(enc)
+            except UnicodeDecodeError:
+                continue
+        raise ErreurFournisseur("Rapport illisible")
+
+    # ------------------------------------------------------------------ envois entrants (Inbound v0)
+    def envois_fermes(self, mp: Marketplace, depuis, jusqua) -> list:
+        """Envois CLOSED et leurs articles : QuantityShipped / QuantityReceived [RM-AMZ-057]. Non testé sur un vrai compte."""
+        from ..remboursements import LigneEnvoi
+        out, jeton = [], None
+        while True:
+            params = {"MarketplaceId": mp.marketplace_id, "ShipmentStatusList": "CLOSED",
+                      "LastUpdatedAfter": depuis.isoformat(), "LastUpdatedBefore": jusqua.isoformat(),
+                      "QueryType": "NEXT_TOKEN" if jeton else "DATE_RANGE"}
+            if jeton:
+                params["NextToken"] = jeton
+            corps = self._appel(mp, "GET", "/fba/inbound/v0/shipments", params=params).get("payload", {})
+            for env in corps.get("ShipmentData", []) or []:
+                sid = env.get("ShipmentId")
+                items = self._appel(mp, "GET", f"/fba/inbound/v0/shipments/{sid}/items",
+                                    params={"MarketplaceId": mp.marketplace_id}).get("payload", {})
+                for it in items.get("ItemData", []) or []:
+                    out.append(LigneEnvoi(sid, env.get("ShipmentStatus", ""), mp.code, it.get("SellerSKU"),
+                                          it.get("FulfillmentNetworkSKU", ""), int(it.get("QuantityShipped") or 0),
+                                          int(it.get("QuantityReceived") or 0)))
+            jeton = corps.get("NextToken")
+            if not jeton:
+                return out
+
 
 # ====================================================================== parseurs
 # Séparés du client pour être testables sans accès réseau.

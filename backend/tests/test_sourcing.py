@@ -115,10 +115,10 @@ class TestAnalyse(unittest.TestCase):
     def test_prix_retenu(self):
         """[RM-AMZ-001] saisi > Buy Box > FBA le plus bas > moyenne 90 j ; sinon rien."""
         a = analyser_asin(FR, "B0DEMO0001", ParametresCout(8.5), self.f, prix_vente_force=30)
-        self.assertEqual((a.prix_vente_retenu, a.origine_prix), (30, "saisi"))
+        self.assertEqual((a.prix_vente_retenu, a.origine_prix), (30, "SAISI"))
         a = analyser_asin(FR, "B0DEMO0001", ParametresCout(8.5), self.f)
         self.assertEqual(a.prix_vente_retenu, 24.90)
-        self.assertIn("Buy Box", a.origine_prix)
+        self.assertEqual(a.origine_prix, "BUYBOX")
         a = analyser_asin(FR, "B0DEMO0001", ParametresCout(8.5), Fournisseurs())
         self.assertIsNone(a.prix_vente_retenu)
         self.assertIsNone(a.rentabilite)

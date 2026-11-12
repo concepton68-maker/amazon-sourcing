@@ -80,6 +80,101 @@ class ContratDepot:
         self.assertEqual(self.d.lots(A), [])
         self.assertEqual(len(self.d.lots(B)), 1)
 
+    def test_appariements_par_compte(self):
+        """[RM-AMZ-034, RM-AMZ-014] Mémoire code → ASIN propre à chaque compte, mise à jour, purgée avec le compte."""
+        self.d.memoriser_appariement(A, "FR", "2000000000015", ["B0GEN00015"])
+        self.assertEqual(self.d.appariement(A, "FR", "2000000000015")[0], ["B0GEN00015"])
+        self.assertIsNone(self.d.appariement(B, "FR", "2000000000015"))
+        self.assertIsNone(self.d.appariement(A, "DE", "2000000000015"))
+        self.d.memoriser_appariement(A, "FR", "2000000000015", ["B0X1", "B0X2"])
+        self.assertEqual(self.d.appariement(A, "FR", "2000000000015")[0], ["B0X1", "B0X2"])
+        self.d.revoquer(A, date(2026, 11, 1))
+        self.purger(date(2026, 11, 2))
+        self.assertIsNone(self.d.appariement(A, "FR", "2000000000015"))
+
+    def test_parametres_par_compte_et_versions(self):
+        """[RM-AMZ-043, RM-AMZ-014] Paramètres versionnés en ajout seul, propres à chaque compte."""
+        self.assertIsNone(self.d.parametres(A))
+        self.assertEqual(self.d.enregistrer_parametres(A, {"roi_min": 0.4}), 1)
+        self.assertEqual(self.d.enregistrer_parametres(A, {"roi_min": 0.5}), 2)
+        self.assertEqual(self.d.parametres(A), {"roi_min": 0.5})
+        self.assertIsNone(self.d.parametres(B))
+        self.assertEqual([v[1]["roi_min"] for v in self.d.versions_parametres(A)], [0.4, 0.5])
+
+    def test_photo_stock_par_compte(self):
+        """[RM-AMZ-045, RM-AMZ-014] Photo du jour remplacée ; dernière photo par SKU ; propre au compte."""
+        from sourcing.stock import PhotoStock
+        self.d.enregistrer_photo_stock(A, date(2026, 11, 11), [PhotoStock("FR", "S1", "B0X", "X", 5, 1)])
+        self.d.enregistrer_photo_stock(A, date(2026, 11, 12), [PhotoStock("FR", "S1", "B0X", "X", 4, 0)])
+        self.d.enregistrer_photo_stock(A, date(2026, 11, 12), [PhotoStock("FR", "S1", "B0X", "X", 3, 0)])
+        jour, photos = self.d.photo_stock(A)
+        self.assertEqual((jour, len(photos), photos[0].disponible), (date(2026, 11, 12), 1, 3))
+        self.assertEqual(self.d.photo_stock(B), (None, []))
+
+    def test_achats_par_compte(self):
+        """[RM-AMZ-049 à 051, RM-AMZ-014] Fournisseur unique sans casse ; bon relu ; réception = bon + lots ; bon reçu définitif."""
+        from sourcing import achats as AC
+        f = AC.nouveau_fournisseur(A, "Grossiste A")
+        self.d.enregistrer_fournisseur(A, f)
+        with self.assertRaises(ValueError):
+            self.d.enregistrer_fournisseur(A, AC.nouveau_fournisseur(A, "GROSSISTE A"))
+        self.d.enregistrer_fournisseur(B, AC.nouveau_fournisseur(B, "Grossiste A"))     # autre compte : permis
+        self.assertEqual([x.nom for x in self.d.fournisseurs(A)], ["Grossiste A"])
+        self.assertEqual(self.d.prochain_numero(A), 1)
+        b = AC.nouveau_bon(A, 1, f)
+        b = AC.ajouter_ligne(b, "B0X", "FR", 5, "8", Prevision.creer("EUR", 20, 7, 8), "X")
+        self.d.enregistrer_bon(A, b)
+        relu = self.d.bon(A, b.id)
+        self.assertEqual((relu.reference, relu.lignes[0].quantite, relu.lignes[0].prevision.profit), ("BC-0001", 5, b.lignes[0].prevision.profit))
+        with self.assertRaises(AccesRefuse):
+            self.d.bon(B, b.id)
+        b = AC.envoyer(b)
+        self.d.enregistrer_bon(A, b)
+        recu, lots = AC.recevoir(b, {b.lignes[0].id: 5}, date(2026, 11, 12), f)
+        self.d.receptionner(A, recu, lots)
+        self.assertEqual(self.d.bon(A, b.id).statut, "RECU")
+        self.assertEqual(self.d.lot(A, lots[0].id).bon_commande, b.id)
+        with self.assertRaises(ValueError):
+            self.d.enregistrer_bon(A, AC.annuler(b))
+        self.assertEqual(self.d.prochain_numero(A), 2)
+
+    def test_remboursements_par_compte(self):
+        """[RM-AMZ-059, RM-AMZ-014] Versements et cas relus à l'identique, propres au compte, suivi mis à jour."""
+        from decimal import Decimal
+        from sourcing import remboursements as RB
+        v = RB.RemboursementVerse("R1", date(2026, 10, 1), "C-1", None, "S", "X1", "B0X", "EUR", Decimal("9.8"), 1)
+        self.d.enregistrer_verses(A, [v, v])
+        self.assertEqual(len(self.d.verses(A)), 1)
+        self.assertEqual(self.d.verses(B), [])
+        cas = RB.Cas("PERTE_ENTREPOT:DE:X1", RB.PERTE, "DE", "B0X", "S", "X1", None, 2, Decimal("19.6"), "EUR",
+                     date(2026, 11, 12), date(2026, 11, 30), faits={"perdus_abimes": 4})
+        self.d.enregistrer_cas(A, [cas])
+        self.d.enregistrer_cas(A, [RB.changer_suivi(cas, RB.DOSSIER_ENVOYE, "C-9")])
+        (relu,) = self.d.cas_remboursement(A)
+        self.assertEqual((relu.statut, relu.case_id, relu.unites, relu.faits), ("DOSSIER_ENVOYE", "C-9", 2, {"perdus_abimes": 4}))
+        self.assertEqual(self.d.cas_remboursement(B), [])
+
+    def test_conformite_par_compte(self):
+        """[RM-AMZ-061, 062, RM-AMZ-014] Enregistrements et fiches relus à l'identique, propres au compte, suppression."""
+        from sourcing import conformite as CF
+        e = CF.nouvel_enregistrement("FR", "AUTRE", "IDU-9", intitule="Jouets", mandataire="M")
+        self.d.enregistrer_enregistrement(A, e)
+        self.d.enregistrer_enregistrement(A, CF.nouvel_enregistrement("FR", "AUTRE", "IDU-10", intitule="Jouets"))
+        (relu,) = self.d.enregistrements(A)
+        self.assertEqual((relu.numero, relu.intitule, relu.mandataire, relu.cle), ("IDU-10", "Jouets", None, e.cle))
+        self.assertEqual(self.d.enregistrements(B), [])
+        self.d.enregistrer_enregistrement(A, CF.nouvel_enregistrement("DE", "EEE", "DE1"))
+        self.assertFalse(self.d.supprimer_enregistrement(B, "DE:EEE:"))
+        self.assertTrue(self.d.supprimer_enregistrement(A, "DE:EEE:"))
+        self.assertEqual([x.cle for x in self.d.enregistrements(A)], ["FR:AUTRE:Jouets"])
+        f = CF.valider_fiche("B0X", {"fabricant": {"nom": "F", "adresse": "Paris", "courriel": "f@x.fr"},
+                                     "producteur": "NON", "filieres": ["PILES", "EEE"],
+                                     "numeros_producteur": {"FR:EEE": "IDU-F"}})
+        self.d.enregistrer_fiche(A, f)
+        self.d.enregistrer_fiche(A, CF.fiche_depuis_dict("B0X", f.to_dict()))
+        self.assertEqual(self.d.fiches(A), {"B0X": f})
+        self.assertEqual(self.d.fiches(B), {})
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):
@@ -151,6 +246,19 @@ class TestDepotPostgres(ContratDepot, unittest.TestCase):
                 self.app.execute("UPDATE amz.lots SET quantite = 99")
         with self.assertRaises(self.psycopg.errors.CheckViolation):
             self.owner.execute("UPDATE amz.lots SET quantite = 99 WHERE id = %s", (uuid.UUID(l.id),))
+
+    def test_authentification_postgres(self):
+        """[RM-AMZ-036 à 038] Utilisateur et session en base, avec le rôle de l'application ; jeton jamais stocké."""
+        from sourcing.auth import Authentification, StockAuthPostgres
+        auth = Authentification(StockAuthPostgres(self.app))
+        auth.creer_utilisateur(A, "a@exemple.fr", "un-mot-de-passe-solide")
+        jeton, s = auth.connecter("A@exemple.fr", "un-mot-de-passe-solide")
+        self.assertEqual(s.compte_id, A)
+        self.assertEqual(auth.session_valide(jeton).compte_id, A)
+        stockes = [r[0] for r in self.owner.execute("SELECT jeton_hash FROM amz.sessions").fetchall()]
+        self.assertNotIn(jeton, stockes)
+        auth.deconnecter(jeton)
+        self.assertIsNone(auth.session_valide(jeton))
 
     def test_application_ne_supprime_rien(self):
         """La suppression est réservée à la purge (rôle propriétaire)."""

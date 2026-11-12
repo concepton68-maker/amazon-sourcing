@@ -1,4 +1,4 @@
-# [NOM DE L'OUTIL] — sourcing et gestion pour vendeurs Amazon
+# Syllig Vente — sourcing et gestion pour vendeurs Amazon
 
 Outil personnel d'abord, conçu pour devenir un SaaS multi-clients (Europe + États-Unis).
 

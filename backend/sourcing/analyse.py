@@ -2,6 +2,7 @@
 
 Chaque fournisseur est optionnel : l'analyse se dégrade proprement et dit
 explicitement ce qui n'a pas pu être vérifié (plutôt que d'inventer).
+Raisons, alertes et données non vérifiées sont des messages codés [RM-AMZ-027].
 """
 from __future__ import annotations
 
@@ -9,10 +10,15 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
 from .marketplaces import Marketplace
+from .messages import Message, m
 from .profit import FraisAmazon, ParametresCout, ResultatRentabilite, calculer_rentabilite, estimer_frais
 from .providers.base import ErreurFournisseur, Historique, InfosCatalogue, InfosOffres, InfosRestrictions
 
-ACHETER, A_VERIFIER, PASSER = "ACHETER", "À VÉRIFIER", "PASSER"
+ACHETER, A_VERIFIER, PASSER = "ACHETER", "A_VERIFIER", "PASSER"
+
+# Raisons qui font échouer un seuil d'achat (le verdict se décide sur ces codes).
+RAISONS_SEUIL = {"R_ROI_SOUS_SEUIL", "R_PROFIT_SOUS_SEUIL", "R_VENTES_FAIBLES", "R_PART_FAIBLE"}
+RAISONS_BLOQUANTES = {"R_VENTE_NON_AUTORISEE", "R_APPROBATION_REQUISE", "R_PROFIT_NEGATIF"}
 
 
 @dataclass
@@ -43,24 +49,24 @@ class AnalyseProduit:
     historique: Optional[Historique]
     frais: Optional[FraisAmazon]
     prix_vente_retenu: Optional[float]
-    origine_prix: str
+    origine_prix: str                  # code : SAISI, BUYBOX, FBA_MIN, MOYENNE_90J, AUCUN
     rentabilite: Optional[ResultatRentabilite]
     rentabilite_prudente: Optional[ResultatRentabilite]   # au prix moyen 90 j si plus bas
     ventes_estimees_pour_vous: Optional[float]
     verdict: str
-    raisons: list[str]
-    alertes: list[str]
-    non_verifie: list[str]
+    raisons: list[Message]
+    alertes: list[Message]
+    non_verifie: list[Message]
 
     def to_dict(self) -> dict:
         return asdict(self)
 
 
-def _essayer(fn, non_verifie: list[str], libelle: str):
+def _essayer(fn, non_verifie: list[Message], source: str):
     try:
         return fn()
     except ErreurFournisseur as e:
-        non_verifie.append(f"{libelle} : {e}")
+        non_verifie.append(m("NV_SOURCE_ERREUR", source=source, detail=str(e)))
         return None
 
 
@@ -88,121 +94,119 @@ def analyser_asin(
     prix_vente_force: Optional[float] = None,
     taux_tva_vente: Optional[float] = None,
 ) -> AnalyseProduit:
-    nv: list[str] = []
-    alertes: list[str] = []
-    raisons: list[str] = []
+    nv: list[Message] = []
+    alertes: list[Message] = []
+    raisons: list[Message] = []
 
     # 1. Catalogue (fusion des sources : la première gagne, les suivantes complètent)
     cat = InfosCatalogue(asin=asin)
     for src in f.catalogue:
-        c = _essayer(lambda: src.catalogue(mp, asin), nv, f"Catalogue ({type(src).__name__})")
+        c = _essayer(lambda: src.catalogue(mp, asin), nv, "CATALOGUE")
         if c:
             for k, v in asdict(c).items():
                 if getattr(cat, k) in (None, "") and v not in (None, ""):
                     setattr(cat, k, v)
 
     # 2. Offres, restrictions, historique
-    off = _essayer(lambda: f.offres.offres(mp, asin), nv, "Offres") if f.offres else None
+    off = _essayer(lambda: f.offres.offres(mp, asin), nv, "OFFRES") if f.offres else None
     if not f.offres:
-        nv.append("Offres / Buy Box : pas de source SP-API configurée.")
-    restr = _essayer(lambda: f.restrictions.restrictions(mp, asin), nv, "Restrictions") if f.restrictions else None
+        nv.append(m("NV_PAS_SOURCE_OFFRES"))
+    restr = _essayer(lambda: f.restrictions.restrictions(mp, asin), nv, "RESTRICTIONS") if f.restrictions else None
     if not f.restrictions:
-        nv.append("Autorisation de vente : non vérifiée (SP-API requise).")
-    hist = _essayer(lambda: f.historique.historique(mp, asin), nv, "Historique") if f.historique else None
+        nv.append(m("NV_PAS_SOURCE_RESTRICTIONS"))
+    hist = _essayer(lambda: f.historique.historique(mp, asin), nv, "HISTORIQUE") if f.historique else None
     if not f.historique:
-        nv.append("Historique prix/BSR et ventes estimées : pas de source Keepa configurée.")
+        nv.append(m("NV_PAS_SOURCE_HISTORIQUE"))
 
-    # 3. Prix de vente retenu
-    prix, origine = None, "aucun"
+    # 3. Prix de vente retenu [RM-AMZ-001]
+    prix, origine = None, "AUCUN"
     if prix_vente_force:
-        prix, origine = prix_vente_force, "saisi"
+        prix, origine = prix_vente_force, "SAISI"
     elif off and off.prix_buybox:
-        prix, origine = off.prix_buybox, "Buy Box actuelle (SP-API)"
+        prix, origine = off.prix_buybox, "BUYBOX"
     elif off and off.prix_plus_bas_fba:
-        prix, origine = off.prix_plus_bas_fba, "offre FBA la plus basse (SP-API)"
+        prix, origine = off.prix_plus_bas_fba, "FBA_MIN"
     elif hist and hist.prix_buybox_moy90:
-        prix, origine = hist.prix_buybox_moy90, "moyenne 90 j (Keepa)"
+        prix, origine = hist.prix_buybox_moy90, "MOYENNE_90J"
 
     frais = rent = rent_prudente = None
     if prix:
         if f.frais:
-            frais = _essayer(lambda: f.frais.frais(mp, asin, prix), nv, "Frais")
+            frais = _essayer(lambda: f.frais.frais(mp, asin, prix), nv, "FRAIS")
         if frais is None:
             frais = estimer_frais(prix)
-            nv.append("Frais FBA inconnus (0 dans le calcul) et commission estimée à 15 % : profit SURESTIMÉ.")
+            nv.append(m("NV_FRAIS_ESTIMES"))
         rent = calculer_rentabilite(mp, prix, frais, couts, regime_tva, taux_tva_vente=taux_tva_vente,
                                     roi_cible=seuils.roi_min)
         moy = hist.prix_buybox_moy90 if hist else None
-        if moy and moy < prix * 0.98:
+        if moy and moy < prix * 0.98:            # [RM-AMZ-007]
             frais_p = None
             if f.frais and frais.source == "sp-api":
-                frais_p = _essayer(lambda: f.frais.frais(mp, asin, moy), [], "Frais")
+                frais_p = _essayer(lambda: f.frais.frais(mp, asin, moy), [], "FRAIS")
             if frais_p is None:  # mise à l'échelle de la commission
                 ratio = moy / prix
                 frais_p = FraisAmazon(frais.commission * ratio, frais.fba, frais.cloture, frais.autres, frais.source)
             rent_prudente = calculer_rentabilite(mp, moy, frais_p, couts, regime_tva,
                                                  taux_tva_vente=taux_tva_vente, roi_cible=seuils.roi_min)
     else:
-        nv.append("Aucun prix de vente disponible : rentabilité non calculable.")
+        nv.append(m("NV_PAS_DE_PRIX"))
 
-    # 4. Part de ventes estimée pour vous (ESTIMATION grossière : partage égal entre vendeurs FBA)
+    # 4. Part de ventes estimée pour vous (ESTIMATION : partage égal entre vendeurs FBA) [RM-AMZ-010]
     ventes_vous = None
     if hist and hist.ventes_mois_estimees is not None:
         nb = (off.nb_offres_fba if off and off.nb_offres_fba is not None else hist.nb_offres_neuf_moy90) or 0
         ventes_vous = round(hist.ventes_mois_estimees / (nb + 1), 1)
 
-    # 5. Verdict
-    bloquant = False
+    # 5. Raisons et alertes [RM-AMZ-008, RM-AMZ-009]
     if restr and restr.autorise is False:
-        bloquant = True
-        raisons.append("Vous n'êtes pas autorisé à vendre ce produit"
-                       + (" (approbation requise)." if restr.approbation_requise else "."))
+        raisons.append(m("R_APPROBATION_REQUISE" if restr.approbation_requise else "R_VENTE_NON_AUTORISEE"))
     if rent:
         if rent.profit_net <= 0:
-            bloquant = True
-            raisons.append(f"Profit négatif ({rent.profit_net:.2f} {mp.devise}).")
+            raisons.append(m("R_PROFIT_NEGATIF", profit=rent.profit_net, devise=mp.devise))
         else:
             if rent.roi is not None and rent.roi < seuils.roi_min:
-                raisons.append(f"ROI {rent.roi:.0%} < objectif {seuils.roi_min:.0%}.")
+                raisons.append(m("R_ROI_SOUS_SEUIL", roi=rent.roi, seuil=seuils.roi_min))
             if rent.profit_net < seuils.profit_min:
-                raisons.append(f"Profit {rent.profit_net:.2f} < minimum {seuils.profit_min:.2f} {mp.devise}.")
-        if rent.prix_achat_max_pour_roi is not None:
-            raisons.append(f"Prix d'achat maximum pour {seuils.roi_min:.0%} de ROI : "
-                           f"{rent.prix_achat_max_pour_roi:.2f} {mp.devise}.")
+                raisons.append(m("R_PROFIT_SOUS_SEUIL", profit=rent.profit_net, minimum=seuils.profit_min,
+                                 devise=mp.devise))
     if rent_prudente and rent_prudente.profit_net <= 0 < (rent.profit_net if rent else 0):
-        alertes.append(f"Au prix moyen 90 j ({rent_prudente.prix_vente:.2f}), le profit devient négatif "
-                       f"({rent_prudente.profit_net:.2f}) : le prix actuel est peut-être temporaire.")
+        alertes.append(m("A_PRUDENT_NEGATIF", prix=rent_prudente.prix_vente, profit=rent_prudente.profit_net))
     if hist and hist.ventes_mois_estimees is not None and hist.ventes_mois_estimees < seuils.ventes_mois_min:
-        raisons.append(f"Ventes estimées faibles ({hist.ventes_mois_estimees}/mois).")
+        raisons.append(m("R_VENTES_FAIBLES", ventes=hist.ventes_mois_estimees))
     if ventes_vous is not None and ventes_vous < seuils.part_ventes_min:
-        raisons.append(f"Part de ventes estimée pour vous faible (~{ventes_vous}/mois, partage égal supposé).")
+        raisons.append(m("R_PART_FAIBLE", part=ventes_vous))
     if off and off.buybox_amazon:
-        alertes.append("Amazon détient la Buy Box : vente difficile pour un vendeur tiers.")
+        alertes.append(m("A_AMAZON_BUYBOX"))
     elif off and off.amazon_vend:
-        alertes.append("Amazon vend aussi ce produit.")
+        alertes.append(m("A_AMAZON_VEND"))
     if hist and hist.amazon_en_stock_pct90 is not None and hist.amazon_en_stock_pct90 > 0.5:
-        alertes.append(f"Amazon en stock {hist.amazon_en_stock_pct90:.0%} du temps sur 90 j.")
+        alertes.append(m("A_AMAZON_EN_STOCK", pct=hist.amazon_en_stock_pct90))
     if prix and hist and hist.prix_buybox_moy90 and prix > hist.prix_buybox_moy90 * (1 + seuils.ecart_prix_max):
-        alertes.append(f"Prix actuel {prix:.2f} > moyenne 90 j {hist.prix_buybox_moy90:.2f} de plus de "
-                       f"{seuils.ecart_prix_max:.0%} : risque de pic temporaire.")
+        alertes.append(m("A_PIC_PRIX", prix=prix, moyenne=hist.prix_buybox_moy90, seuil=seuils.ecart_prix_max))
     if cat.nb_unites_lot and cat.nb_unites_lot > 1:
-        alertes.append(f"Listing en lot de {cat.nb_unites_lot} : votre prix d'achat doit couvrir le lot entier.")
+        alertes.append(m("A_LOT_MULTIPLE", n=cat.nb_unites_lot))
     if hist and hist.prix_buybox_min90 and hist.prix_buybox_max90 and hist.prix_buybox_min90 > 0:
         amplitude = hist.prix_buybox_max90 / hist.prix_buybox_min90 - 1
         if amplitude > 0.4:
-            alertes.append(f"Prix instable : écart de {amplitude:.0%} entre min et max sur 90 j.")
+            alertes.append(m("A_PRIX_INSTABLE", amplitude=amplitude))
 
-    if bloquant or not rent:
-        verdict = PASSER if bloquant else A_VERIFIER
-    elif raisons and any(r.startswith(("ROI", "Profit", "Ventes", "Part")) for r in raisons):
+    # 6. Verdict, décidé sur les codes [RM-AMZ-008, RM-AMZ-027]
+    codes = {r.code for r in raisons}
+    if codes & RAISONS_BLOQUANTES:
+        verdict = PASSER
+    elif not rent:
+        verdict = A_VERIFIER
+    elif codes & RAISONS_SEUIL:
         verdict = PASSER if (rent.roi or 0) < seuils.roi_min / 2 else A_VERIFIER
-    elif nv or alertes or (restr is None):
+    elif nv or alertes or restr is None:
         verdict = A_VERIFIER
     else:
         verdict = ACHETER
     if verdict == ACHETER:
-        raisons.insert(0, f"ROI {rent.roi:.0%} et profit {rent.profit_net:.2f} {mp.devise} au-dessus des seuils, "
-                          "vente autorisée, aucune alerte.")
+        raisons.insert(0, m("R_TOUT_OK", roi=rent.roi, profit=rent.profit_net, devise=mp.devise))
+    if rent and rent.prix_achat_max_pour_roi is not None:
+        raisons.append(m("R_PRIX_ACHAT_MAX", roi=seuils.roi_min, montant=rent.prix_achat_max_pour_roi,
+                         devise=mp.devise))
 
     return AnalyseProduit(
         marketplace=mp.code, asin=asin, catalogue=cat, offres=off, restrictions=restr, historique=hist,

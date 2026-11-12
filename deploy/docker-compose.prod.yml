@@ -1,0 +1,60 @@
+# Syllig Vente — production sur le VPS, projet Docker ISOLÉ de Syllig (D-AMZ-007, D-AMZ-021).
+# Lancement : docker compose -p syllig-vente -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --build
+# Secrets dans deploy/.env (jamais versionné) : voir deploy/env.exemple.
+name: syllig-vente
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${AMZ_PG_ADMIN_PASSWORD:?}
+      AMZ_OWNER_PASSWORD: ${AMZ_OWNER_PASSWORD:?}
+      AMZ_APP_PASSWORD: ${AMZ_APP_PASSWORD:?}
+    volumes:
+      - amz_pg:/var/lib/postgresql/data
+      - ./bootstrap_roles.sql:/bootstrap_roles.sql:ro
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    networks: [interne]
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "amz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  migrer:
+    build: { context: .., dockerfile: Dockerfile }
+    image: syllig-vente:courante
+    command: ["python", "-m", "sourcing", "migrer"]
+    environment:
+      AMZ_DATABASE_URL_OWNER: postgresql://amz_owner:${AMZ_OWNER_PASSWORD}@postgres:5432/amz
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [interne]
+    mem_limit: 256m
+    restart: "no"
+
+  app:
+    image: syllig-vente:courante
+    restart: unless-stopped
+    environment:
+      AMZ_MODE: prod
+      AMZ_DATABASE_URL: postgresql://amz_app:${AMZ_APP_PASSWORD}@postgres:5432/amz
+      SPAPI_CLIENT_ID: ${SPAPI_CLIENT_ID:-}
+      SPAPI_CLIENT_SECRET: ${SPAPI_CLIENT_SECRET:-}
+      SPAPI_SELLER_ID: ${SPAPI_SELLER_ID:-}
+      SPAPI_REFRESH_TOKEN_EU: ${SPAPI_REFRESH_TOKEN_EU:-}
+      SPAPI_REFRESH_TOKEN_NA: ${SPAPI_REFRESH_TOKEN_NA:-}
+      KEEPA_API_KEY: ${KEEPA_API_KEY:-}
+    depends_on:
+      migrer: { condition: service_completed_successfully }
+    ports: ["127.0.0.1:${AMZ_PORT:-8830}:8830"]   # seulement en local : Caddy est devant
+    networks: [interne, sortie]
+    mem_limit: 512m
+    cpus: 1.0
+
+networks:
+  interne: { internal: true }   # la base n'a aucun accès à Internet
+  sortie: {}                    # l'application parle à Amazon et Keepa
+volumes:
+  amz_pg:

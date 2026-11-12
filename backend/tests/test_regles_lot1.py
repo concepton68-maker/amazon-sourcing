@@ -32,7 +32,7 @@ class TestTVA(unittest.TestCase):
         r = calculer_rentabilite(FR, 10.55, FraisAmazon(1.0, 2.0), ParametresCout(4.0), taux_tva_vente=0.055)
         self.assertAlmostEqual(r.prix_vente_ht, 10.0)
         self.assertAlmostEqual(r.profit_net, 3.0)
-        self.assertTrue(any("5.5%" in h for h in r.hypotheses))
+        self.assertIn(("HYP_TVA_COLLECTEE", 0.055), [(h.code, h.params.get("taux")) for h in r.hypotheses])
 
 
 class TestAnalyse(unittest.TestCase):
@@ -52,9 +52,8 @@ class TestAnalyse(unittest.TestCase):
     def test_alertes(self):
         """[RM-AMZ-009] Buy Box Amazon, Amazon en stock, pic de prix, lot, prix instable."""
         a = analyser_asin(FR, "B0DEMO0002", ParametresCout(15), self.f)
-        texte = " ".join(a.alertes)
-        self.assertIn("Amazon détient la Buy Box", texte)
-        self.assertIn("Amazon en stock", texte)
+        codes = {x.code for x in a.alertes}
+        self.assertTrue({"A_AMAZON_BUYBOX", "A_AMAZON_EN_STOCK"} <= codes)
 
         class Pic(FournisseurDemo):
             def catalogue(self, mp, asin):
@@ -65,10 +64,10 @@ class TestAnalyse(unittest.TestCase):
                                   ventes_mois_estimees=100)
         p = Pic()
         a = analyser_asin(FR, "B0DEMO0001", ParametresCout(8.5), Fournisseurs([p], p, p, p, p))
-        texte = " ".join(a.alertes)
-        self.assertIn("pic temporaire", texte)
-        self.assertIn("lot de 6", texte)
-        self.assertIn("Prix instable", texte)
+        alertes = {x.code: x.params for x in a.alertes}
+        self.assertIn("A_PIC_PRIX", alertes)
+        self.assertEqual(alertes["A_LOT_MULTIPLE"], {"n": 6})
+        self.assertIn("A_PRIX_INSTABLE", alertes)
 
 
 class TestLots(unittest.TestCase):

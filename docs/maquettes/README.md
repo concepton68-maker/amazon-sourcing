@@ -25,7 +25,6 @@ Toutes les valeurs sont **fictives**.
 - **Sobriété** : retirer sous-titres, phrases d'explication et notes ; garder libellés, données et une action principale. Les aides passent en info-bulle.
 - **Conformité Europe** : chaque règle affichée doit être sourcée (texte officiel lu) avant mise en service ; sinon « non sourcé », jamais bloquant.
 - **Prix des formules** : emplacements `[PRIX]`, à fixer après test de volonté de payer.
-- **Nom de l'outil** : emplacement `[NOM DE L'OUTIL]`.
 
 ## Historique
 
