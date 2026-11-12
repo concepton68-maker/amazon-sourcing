@@ -153,3 +153,9 @@ Toutes les alertes sont des **avertissements**, jamais un blocage.
 | RM-AMZ-068 | **Purge de nuit** : chaque nuit, les comptes dont l'autorisation est retirée depuis la date limite sont supprimés (RM-AMZ-014), par le rôle propriétaire ; le résultat est écrit au journal du serveur. | RM-AMZ-014 | lu | — | `test_cli_purger`, `test_scripts_serveur` | codé |
 | RM-AMZ-069 | **Sauvegarde quotidienne** de la base (`pg_dump`, format compressé) sur le serveur, gardée **14 jours** (choix de l'outil), en plus de la sauvegarde OVH du disque (7 jours). Une sauvegarde vide ou en erreur est signalée au journal et ne remplace pas les précédentes. | Choix de l'outil | métier | — | `test_scripts_serveur` | codé |
 | RM-AMZ-070 | **Réglages du serveur suivis dans le dépôt** : après chaque mise à jour réussie, le serveur réapplique `deploy/serveur/configurer.sh` (scripts et minuteurs), sans rien demander. | Choix de l'outil (D-AMZ-023) | métier | — | `test_scripts_serveur` | codé |
+
+## Lot 14 : vrai site sans source branchée
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-071 | **Aucune source branchée** (ni SP-API ni Keepa) : l'analyse d'un produit et le traitement d'un fichier fournisseur répondent `SOURCE_NON_CONFIGUREE`, jamais « produit introuvable » (on ne conclut rien sans avoir cherché). | Règle de Sam : ne jamais présenter une donnée non vérifiée | métier | bloquant | `test_sans_source_branchee` | à coder |
