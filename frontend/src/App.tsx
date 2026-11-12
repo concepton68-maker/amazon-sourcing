@@ -7,6 +7,7 @@ import { ParametresVue } from "./Parametres";
 import { StockVue } from "./Stock";
 import { FournisseursVue } from "./Fournisseurs";
 import { RemboursementsVue } from "./Remboursements";
+import { ConformiteVue } from "./Conformite";
 import { NonConnecte, deconnecter, moi } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
@@ -138,10 +139,10 @@ function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: bo
   );
 }
 
-type Vue = "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "parametres";
+type Vue = "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "conformite" | "parametres";
 const vueDepuisAdresse = (): Vue => {
   const h = window.location.hash;
-  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : "analyse";
+  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : "analyse";
 };
 
 export function App() {
@@ -185,6 +186,7 @@ export function App() {
           <a href="#stock" aria-current={vue === "stock" ? "page" : undefined}>{t("nav.stock")}</a>
           <a href="#fournisseurs" aria-current={vue === "fournisseurs" ? "page" : undefined}>{t("nav.fournisseurs")}</a>
           <a href="#remboursements" aria-current={vue === "remboursements" ? "page" : undefined}>{t("nav.remboursements")}</a>
+          <a href="#conformite" aria-current={vue === "conformite" ? "page" : undefined}>{t("nav.conformite")}</a>
           <a href="#parametres" aria-current={vue === "parametres" ? "page" : undefined}>{t("nav.parametres")}</a>
         </nav>
         {demo && <span className="badge-demo">{t("demo")}</span>}
@@ -195,6 +197,7 @@ export function App() {
         : vue === "parametres" ? <main className="contenu-plein"><ParametresVue /></main>
         : vue === "stock" ? <main className="contenu-plein"><StockVue ouvrirBon={ouvrirBon} /></main>
         : vue === "remboursements" ? <main className="contenu-plein"><RemboursementsVue /></main>
+        : vue === "conformite" ? <main className="contenu-plein"><ConformiteVue /></main>
         : vue === "fournisseurs" ? <main className="contenu-plein"><FournisseursVue key={bonInitial ?? "f"} bonInitial={bonInitial} voirLot={lotCree} /></main>
         : <main><LotsVue key={lotInitial ?? "lots"} lotInitial={lotInitial} setDemo={setDemo} /></main>}
     </div>

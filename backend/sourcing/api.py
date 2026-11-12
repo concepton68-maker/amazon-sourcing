@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import achats as A
+from . import conformite as CF
 from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
@@ -180,6 +181,20 @@ def _cas_json(x: "RB.Cas") -> dict:
             "commande": x.commande, "unites": x.unites, "valeur_achat": _num(x.valeur_achat), "devise": x.devise,
             "detecte_le": x.detecte_le.isoformat(), "echeance": x.echeance.isoformat() if x.echeance else None,
             "statut": x.statut, "case_id": x.case_id, "montant_verse": _num(x.montant_verse), "faits": x.faits}
+
+
+class DemandeEnregistrement(BaseModel):
+    pays: str
+    filiere: str
+    numero: Optional[str] = None
+    intitule: Optional[str] = None
+    mandataire: Optional[str] = None
+
+
+def _enreg_json(e: "CF.Enregistrement") -> dict:
+    return {"cle": e.cle, "pays": e.pays, "filiere": e.filiere, "numero": e.numero, "intitule": e.intitule,
+            "mandataire": e.mandataire, "texte": CF.texte_numero(e.pays, e.filiere),
+            "avertissements": [x.to_dict() for x in CF.avertissements_enregistrement(e)]}
 
 
 class DemandeLot(BaseModel):
@@ -485,6 +500,52 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(422, e.args[0]) from None
         depot.enregistrer_cas(c, [x])
         return _cas_json(x)
+
+    # ------------------------------------------------------------- conformité [RM-AMZ-060 à 067]
+    @app.get("/api/conformite")
+    def conformite(c: str = Depends(compte)):
+        enregs = depot.enregistrements(c)
+        fiches = depot.fiches(c)
+        _, photos = depot.photo_stock(c)
+        lignes = CF.verifier(depot.lots(c), photos, fiches, enregs)
+        return {
+            "produits": [{"asin": l.asin, "designation": l.designation, "places": list(l.places), "statut": l.statut,
+                          "alertes": [x.to_dict() for x in l.alertes],
+                          "fiche": (fiches.get(l.asin) or CF.Fiche(l.asin)).to_dict()} for l in lignes],
+            "enregistrements": [_enreg_json(e) for e in enregs],
+            "compteurs": {"a_completer": sum(1 for l in lignes if l.statut == "A_COMPLETER"),
+                          "rien_de_signale": sum(1 for l in lignes if l.statut == "RIEN_DE_SIGNALE"),
+                          "non_couverts": sum(1 for l in lignes if l.statut == "NON_COUVERT")},
+            "textes": [{"code": t.code, "reference": t.reference, "url": t.url, "verifie": t.verifie, "note": t.note}
+                       for t in CF.TEXTES.values()],
+            "date_lecture": CF.DATE_LECTURE, "places_ue": list(CF.PLACES_UE), "filieres": list(CF.FILIERES),
+        }
+
+    @app.post("/api/conformite/enregistrements")
+    def enregistrer_conformite(d: DemandeEnregistrement, c: str = Depends(compte)):
+        try:
+            e = CF.nouvel_enregistrement(d.pays, d.filiere, d.numero, d.intitule, d.mandataire)
+        except CF.SaisieInvalide as x:
+            raise HTTPException(422, {"code": x.args[0], "champ": x.args[1]}) from None
+        depot.enregistrer_enregistrement(c, e)
+        return _enreg_json(e)
+
+    @app.delete("/api/conformite/enregistrements/{cle:path}")
+    def supprimer_conformite(cle: str, c: str = Depends(compte)):
+        if not depot.supprimer_enregistrement(c, cle):
+            raise HTTPException(404, "ENREGISTREMENT_INTROUVABLE")
+        return {"supprime": cle}
+
+    @app.put("/api/conformite/fiches/{asin}")
+    def fiche_conformite(asin: str, brut: dict, c: str = Depends(compte)):
+        if not (1 <= len(asin) <= 20) or not asin.isalnum():
+            raise HTTPException(422, {"code": "SAISIE_INVALIDE", "champ": "asin"})
+        try:
+            f = CF.valider_fiche(asin, brut)
+        except CF.SaisieInvalide as x:
+            raise HTTPException(422, {"code": x.args[0], "champ": x.args[1]}) from None
+        depot.enregistrer_fiche(c, f)
+        return f.to_dict()
 
     # ------------------------------------------------------------- stock [RM-AMZ-045 à 048]
     @app.get("/api/stock")

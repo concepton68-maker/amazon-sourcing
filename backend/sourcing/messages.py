@@ -25,6 +25,18 @@ def m(code: str, **params) -> Message:
 
 # Textes français pour la ligne de commande. Pourcentages en fraction (0.3 = 30 %).
 FR: dict[str, str] = {
+    # conformité [RM-AMZ-061 à 066]
+    "C_LUCID_FORMAT": "Le n° LUCID attendu par Amazon a 13 chiffres",
+    "C_FABRICANT_INCOMPLET": "Fabricant : nom, adresse postale et adresse électronique à compléter",
+    "C_ORIGINE_FABRICANT_A_PRECISER": "Fabricant établi dans l'UE ou hors UE : à préciser",
+    "C_RESPONSABLE_MANQUANT": "Fabricant hors UE : personne responsable dans l'UE à compléter",
+    "C_AVERTISSEMENTS_A_CONFIRMER": "Avertissements de sécurité dans la langue du pays : à confirmer",
+    "C_ROLE_A_DETERMINER": "Producteur ou non pour ce produit : à déterminer par vous",
+    "C_FILIERES_A_DECLARER": "Filières du produit : à déclarer par vous",
+    "C_OBLIGATION_NON_VERIFIEE": "{pays} · {filiere} : obligation non recherchée pour ce pays",
+    "C_ENREGISTREMENT_MANQUANT": "{pays} · {filiere} : numéro d'enregistrement {qui} absent",
+    "C_TRIMAN_A_CONFIRMER": "France : signalétique Triman / info-tri à confirmer",
+    "C_CE_A_DETERMINER": "Marquage CE : à déterminer par vous",
     # hypothèses de calcul
     "HYP_HORS_TAXE": "{mp} : prix hors taxe, calcul sans TVA",
     "HYP_TVA_COLLECTEE": "TVA collectée {taux:.1%} (taux standard {mp} sauf taux réduit)",

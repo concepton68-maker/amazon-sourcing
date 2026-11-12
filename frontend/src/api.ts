@@ -169,3 +169,41 @@ export interface Remboursements {
 export const lireRemboursements = () => lire<Remboursements>("/api/remboursements");
 export const suivreCas = (cle: string, statut: string, case_id?: string) =>
   envoyer<CasRemb>(`/api/remboursements/${encodeURIComponent(cle)}/suivi`, { statut, case_id: case_id ?? null });
+
+// ------------------------------------------------------------ conformité [RM-AMZ-060 à 067]
+export interface Coordonnees { nom: string | null; adresse: string | null; courriel: string | null }
+export interface FicheConf {
+  asin: string; fabricant: Coordonnees; fabricant_hors_ue: boolean | null; responsable: Coordonnees;
+  avertissements_ok: boolean; producteur: string; filieres: string[]; intitule_autre: string | null;
+  numeros_producteur: Record<string, string>; triman_ok: boolean; marquage_ce: string;
+}
+export interface ProduitConf { asin: string; designation: string | null; places: string[]; statut: string; alertes: Msg[]; fiche: FicheConf }
+export interface EnregConf {
+  cle: string; pays: string; filiere: string; numero: string; intitule: string | null; mandataire: string | null;
+  texte: string | null; avertissements: Msg[];
+}
+export interface TexteConf { code: string; reference: string; url: string; verifie: boolean; note: string }
+export interface Conformite {
+  produits: ProduitConf[]; enregistrements: EnregConf[]; textes: TexteConf[]; date_lecture: string;
+  places_ue: string[]; filieres: string[];
+  compteurs: { a_completer: number; rien_de_signale: number; non_couverts: number };
+}
+
+async function requete<T>(methode: string, url: string, corps?: unknown): Promise<T> {
+  const r = await fetch(url, { method: methode, credentials: "same-origin",
+    headers: { "content-type": "application/json", ...ENTETE }, body: corps === undefined ? undefined : JSON.stringify(corps) });
+  if (r.status === 401) throw new NonConnecte("NON_CONNECTE");
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof j.detail === "object" && j.detail ? j.detail.code : (j.detail ?? "saisie"));
+  return j;
+}
+
+export const lireConformite = () => lire<Conformite>("/api/conformite");
+export const ajouterEnregistrement = (e: { pays: string; filiere: string; numero: string; intitule?: string; mandataire?: string }) =>
+  requete<EnregConf>("POST", "/api/conformite/enregistrements", e);
+export const supprimerEnregistrement = (cle: string) =>
+  requete<{ supprime: string }>("DELETE", `/api/conformite/enregistrements/${encodeURIComponent(cle)}`);
+export const ecrireFiche = (f: FicheConf) => {
+  const { asin, ...corps } = f;
+  return requete<FicheConf>("PUT", `/api/conformite/fiches/${encodeURIComponent(asin)}`, corps);
+};

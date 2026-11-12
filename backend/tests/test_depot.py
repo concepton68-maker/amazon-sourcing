@@ -154,6 +154,27 @@ class ContratDepot:
         self.assertEqual((relu.statut, relu.case_id, relu.unites, relu.faits), ("DOSSIER_ENVOYE", "C-9", 2, {"perdus_abimes": 4}))
         self.assertEqual(self.d.cas_remboursement(B), [])
 
+    def test_conformite_par_compte(self):
+        """[RM-AMZ-061, 062, RM-AMZ-014] Enregistrements et fiches relus à l'identique, propres au compte, suppression."""
+        from sourcing import conformite as CF
+        e = CF.nouvel_enregistrement("FR", "AUTRE", "IDU-9", intitule="Jouets", mandataire="M")
+        self.d.enregistrer_enregistrement(A, e)
+        self.d.enregistrer_enregistrement(A, CF.nouvel_enregistrement("FR", "AUTRE", "IDU-10", intitule="Jouets"))
+        (relu,) = self.d.enregistrements(A)
+        self.assertEqual((relu.numero, relu.intitule, relu.mandataire, relu.cle), ("IDU-10", "Jouets", None, e.cle))
+        self.assertEqual(self.d.enregistrements(B), [])
+        self.d.enregistrer_enregistrement(A, CF.nouvel_enregistrement("DE", "EEE", "DE1"))
+        self.assertFalse(self.d.supprimer_enregistrement(B, "DE:EEE:"))
+        self.assertTrue(self.d.supprimer_enregistrement(A, "DE:EEE:"))
+        self.assertEqual([x.cle for x in self.d.enregistrements(A)], ["FR:AUTRE:Jouets"])
+        f = CF.valider_fiche("B0X", {"fabricant": {"nom": "F", "adresse": "Paris", "courriel": "f@x.fr"},
+                                     "producteur": "NON", "filieres": ["PILES", "EEE"],
+                                     "numeros_producteur": {"FR:EEE": "IDU-F"}})
+        self.d.enregistrer_fiche(A, f)
+        self.d.enregistrer_fiche(A, CF.fiche_depuis_dict("B0X", f.to_dict()))
+        self.assertEqual(self.d.fiches(A), {"B0X": f})
+        self.assertEqual(self.d.fiches(B), {})
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):

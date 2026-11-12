@@ -181,3 +181,24 @@ button.secondaire { min-height: 44px; padding: 0 18px; border-radius: 8px; borde
 .statut-cas.CLOS { background: #eef0f3; color: #3a414c; }
 tr.dossier td { background: #f9fafb; }
 .texte-dossier { margin: 0 0 10px; font-size: 14px; max-width: 900px; }
+
+/* conformité [RM-AMZ-060 à 067] */
+.statut-conf { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.statut-conf.A_COMPLETER { background: var(--negatif-doux); color: #8f4208; }
+.statut-conf.RIEN_DE_SIGNALE { background: var(--positif-doux); color: var(--positif); }
+.statut-conf.NON_COUVERT { background: #eef0f3; color: #3a414c; }
+.alertes-conf { margin: 0 0 12px; padding-left: 18px; }
+.alertes-conf li { margin: 4px 0; overflow-wrap: anywhere; }
+.fiche-conf { display: flex; flex-direction: column; gap: 12px; }
+fieldset.groupe { border: 1px solid #dfe3e8; border-radius: 8px; padding: 10px 12px; margin: 0; min-width: 0;
+  display: flex; flex-wrap: wrap; gap: 10px; }
+fieldset.groupe > legend { font-weight: 700; padding: 0 4px; }
+fieldset.groupe > label { flex: 1 1 200px; min-width: 0; }
+.textes-conf { margin: 0; padding-left: 18px; }
+.textes-conf li { margin: 6px 0; overflow-wrap: anywhere; }
+.meta.attention { color: #8f4208; }
+
+.fiche-conf .formulaire.nu > label:not(.case) { flex: 0 1 280px; }
+tr.choisi td { background: var(--accent-doux); }
+td.coupe { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .masque-tel { display: none; } }

@@ -309,6 +309,35 @@ class DepotPostgres:
             sku, fnsku, commande, unites, valeur_achat, trim(devise), detecte_le, echeance, statut, case_id, montant_verse,
             faits FROM amz.remboursements_cas""")]
 
+    # -------------------------------------------------------------- conformité [RM-AMZ-061, 062]
+    def enregistrements(self, compte_id: str) -> list:
+        from .conformite import Enregistrement
+        return [Enregistrement(*r) for r in self._executer(compte_id, """SELECT pays, filiere, numero, nullif(intitule, ''),
+            mandataire FROM amz.conformite_enregistrements ORDER BY pays, filiere, intitule""")]
+
+    def enregistrer_enregistrement(self, compte_id: str, e) -> None:
+        self._executer(compte_id, """INSERT INTO amz.conformite_enregistrements (compte_id, pays, filiere, intitule, numero,
+            mandataire) VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (compte_id, pays, filiere, intitule)
+            DO UPDATE SET numero = EXCLUDED.numero, mandataire = EXCLUDED.mandataire, maj = now()""",
+            (_uuid(compte_id), e.pays, e.filiere, e.intitule or "", e.numero, e.mandataire))
+
+    def supprimer_enregistrement(self, compte_id: str, cle: str) -> bool:
+        pays, filiere, intitule = (cle.split(":", 2) + ["", ""])[:3]
+        avant = len(self.enregistrements(compte_id))
+        self._executer(compte_id, """DELETE FROM amz.conformite_enregistrements WHERE pays = %s AND filiere = %s
+            AND intitule = %s""", (pays, filiere, intitule))
+        return len(self.enregistrements(compte_id)) < avant
+
+    def fiches(self, compte_id: str) -> dict:
+        from .conformite import fiche_depuis_dict
+        return {a: fiche_depuis_dict(a, dict(d)) for a, d in self._executer(
+            compte_id, "SELECT asin, donnees FROM amz.conformite_fiches")}
+
+    def enregistrer_fiche(self, compte_id: str, fiche) -> None:
+        self._executer(compte_id, """INSERT INTO amz.conformite_fiches (compte_id, asin, donnees) VALUES (%s,%s,%s)
+            ON CONFLICT (compte_id, asin) DO UPDATE SET donnees = EXCLUDED.donnees, maj = now()""",
+            (_uuid(compte_id), fiche.asin, json.dumps(fiche.to_dict())))
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         self._executer(compte_id, "UPDATE amz.comptes SET revoque_le = coalesce(revoque_le, %s)", (jour,))

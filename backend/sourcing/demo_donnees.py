@@ -104,6 +104,18 @@ def construire() -> tuple[DepotMemoire, str]:
     asins = {"COUTEAUX-5": "B0DEMO0005", "LAMPE-LED": "B0DEMO0003", "GOURDE-750": "B0DEMO0001"}
     cas = RB.detecter(ledger, verses, retours, d.ventes(c), envois, d.lots(c), date(2026, 11, 12), "EUR", asins)
     d.enregistrer_cas(c, RB.appliquer_suivi(cas, [], verses))
+    # conformité (fictive) [RM-AMZ-061 à 066] : un dossier presque complet, un à moitié, les autres vides
+    from . import conformite as CF
+    d.enregistrer_enregistrement(c, CF.nouvel_enregistrement("FR", "EMBALLAGES", "FR000000_01DEMO"))
+    d.enregistrer_enregistrement(c, CF.nouvel_enregistrement("DE", "EMBALLAGES", "0000000000001"))
+    fab = {"nom": "Fabricant Démo SAS", "adresse": "1 rue de l'Exemple, 75000 Paris", "courriel": "contact@exemple.invalid"}
+    d.enregistrer_fiche(c, CF.valider_fiche("B0DEMO0001", {
+        "fabricant": fab, "fabricant_hors_ue": False, "avertissements_ok": True, "producteur": "OUI",
+        "filieres": ["EMBALLAGES"], "triman_ok": True, "marquage_ce": "NON_CONCERNE"}))
+    d.enregistrer_fiche(c, CF.valider_fiche("B0DEMO0003", {
+        "fabricant": {"nom": "Demo Lights Ltd", "adresse": "Shenzhen", "courriel": "sales@exemple.invalid"},
+        "fabricant_hors_ue": True, "producteur": "OUI", "filieres": ["EMBALLAGES", "EEE", "PILES"],
+        "marquage_ce": "OUI"}))
     jour = date(2026, 11, 12)
     d.enregistrer_photo_stock(c, jour, [
         PhotoStock("FR", "GOURDE-750", "B0DEMO0001", "Gourde inox 750 ml", 3, 0),

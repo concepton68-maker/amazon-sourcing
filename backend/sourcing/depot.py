@@ -35,6 +35,8 @@ class DepotMemoire:
         self._bons: dict[str, object] = {}
         self._verses: dict[tuple[str, str], object] = {}
         self._cas: dict[tuple[str, str], object] = {}
+        self._enregs: dict[tuple[str, str], object] = {}
+        self._fiches: dict[tuple[str, str], object] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -156,6 +158,22 @@ class DepotMemoire:
     def cas_remboursement(self, compte_id: str) -> list:
         return [x for (c, _), x in self._cas.items() if c == compte_id]
 
+    # -------------------------------------------------------------- conformité [RM-AMZ-061, 062]
+    def enregistrements(self, compte_id: str) -> list:
+        return sorted((e for (c, _), e in self._enregs.items() if c == compte_id), key=lambda e: e.cle)
+
+    def enregistrer_enregistrement(self, compte_id: str, e) -> None:
+        self._enregs[(compte_id, e.cle)] = e
+
+    def supprimer_enregistrement(self, compte_id: str, cle: str) -> bool:
+        return self._enregs.pop((compte_id, cle), None) is not None
+
+    def fiches(self, compte_id: str) -> dict:
+        return {a: f for (c, a), f in self._fiches.items() if c == compte_id}
+
+    def enregistrer_fiche(self, compte_id: str, fiche) -> None:
+        self._fiches[(compte_id, fiche.asin)] = fiche
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -180,5 +198,7 @@ class DepotMemoire:
             self._bons = {k: v for k, v in self._bons.items() if v.compte_id != c}
             self._verses = {k: v for k, v in self._verses.items() if k[0] != c}
             self._cas = {k: v for k, v in self._cas.items() if k[0] != c}
+            self._enregs = {k: v for k, v in self._enregs.items() if k[0] != c}
+            self._fiches = {k: v for k, v in self._fiches.items() if k[0] != c}
             del self._revocations[c]
         return purges
