@@ -158,4 +158,4 @@ Toutes les alertes sont des **avertissements**, jamais un blocage.
 
 | N° | Règle | Source | Statut | Blocage | Test | État |
 |---|---|---|---|---|---|---|
-| RM-AMZ-071 | **Aucune source branchée** (ni SP-API ni Keepa) : l'analyse d'un produit et le traitement d'un fichier fournisseur répondent `SOURCE_NON_CONFIGUREE`, jamais « produit introuvable » (on ne conclut rien sans avoir cherché). | Règle de Sam : ne jamais présenter une donnée non vérifiée | métier | bloquant | `test_sans_source_branchee` | à coder |
+| RM-AMZ-071 | **Aucune source branchée** (ni SP-API ni Keepa) : l'analyse d'un produit et le traitement d'un fichier fournisseur répondent `SOURCE_NON_CONFIGUREE`, jamais « produit introuvable » (on ne conclut rien sans avoir cherché). | Règle de Sam : ne jamais présenter une donnée non vérifiée | métier | bloquant | `test_sans_source_branchee` | codé |

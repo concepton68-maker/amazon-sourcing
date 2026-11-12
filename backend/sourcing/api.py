@@ -608,6 +608,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         regime = d.regime_tva or p.regime(mp.code)
         if regime not in REGIMES_TVA:
             raise HTTPException(422, "REGIME_TVA_INCONNU")
+        if not fournisseurs.catalogue:  # [RM-AMZ-071]
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
         try:
             asins = resoudre_asins(mp, d.code, fournisseurs)
         except ErreurFournisseur:
@@ -663,6 +665,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
 
     @app.post("/api/sourcing/fichiers/{fid}/traitements", status_code=201)
     def lancer_traitement(fid: str, d: DemandeTraitement, c: str = Depends(compte)):
+        if not fournisseurs.catalogue:  # [RM-AMZ-071]
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
         f = fichiers.get(fid)
         if f is None or f[0] != c:
             raise HTTPException(404, "FICHIER_EXPIRE")
