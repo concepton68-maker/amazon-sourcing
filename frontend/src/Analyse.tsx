@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Analyse, Place, analyser, creerLot, listerPlaces } from "./api";
+import { Analyse, Params, Place, analyser, creerLot, lireParametres, listerPlaces } from "./api";
 import { Msg, message, monnaie, pourcent, t } from "./i18n";
 
 const REGIMES = ["assujetti", "non_assujetti"];
@@ -124,7 +124,16 @@ export function AnalyseVue({ lotCree, initial }: { lotCree: (id: string) => void
   const [erreur, setErreur] = useState<string | null>(null);
   const [encours, setEncours] = useState(false);
 
-  useEffect(() => { listerPlaces().then(setPlaces).catch(() => setErreur("chargement")); }, []);
+  const [params, setParams] = useState<Params | null>(null);
+  useEffect(() => {
+    listerPlaces().then(setPlaces).catch(() => setErreur("chargement"));
+    lireParametres().then(setParams).catch(() => undefined);
+  }, []);
+  // [RM-AMZ-044] régime de TVA du compte pour la place choisie (modifiable pour cette analyse)
+  useEffect(() => {
+    const r = params?.tva[place];
+    if (r && r !== "hors_taxe") setRegime(r);
+  }, [params, place]);
 
   const lancer = (e: FormEvent) => { e.preventDefault(); executer(code, prix); };
 

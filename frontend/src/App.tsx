@@ -3,6 +3,7 @@ import { DetailLot, ResumeLot, detailLot, listerLots } from "./api";
 import { AnalyseVue } from "./Analyse";
 import { SourcingVue } from "./Sourcing";
 import { Connexion } from "./Connexion";
+import { ParametresVue } from "./Parametres";
 import { NonConnecte, deconnecter, moi } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
@@ -134,10 +135,10 @@ function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: bo
   );
 }
 
-type Vue = "analyse" | "sourcing" | "lots";
+type Vue = "analyse" | "sourcing" | "lots" | "parametres";
 const vueDepuisAdresse = (): Vue => {
   const h = window.location.hash;
-  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : "analyse";
+  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : "analyse";
 };
 
 export function App() {
@@ -176,12 +177,14 @@ export function App() {
           <a href="#analyse" aria-current={vue === "analyse" ? "page" : undefined}>{t("nav.analyse")}</a>
           <a href="#sourcing" aria-current={vue === "sourcing" ? "page" : undefined}>{t("nav.sourcing")}</a>
           <a href="#lots" aria-current={vue === "lots" ? "page" : undefined}>{t("nav.lots")}</a>
+          <a href="#parametres" aria-current={vue === "parametres" ? "page" : undefined}>{t("nav.parametres")}</a>
         </nav>
         {demo && <span className="badge-demo">{t("demo")}</span>}
         {avecConnexion && <button type="button" className="lien sortie" onClick={sortir}>{t("connexion.sortir")}</button>}
       </header>
       {vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
         : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue analyser={analyser} /></main>
+        : vue === "parametres" ? <main className="contenu-plein"><ParametresVue /></main>
         : <main><LotsVue key={lotInitial ?? "lots"} lotInitial={lotInitial} setDemo={setDemo} /></main>}
     </div>
   );

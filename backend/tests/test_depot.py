@@ -92,6 +92,15 @@ class ContratDepot:
         self.purger(date(2026, 11, 2))
         self.assertIsNone(self.d.appariement(A, "FR", "2000000000015"))
 
+    def test_parametres_par_compte_et_versions(self):
+        """[RM-AMZ-043, RM-AMZ-014] Paramètres versionnés en ajout seul, propres à chaque compte."""
+        self.assertIsNone(self.d.parametres(A))
+        self.assertEqual(self.d.enregistrer_parametres(A, {"roi_min": 0.4}), 1)
+        self.assertEqual(self.d.enregistrer_parametres(A, {"roi_min": 0.5}), 2)
+        self.assertEqual(self.d.parametres(A), {"roi_min": 0.5})
+        self.assertIsNone(self.d.parametres(B))
+        self.assertEqual([v[1]["roi_min"] for v in self.d.versions_parametres(A)], [0.4, 0.5])
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):

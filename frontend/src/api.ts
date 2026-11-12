@@ -97,3 +97,17 @@ export const connecter = (courriel: string, mot_de_passe: string) =>
   envoyer<{ ok: boolean }>("/api/session", { courriel, mot_de_passe });
 export const deconnecter = () =>
   fetch("/api/session", { method: "DELETE", headers: ENTETE, credentials: "same-origin" });
+
+export interface Params {
+  roi_min: number; profit_min: number; ventes_mois_min: number; part_ventes_min: number; ecart_prix_max: number;
+  envoi: number; preparation: number; stockage: number; retours: number; tva: Record<string, string>; versions: number;
+}
+export const lireParametres = () => lire<Params>("/api/parametres");
+export async function ecrireParametres(p: Omit<Params, "versions">): Promise<Params> {
+  const r = await fetch("/api/parametres", { method: "PUT", credentials: "same-origin",
+    headers: { "content-type": "application/json", ...ENTETE }, body: JSON.stringify(p) });
+  if (r.status === 401) throw new NonConnecte("NON_CONNECTE");
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof j.detail === "object" ? `${j.detail.code}|${j.detail.champ}` : "saisie");
+  return j;
+}

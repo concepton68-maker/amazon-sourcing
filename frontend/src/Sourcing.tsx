@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { Colonnes, Fichier, Place, Suivi, deposerFichier, lancerTraitement, listerPlaces, suivreTraitement, urlExport } from "./api";
+import { Colonnes, Fichier, Params, Place, Suivi, deposerFichier, lancerTraitement, lireParametres, listerPlaces, suivreTraitement, urlExport } from "./api";
 import { message, monnaie, pourcent, t } from "./i18n";
 
 const ROLES = ["code", "prix", "designation", "colisage", "minimum"];
@@ -20,7 +20,15 @@ export function SourcingVue({ analyser }: { analyser: (code: string, prix: numbe
   const [filtre, setFiltre] = useState("TOUS");
   const [erreur, setErreur] = useState<string | null>(null);
 
-  useEffect(() => { listerPlaces().then(setPlaces).catch(() => setErreur("chargement")); }, []);
+  const [params, setParams] = useState<Params | null>(null);
+  useEffect(() => {
+    listerPlaces().then(setPlaces).catch(() => setErreur("chargement"));
+    lireParametres().then(setParams).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    const r = params?.tva[place];
+    if (r && r !== "hors_taxe") setRegime(r);
+  }, [params, place]);
 
   useEffect(() => {
     if (!tid) return;

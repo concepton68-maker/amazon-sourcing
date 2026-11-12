@@ -79,7 +79,7 @@ def _asins(compte_id: str, mp: Marketplace, code: str, f: Fournisseurs, depot, t
 
 
 def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, regime: str, seuils: Seuils,
-           achat_ttc: bool) -> ResultatLigne:
+           achat_ttc: bool, parametres=None) -> ResultatLigne:
     r = ResultatLigne(l.numero, l.code, l.designation, l.prix_unitaire, asin=asin, lignes=list(l.avertissements))
     # 1re passe pour connaître la taille du lot vendu sur Amazon, puis analyse au bon coût [RM-AMZ-033]
     cat = None
@@ -93,8 +93,9 @@ def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, reg
     if k > 1:
         r.lignes.append(m("L_LOT_AMAZON", n=k))
     r.unites_lot, r.cout_achat = k, l.prix_unitaire * k
-    a: AnalyseProduit = analyser_asin(mp, asin, ParametresCout(float(r.cout_achat), prix_achat_ttc=achat_ttc),
-                                      f, regime, seuils)
+    couts = parametres.couts(float(r.cout_achat), achat_ttc) if parametres else \
+        ParametresCout(float(r.cout_achat), prix_achat_ttc=achat_ttc)       # [RM-AMZ-044] coûts par défaut du compte
+    a: AnalyseProduit = analyser_asin(mp, asin, couts, f, regime, seuils)
     r.titre, r.verdict, r.prix_vente = a.catalogue.titre, a.verdict, a.prix_vente_retenu
     if a.rentabilite:
         r.profit, r.roi = a.rentabilite.profit_net, a.rentabilite.roi
@@ -105,7 +106,8 @@ def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, reg
 
 
 def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs, depot,
-             regime: str = "assujetti", seuils: Optional[Seuils] = None, achat_ttc: bool = False) -> Traitement:
+             regime: str = "assujetti", seuils: Optional[Seuils] = None, achat_ttc: bool = False,
+             parametres=None) -> Traitement:
     seuils = seuils or Seuils()
     t.rejets, t.doublons = prep.rejets, prep.doublons
     maintenant = datetime.now(timezone.utc)
@@ -123,7 +125,7 @@ def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs,
                                                  lignes=list(l.avertissements) + [m("L_INTROUVABLE")],
                                                  statut="INTROUVABLE"))
             for asin in asins:                    # un code peut donner plusieurs listings (lots, variantes)
-                t.resultats.append(_ligne(l, mp, asin, f, regime, seuils, achat_ttc))
+                t.resultats.append(_ligne(l, mp, asin, f, regime, seuils, achat_ttc, parametres))
             t.faits += 1
         t.statut = "TERMINE"
     except Exception:                             # une panne n'efface pas ce qui est déjà calculé
@@ -140,11 +142,11 @@ class Traitements:
         self._verrou = threading.Lock()
 
     def lancer(self, compte_id: str, prep: Preparation, mp: Marketplace, f: Fournisseurs, depot, regime: str,
-               achat_ttc: bool, seuils: Optional[Seuils] = None, en_fond: bool = True) -> Traitement:
+               achat_ttc: bool, seuils: Optional[Seuils] = None, en_fond: bool = True, parametres=None) -> Traitement:
         t = Traitement(str(uuid.uuid4()), compte_id, mp.code, total=len(prep.lignes))
         with self._verrou:
             self._t[t.id] = t
-        travail = lambda: executer(t, prep, mp, f, depot, regime, seuils, achat_ttc)  # noqa: E731
+        travail = lambda: executer(t, prep, mp, f, depot, regime, seuils, achat_ttc, parametres)  # noqa: E731
         if en_fond:
             threading.Thread(target=self._sans_bruit, args=(travail,), daemon=True).start()
         else:

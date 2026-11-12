@@ -16,6 +16,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 import contextlib
+import json
 
 import psycopg
 
@@ -163,6 +164,22 @@ class DepotPostgres:
             VALUES (%s, %s, %s, %s, %s) ON CONFLICT (compte_id, marketplace, code)
             DO UPDATE SET asins = EXCLUDED.asins, vu_le = EXCLUDED.vu_le""",
             (_uuid(compte_id), marketplace, code, list(asins), quand or datetime.now(timezone.utc)))
+
+    # -------------------------------------------------------------- paramètres [RM-AMZ-042, 043]
+    def parametres(self, compte_id: str) -> Optional[dict]:
+        rows = self._executer(compte_id, "SELECT valeurs FROM amz.parametres ORDER BY version DESC LIMIT 1")
+        return dict(rows[0][0]) if rows else None
+
+    def versions_parametres(self, compte_id: str):
+        return [(v, dict(x), q) for v, x, q in self._executer(
+            compte_id, "SELECT version, valeurs, cree_le FROM amz.parametres ORDER BY version")]
+
+    def enregistrer_parametres(self, compte_id: str, valeurs: dict) -> int:
+        rows = self._executer(compte_id, """SELECT coalesce(max(version), 0) + 1 FROM amz.parametres""")
+        v = rows[0][0]
+        self._executer(compte_id, "INSERT INTO amz.parametres (compte_id, version, valeurs) VALUES (%s, %s, %s)",
+                       (_uuid(compte_id), v, json.dumps(valeurs)))
+        return v
 
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:

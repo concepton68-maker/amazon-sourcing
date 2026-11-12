@@ -27,6 +27,7 @@ from .depot import AccesRefuse
 from .lots import Lot, ResultatLot, decomposer_ecart, prevision_depuis_analyse, rattacher_fifo
 from .marketplaces import MARKETPLACES, get_marketplace
 from .messages import texte_fr
+from .parametres import ParametreInvalide, Parametres, valider
 from .profit import REGIMES_TVA, ParametresCout
 from .providers.base import ErreurFournisseur
 from .traitement import Traitements, export_csv
@@ -84,7 +85,7 @@ class DemandeAnalyse(BaseModel):
     marketplace: str = "FR"
     prix_achat: float = Field(gt=0)
     achat_ttc: bool = False
-    regime_tva: str = "assujetti"
+    regime_tva: Optional[str] = None          # absent : régime du compte pour cette place [RM-AMZ-044]
     taux_tva: Optional[float] = Field(default=None, ge=0, lt=1)
     prix_vente: Optional[float] = Field(default=None, gt=0)
 
@@ -92,7 +93,7 @@ class DemandeAnalyse(BaseModel):
 class DemandeTraitement(BaseModel):
     colonnes: dict[str, Optional[int]]
     marketplace: str = "FR"
-    regime_tva: str = "assujetti"
+    regime_tva: Optional[str] = None
     achat_ttc: bool = False
     prix_par_carton: bool = False
 
@@ -223,6 +224,25 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     def moi(c: str = Depends(compte)):
         return {"compte_id": c, "demo": demo, "connexion": auth is not None}
 
+    # ------------------------------------------------------------- paramètres [RM-AMZ-042 à 044]
+    def params(c: str) -> Parametres:
+        return valider(depot.parametres(c) or {})
+
+    @app.get("/api/parametres")
+    def lire_parametres(c: str = Depends(compte)):
+        return {**params(c).to_dict(), "versions": len(depot.versions_parametres(c))}
+
+    @app.put("/api/parametres")
+    def ecrire_parametres(brut: dict, c: str = Depends(compte)):
+        try:
+            p = valider(brut)
+        except ParametreInvalide as e:
+            raise HTTPException(422, {"code": e.args[0], "champ": e.args[1]}) from None
+        valeurs = p.to_dict()
+        valeurs["tva"] = {k: v for k, v in valeurs["tva"].items() if v != "hors_taxe"}
+        version = depot.enregistrer_parametres(c, valeurs)
+        return {**p.to_dict(), "versions": version}
+
     # ------------------------------------------------------------- lots
     def resultats(c: str):
         return rattacher_fifo(depot.lots(c), depot.ventes(c))
@@ -255,7 +275,9 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             mp = get_marketplace(d.marketplace)
         except ValueError:
             raise HTTPException(422, "PLACE_INCONNUE") from None
-        if d.regime_tva not in REGIMES_TVA:
+        p = params(c)
+        regime = d.regime_tva or p.regime(mp.code)
+        if regime not in REGIMES_TVA:
             raise HTTPException(422, "REGIME_TVA_INCONNU")
         try:
             asins = resoudre_asins(mp, d.code, fournisseurs)
@@ -263,10 +285,10 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(502, "SOURCE_INDISPONIBLE") from None
         if not asins:
             raise HTTPException(404, "PRODUIT_INTROUVABLE")
-        couts = ParametresCout(prix_achat=d.prix_achat, prix_achat_ttc=d.achat_ttc, taux_tva_achat=d.taux_tva)
+        couts = p.couts(d.prix_achat, d.achat_ttc, d.taux_tva)
         sortie = []
         for asin in asins:
-            a = analyser_asin(mp, asin, couts, fournisseurs, d.regime_tva, seuils, d.prix_vente, d.taux_tva)
+            a = analyser_asin(mp, asin, couts, fournisseurs, regime, p.seuils(), d.prix_vente, d.taux_tva)
             jeton = str(uuid.uuid4())
             analyses[jeton] = (c, a, couts)
             while len(analyses) > 500:
@@ -319,15 +341,17 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             mp = get_marketplace(d.marketplace)
         except ValueError:
             raise HTTPException(422, "PLACE_INCONNUE") from None
-        if d.regime_tva not in REGIMES_TVA:
+        p = params(c)
+        regime = d.regime_tva or p.regime(mp.code)
+        if regime not in REGIMES_TVA:
             raise HTTPException(422, "REGIME_TVA_INCONNU")
         colonnes = {r: d.colonnes.get(r) for r in fich.ROLES}
         try:
             prep = fich.preparer(f[2], colonnes, d.prix_par_carton)
         except fich.FichierInvalide as e:
             raise HTTPException(422, e.args[0]) from None
-        t = traitements.lancer(c, prep, mp, fournisseurs, depot, d.regime_tva, d.achat_ttc, seuils,
-                               en_fond=traitement_en_fond)
+        t = traitements.lancer(c, prep, mp, fournisseurs, depot, regime, d.achat_ttc, p.seuils(),
+                               en_fond=traitement_en_fond, parametres=p)
         return {"traitement_id": t.id}
 
     @app.get("/api/sourcing/traitements/{tid}")

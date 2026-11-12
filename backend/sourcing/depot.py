@@ -29,6 +29,7 @@ class DepotMemoire:
         self._ventes: dict[tuple[str, str], VenteReelle] = {}  # (compte, id_externe) -> vente
         self._revocations: dict[str, date] = {}
         self._appariements: dict[tuple[str, str, str], tuple[list[str], datetime]] = {}
+        self._parametres: dict[str, list[tuple[dict, datetime]]] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -71,6 +72,18 @@ class DepotMemoire:
                               quand: Optional[datetime] = None) -> None:
         self._appariements[(compte_id, marketplace, code)] = (list(asins), quand or datetime.now(timezone.utc))
 
+    # -------------------------------------------------------------- paramètres [RM-AMZ-042, 043]
+    def parametres(self, compte_id: str) -> Optional[dict]:
+        v = self._parametres.get(compte_id)
+        return dict(v[-1][0]) if v else None
+
+    def versions_parametres(self, compte_id: str) -> list[tuple[int, dict, datetime]]:
+        return [(i + 1, dict(x), q) for i, (x, q) in enumerate(self._parametres.get(compte_id, []))]
+
+    def enregistrer_parametres(self, compte_id: str, valeurs: dict) -> int:
+        self._parametres.setdefault(compte_id, []).append((dict(valeurs), datetime.now(timezone.utc)))
+        return len(self._parametres[compte_id])
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -89,5 +102,6 @@ class DepotMemoire:
             self._ventes = {k: v for k, v in self._ventes.items() if k[0] != c}
             self._comptes.discard(c)
             self._appariements = {k: v for k, v in self._appariements.items() if k[0] != c}
+            self._parametres.pop(c, None)
             del self._revocations[c]
         return purges
