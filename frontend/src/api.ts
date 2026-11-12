@@ -101,6 +101,7 @@ export const deconnecter = () =>
 export interface Params {
   roi_min: number; profit_min: number; ventes_mois_min: number; part_ventes_min: number; ecart_prix_max: number;
   envoi: number; preparation: number; stockage: number; retours: number; tva: Record<string, string>; versions: number;
+  delai_fournisseur: number; delai_reception: number; marge_securite: number; seuil_rupture: number; seuil_surstock: number;
 }
 export const lireParametres = () => lire<Params>("/api/parametres");
 export async function ecrireParametres(p: Omit<Params, "versions">): Promise<Params> {
@@ -111,3 +112,16 @@ export async function ecrireParametres(p: Omit<Params, "versions">): Promise<Par
   if (!r.ok) throw new Error(typeof j.detail === "object" ? `${j.detail.code}|${j.detail.champ}` : "saisie");
   return j;
 }
+
+export interface LigneStock {
+  marketplace: string; sku: string; asin: string | null; designation: string | null; disponible: number; en_route: number;
+  reserve: number; invendable: number; vendus_30j: number; vitesse: number; couverture: number | null;
+  rupture_le: string | null; a_commander: number; fournisseur: string | null; cout_unitaire: number | null;
+  devise: string; alertes: Msg[];
+}
+export interface Stock {
+  jour: string | null; lignes: LigneStock[];
+  commandes: { fournisseur: string | null; lignes: number; unites: number; montant: number | null; devise: string }[];
+  compteurs: { unites: number; ruptures: number; surstocks: number };
+}
+export const lireStock = () => lire<Stock>("/api/stock");

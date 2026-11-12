@@ -7,6 +7,7 @@ from datetime import date, datetime, timezone
 from .depot import DepotMemoire
 from .lots import Lot, Prevision
 from .marketplaces import get_marketplace
+from .stock import PhotoStock
 from .sync import synchroniser
 
 COMPTE_DEMO = "00000000-0000-4000-8000-000000000001"
@@ -72,4 +73,12 @@ def construire() -> tuple[DepotMemoire, str]:
     tx += _ventes("K", "B0DEMO0005", 18, 32.70, 11.62, date(2026, 10, 5), mp="IT")
     synchroniser(c, get_marketplace("FR"), _AmazonSimule(tx), d, datetime(2026, 11, 12, 3, tzinfo=timezone.utc),
                  classement=CLASSEMENT, attendre=lambda s: None)
+    jour = date(2026, 11, 12)
+    d.enregistrer_photo_stock(c, jour, [
+        PhotoStock("FR", "GOURDE-750", "B0DEMO0001", "Gourde inox 750 ml", 3, 0),
+        PhotoStock("DE", "LAMPE-LED", "B0DEMO0003", "Lampe frontale LED", 19, 0),
+        PhotoStock("FR", "PUZZLE-1000", "B0DEMO0004", "Puzzle 1000 pièces", 18, 0, invendable=2),
+        PhotoStock("IT", "COUTEAUX-5", "B0DEMO0005", "Set de couteaux 5 pièces", 22, 12),
+        PhotoStock("FR", "BOUGIE-VIEILLE", "B0DEMO0099", "Bougie parfumée", 37, 0),
+    ])
     return d, c

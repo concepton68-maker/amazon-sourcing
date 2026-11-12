@@ -30,6 +30,7 @@ class DepotMemoire:
         self._revocations: dict[str, date] = {}
         self._appariements: dict[tuple[str, str, str], tuple[list[str], datetime]] = {}
         self._parametres: dict[str, list[tuple[dict, datetime]]] = {}
+        self._stock: dict[tuple[str, str, str, date], object] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -84,6 +85,21 @@ class DepotMemoire:
         self._parametres.setdefault(compte_id, []).append((dict(valeurs), datetime.now(timezone.utc)))
         return len(self._parametres[compte_id])
 
+    # -------------------------------------------------------------- stock [RM-AMZ-045]
+    def enregistrer_photo_stock(self, compte_id: str, jour: date, photos) -> None:
+        """Remplace la photo du jour pour les SKU fournis (relancer la même nuit ne double rien)."""
+        for p in photos:
+            self._stock[(compte_id, p.marketplace, p.sku, jour)] = p
+
+    def photo_stock(self, compte_id: str):
+        """Dernière photo de chaque SKU : (jour, photos)."""
+        dernier: dict[tuple[str, str], tuple[date, object]] = {}
+        for (c, mp, sku, j), p in self._stock.items():
+            if c == compte_id and ((mp, sku) not in dernier or j > dernier[(mp, sku)][0]):
+                dernier[(mp, sku)] = (j, p)
+        jour = max((j for j, _ in dernier.values()), default=None)
+        return jour, [p for _, p in dernier.values()]
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -103,5 +119,6 @@ class DepotMemoire:
             self._comptes.discard(c)
             self._appariements = {k: v for k, v in self._appariements.items() if k[0] != c}
             self._parametres.pop(c, None)
+            self._stock = {k: v for k, v in self._stock.items() if k[0] != c}
             del self._revocations[c]
         return purges

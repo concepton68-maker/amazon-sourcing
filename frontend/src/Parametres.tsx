@@ -5,7 +5,8 @@ import { t } from "./i18n";
 const POURCENT = new Set(["roi_min", "ecart_prix_max", "retours"]);
 const SEUILS = ["roi_min", "profit_min", "ventes_mois_min", "part_ventes_min", "ecart_prix_max"] as const;
 const COUTS = ["envoi", "preparation", "stockage", "retours"] as const;
-type Cle = (typeof SEUILS)[number] | (typeof COUTS)[number];
+const STOCK = ["delai_fournisseur", "delai_reception", "marge_securite", "seuil_rupture", "seuil_surstock"] as const;
+type Cle = (typeof SEUILS)[number] | (typeof COUTS)[number] | (typeof STOCK)[number];
 
 const versSaisie = (k: string, v: number) => String(POURCENT.has(k) ? Math.round(v * 10000) / 100 : v).replace(".", ",");
 const depuisSaisie = (k: string, s: string) => { const n = Number(s.replace(",", ".")); return POURCENT.has(k) ? n / 100 : n; };
@@ -22,14 +23,14 @@ export function ParametresVue() {
     listerPlaces().then(setPlaces).catch(() => setErreur("chargement"));
     lireParametres().then((x) => {
       setP(x); setTva(x.tva);
-      setSaisie(Object.fromEntries([...SEUILS, ...COUTS].map((k) => [k, versSaisie(k, x[k])])));
+      setSaisie(Object.fromEntries([...SEUILS, ...COUTS, ...STOCK].map((k) => [k, versSaisie(k, x[k])])));
     }).catch((e) => setErreur(e.message));
   }, []);
 
   const enregistrer = async (e: FormEvent) => {
     e.preventDefault();
     setErreur(null); setEtat(null);
-    const valeurs = Object.fromEntries([...SEUILS, ...COUTS].map((k) => [k, depuisSaisie(k, saisie[k] ?? "0")])) as Record<Cle, number>;
+    const valeurs = Object.fromEntries([...SEUILS, ...COUTS, ...STOCK].map((k) => [k, depuisSaisie(k, saisie[k] ?? "0")])) as Record<Cle, number>;
     try {
       const r = await ecrireParametres({ ...valeurs, tva: Object.fromEntries(Object.entries(tva).filter(([, v]) => v !== "hors_taxe")) });
       setP(r); setEtat(t("parametres.enregistre", { v: r.versions }));
@@ -53,7 +54,8 @@ export function ParametresVue() {
       {etat && <p role="status" className="succes">{etat}</p>}
       <div className="grille trois">
         <div className="carte"><h3>{t("parametres.seuils")}</h3>{SEUILS.map(champ)}</div>
-        <div className="carte"><h3>{t("parametres.couts")}</h3>{COUTS.map(champ)}</div>
+        <div className="carte"><h3>{t("parametres.couts")}</h3>{COUTS.map(champ)}
+          <h3 className="sous-titre">{t("parametres.stock")}</h3>{STOCK.map(champ)}</div>
         <div className="carte"><h3>{t("parametres.tva")}</h3>
           <div className="liste-tva">
             {places.map((pl) => (

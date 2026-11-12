@@ -148,3 +148,13 @@ button.lien { background: none; border: none; color: var(--accent); font: 600 14
 .ligne-reglage input, .ligne-reglage select { width: 140px; flex: none; }
 .liste-tva { max-height: 520px; overflow-y: auto; }
 .succes { color: var(--positif); font-weight: 600; }
+
+/* --- stock --- */
+.jauge { height: 6px; background: #eef0f3; border-radius: 999px; overflow: hidden; margin-bottom: 4px; min-width: 70px; }
+.jauge div { height: 100%; background: #2e9a66; }
+.jauge div.negatif { background: #e08a3c; }
+.jauge div.neutre { background: #c9cfd8; }
+.liste-cmd { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.liste-cmd li { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; padding: 12px; border: 1px solid var(--bord); border-radius: 10px; }
+.liste-cmd .montant { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sous-titre { margin-top: 16px; }

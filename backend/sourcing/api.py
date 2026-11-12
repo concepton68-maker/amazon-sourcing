@@ -30,6 +30,7 @@ from .messages import texte_fr
 from .parametres import ParametreInvalide, Parametres, valider
 from .profit import REGIMES_TVA, ParametresCout
 from .providers.base import ErreurFournisseur
+from .stock import calculer as calculer_stock, commandes_par_fournisseur
 from .traitement import Traitements, export_csv
 
 DIST = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "dist"
@@ -242,6 +243,31 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         valeurs["tva"] = {k: v for k, v in valeurs["tva"].items() if v != "hors_taxe"}
         version = depot.enregistrer_parametres(c, valeurs)
         return {**p.to_dict(), "versions": version}
+
+    # ------------------------------------------------------------- stock [RM-AMZ-045 à 048]
+    @app.get("/api/stock")
+    def stock(c: str = Depends(compte)):
+        p = params(c)
+        jour, photos = depot.photo_stock(c)
+        reference = jour or date.today()
+        lignes = calculer_stock(photos, depot.ventes(c), depot.lots(c), reference, p.delai_fournisseur,
+                                p.delai_reception, p.marge_securite, p.seuil_rupture, p.seuil_surstock)
+        return {
+            "jour": None if jour is None else jour.isoformat(),
+            "lignes": [{"marketplace": l.photo.marketplace, "sku": l.photo.sku, "asin": l.photo.asin,
+                        "designation": l.photo.designation, "disponible": l.photo.disponible,
+                        "en_route": l.photo.en_route, "reserve": l.photo.reserve, "invendable": l.photo.invendable,
+                        "vendus_30j": l.vendus_30j, "vitesse": float(round(l.vitesse, 2)), "couverture": l.couverture,
+                        "rupture_le": None if l.rupture_le is None else l.rupture_le.isoformat(),
+                        "a_commander": l.a_commander, "fournisseur": l.fournisseur,
+                        "cout_unitaire": _num(l.cout_unitaire), "devise": l.devise,
+                        "alertes": [x.to_dict() for x in l.alertes]} for l in lignes],
+            "commandes": [{"fournisseur": g.fournisseur, "lignes": g.lignes, "unites": g.unites,
+                           "montant": _num(g.montant), "devise": g.devise} for g in commandes_par_fournisseur(lignes)],
+            "compteurs": {"unites": sum(l.photo.disponible + l.photo.en_route for l in lignes),
+                          "ruptures": sum(1 for l in lignes if any(a.code == "S_RUPTURE" for a in l.alertes)),
+                          "surstocks": sum(1 for l in lignes if any(a.code in ("S_SURSTOCK", "S_SANS_VENTE") for a in l.alertes))},
+        }
 
     # ------------------------------------------------------------- lots
     def resultats(c: str):

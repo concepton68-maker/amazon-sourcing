@@ -70,6 +70,10 @@ FR: dict[str, str] = {
     "L_LOT_AMAZON": "Listing en lot de {n} : coût = {n} × prix unitaire",
     "L_INTROUVABLE": "Introuvable sur Amazon",
     "L_SOURCE_ERREUR": "Source indisponible",
+    # stock
+    "S_RUPTURE": "Rupture dans {jours} j",
+    "S_SURSTOCK": "Surstock : {jours} j de couverture",
+    "S_SANS_VENTE": "Aucune vente sur 30 j",
 }
 
 

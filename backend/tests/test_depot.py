@@ -101,6 +101,16 @@ class ContratDepot:
         self.assertIsNone(self.d.parametres(B))
         self.assertEqual([v[1]["roi_min"] for v in self.d.versions_parametres(A)], [0.4, 0.5])
 
+    def test_photo_stock_par_compte(self):
+        """[RM-AMZ-045, RM-AMZ-014] Photo du jour remplacée ; dernière photo par SKU ; propre au compte."""
+        from sourcing.stock import PhotoStock
+        self.d.enregistrer_photo_stock(A, date(2026, 11, 11), [PhotoStock("FR", "S1", "B0X", "X", 5, 1)])
+        self.d.enregistrer_photo_stock(A, date(2026, 11, 12), [PhotoStock("FR", "S1", "B0X", "X", 4, 0)])
+        self.d.enregistrer_photo_stock(A, date(2026, 11, 12), [PhotoStock("FR", "S1", "B0X", "X", 3, 0)])
+        jour, photos = self.d.photo_stock(A)
+        self.assertEqual((jour, len(photos), photos[0].disponible), (date(2026, 11, 12), 1, 3))
+        self.assertEqual(self.d.photo_stock(B), (None, []))
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):

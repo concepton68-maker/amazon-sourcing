@@ -197,6 +197,15 @@ class ClientSPAPI:
             params["nextToken"] = next_token
         return self._appel(mp, "GET", "/finances/2024-06-19/transactions", params=params)
 
+    # ------------------------------------------------------------------ stock [RM-AMZ-045]
+    def page_inventaire(self, mp: Marketplace, next_token: Optional[str] = None) -> dict:
+        """Une page de `GET /fba/inventory/v1/summaries`, photo complète (sans startDateTime). Rôle Amazon Fulfillment."""
+        params = {"details": "true", "granularityType": "Marketplace", "granularityId": mp.marketplace_id,
+                  "marketplaceIds": mp.marketplace_id}
+        if next_token:
+            params["nextToken"] = next_token
+        return self._appel(mp, "GET", "/fba/inventory/v1/summaries", params=params)
+
 
 # ====================================================================== parseurs
 # Séparés du client pour être testables sans accès réseau.

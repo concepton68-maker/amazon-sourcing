@@ -181,6 +181,25 @@ class DepotPostgres:
                        (_uuid(compte_id), v, json.dumps(valeurs)))
         return v
 
+    # -------------------------------------------------------------- stock [RM-AMZ-045]
+    def enregistrer_photo_stock(self, compte_id: str, jour: date, photos) -> None:
+        for p in photos:
+            self._executer(compte_id, """INSERT INTO amz.stock_photos (compte_id, marketplace, sku, jour, asin, designation,
+                disponible, en_route, reserve, invendable) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (compte_id, marketplace, sku, jour) DO UPDATE SET asin = EXCLUDED.asin,
+                designation = EXCLUDED.designation, disponible = EXCLUDED.disponible, en_route = EXCLUDED.en_route,
+                reserve = EXCLUDED.reserve, invendable = EXCLUDED.invendable""",
+                (_uuid(compte_id), p.marketplace, p.sku, jour, p.asin, p.designation, p.disponible, p.en_route,
+                 p.reserve, p.invendable))
+
+    def photo_stock(self, compte_id: str):
+        from .stock import PhotoStock
+        rows = self._executer(compte_id, """SELECT DISTINCT ON (marketplace, sku) jour, marketplace, sku, asin,
+            designation, disponible, en_route, reserve, invendable FROM amz.stock_photos
+            ORDER BY marketplace, sku, jour DESC""")
+        jour = max((r[0] for r in rows), default=None)
+        return jour, [PhotoStock(r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8]) for r in rows]
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         self._executer(compte_id, "UPDATE amz.comptes SET revoque_le = coalesce(revoque_le, %s)", (jour,))

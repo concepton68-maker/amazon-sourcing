@@ -13,6 +13,9 @@ BORNES = {
     "roi_min": (0.0, 10.0), "profit_min": (0.0, 1000.0), "ventes_mois_min": (0, 100000),
     "part_ventes_min": (0.0, 100000.0), "ecart_prix_max": (0.0, 5.0),
     "envoi": (0.0, 1000.0), "preparation": (0.0, 1000.0), "stockage": (0.0, 1000.0), "retours": (0.0, 1.0),
+    # stock [RM-AMZ-047, 048] : jours
+    "delai_fournisseur": (0, 365), "delai_reception": (0, 365), "marge_securite": (0, 365),
+    "seuil_rupture": (0, 365), "seuil_surstock": (1, 3650),
 }
 REGIMES_REGLABLES = ("assujetti", "non_assujetti")
 
@@ -37,6 +40,11 @@ class Parametres:
     preparation: float = 0.0
     stockage: float = 0.0
     retours: float = 0.0
+    delai_fournisseur: int = 7
+    delai_reception: int = 10
+    marge_securite: int = 14
+    seuil_rupture: int = 15
+    seuil_surstock: int = 180
     tva: dict[str, str] = field(default_factory=dict)     # place -> régime ; absent = assujetti
 
     def regime(self, mp_code: str) -> str:
