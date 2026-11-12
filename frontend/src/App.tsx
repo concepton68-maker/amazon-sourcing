@@ -5,6 +5,7 @@ import { SourcingVue } from "./Sourcing";
 import { Connexion } from "./Connexion";
 import { ParametresVue } from "./Parametres";
 import { StockVue } from "./Stock";
+import { FournisseursVue } from "./Fournisseurs";
 import { NonConnecte, deconnecter, moi } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
@@ -136,10 +137,10 @@ function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: bo
   );
 }
 
-type Vue = "analyse" | "sourcing" | "lots" | "stock" | "parametres";
+type Vue = "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "parametres";
 const vueDepuisAdresse = (): Vue => {
   const h = window.location.hash;
-  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : "analyse";
+  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : "analyse";
 };
 
 export function App() {
@@ -166,6 +167,8 @@ export function App() {
 
   const [analyseInitiale, setAnalyseInitiale] = useState<{ code: string; prix: number }>();
   const lotCree = (id: string) => { setLotInitial(id); window.location.hash = "#lots"; };
+  const [bonInitial, setBonInitial] = useState<string>();
+  const ouvrirBon = (id: string) => { setBonInitial(id); window.location.hash = "#fournisseurs"; };
   const analyser = (code: string, prix: number) => { setAnalyseInitiale({ code, prix }); window.location.hash = "#analyse"; };
 
   if (etat === "verification") return null;
@@ -179,6 +182,7 @@ export function App() {
           <a href="#sourcing" aria-current={vue === "sourcing" ? "page" : undefined}>{t("nav.sourcing")}</a>
           <a href="#lots" aria-current={vue === "lots" ? "page" : undefined}>{t("nav.lots")}</a>
           <a href="#stock" aria-current={vue === "stock" ? "page" : undefined}>{t("nav.stock")}</a>
+          <a href="#fournisseurs" aria-current={vue === "fournisseurs" ? "page" : undefined}>{t("nav.fournisseurs")}</a>
           <a href="#parametres" aria-current={vue === "parametres" ? "page" : undefined}>{t("nav.parametres")}</a>
         </nav>
         {demo && <span className="badge-demo">{t("demo")}</span>}
@@ -187,7 +191,8 @@ export function App() {
       {vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
         : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue analyser={analyser} /></main>
         : vue === "parametres" ? <main className="contenu-plein"><ParametresVue /></main>
-        : vue === "stock" ? <main className="contenu-plein"><StockVue /></main>
+        : vue === "stock" ? <main className="contenu-plein"><StockVue ouvrirBon={ouvrirBon} /></main>
+        : vue === "fournisseurs" ? <main className="contenu-plein"><FournisseursVue key={bonInitial ?? "f"} bonInitial={bonInitial} voirLot={lotCree} /></main>
         : <main><LotsVue key={lotInitial ?? "lots"} lotInitial={lotInitial} setDemo={setDemo} /></main>}
     </div>
   );

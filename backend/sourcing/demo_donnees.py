@@ -73,6 +73,20 @@ def construire() -> tuple[DepotMemoire, str]:
     tx += _ventes("K", "B0DEMO0005", 18, 32.70, 11.62, date(2026, 10, 5), mp="IT")
     synchroniser(c, get_marketplace("FR"), _AmazonSimule(tx), d, datetime(2026, 11, 12, 3, tzinfo=timezone.utc),
                  classement=CLASSEMENT, attendre=lambda s: None)
+    # fournisseurs et bons (fictifs) [RM-AMZ-049, 050]
+    from . import achats as A
+    fa = A.nouveau_fournisseur(c, "Grossiste A", "EUR", 6)
+    fb = A.nouveau_fournisseur(c, "Grossiste B", "EUR", 9, existants=[fa])
+    fm = A.nouveau_fournisseur(c, "MarqueDemo", "EUR", 4, existants=[fa, fb])
+    for f in (fa, fb, fm):
+        d.enregistrer_fournisseur(c, f)
+    envoye = A.nouveau_bon(c, d.prochain_numero(c), fm)
+    envoye = A.ajouter_ligne(envoye, "B0DEMO0005", "IT", 20, "14.20", lots[3].prevision, "Set de couteaux 5 pièces", "EUR")
+    envoye = A.envoyer(envoye, datetime(2026, 11, 4, 9, tzinfo=timezone.utc))
+    d.enregistrer_bon(c, envoye)
+    brouillon = A.nouveau_bon(c, d.prochain_numero(c), fb)
+    brouillon = A.ajouter_ligne(brouillon, "B0DEMO0004", "FR", 30, "6.10", lots[2].prevision, "Puzzle 1000 pièces", "EUR")
+    d.enregistrer_bon(c, brouillon)
     jour = date(2026, 11, 12)
     d.enregistrer_photo_stock(c, jour, [
         PhotoStock("FR", "GOURDE-750", "B0DEMO0001", "Gourde inox 750 ml", 3, 0),

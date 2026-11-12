@@ -125,3 +125,34 @@ export interface Stock {
   compteurs: { unites: number; ruptures: number; surstocks: number };
 }
 export const lireStock = () => lire<Stock>("/api/stock");
+
+export interface FournisseurBilan {
+  id: string; nom: string; devise: string; delai_jours: number; courriel: string | null; lots: number;
+  achete_12_mois: number; roi_prevu: number | null; roi_reel: number | null; delai_reel_jours: number | null;
+}
+export interface LigneBonApi {
+  id: string; asin: string; marketplace: string; designation: string | null; quantite: number; prix_unitaire: number;
+  montant: number; roi_prevu: number | null; quantite_recue: number | null; lot_id: string | null;
+}
+export interface Bon {
+  id: string; reference: string; statut: string; fournisseur: { id: string; nom: string; devise: string } | null;
+  devise: string | null; montant: number; roi_prevu: number | null; cree_le: string; envoye_le: string | null;
+  recu_le: string | null; lignes: LigneBonApi[];
+}
+export const listerFournisseurs = () => lire<FournisseurBilan[]>("/api/fournisseurs");
+export const creerFournisseur = (nom: string, delai_jours: number) => envoyer<{ id: string }>("/api/fournisseurs", { nom, delai_jours });
+export const listerBons = () => lire<Bon[]>("/api/bons");
+export const creerBon = (fournisseur_id: string) => envoyer<Bon>("/api/bons", { fournisseur_id });
+export const ajouterLigneBon = (id: string, asin: string, marketplace: string, quantite: number) =>
+  envoyer<Bon>(`/api/bons/${id}/lignes`, { asin, marketplace, quantite });
+export const actionBon = (id: string, action: "envoyer" | "annuler") => envoyer<Bon>(`/api/bons/${id}/${action}`, {});
+export const recevoirBon = (id: string, quantites: Record<string, number>) =>
+  envoyer<Bon & { lots_crees: string[] }>(`/api/bons/${id}/recevoir`, { quantites });
+export const bonDepuisStock = (fournisseur: string) => envoyer<Bon>("/api/bons/depuis-stock", { fournisseur });
+export async function retirerLigneBon(id: string, ligne: string): Promise<Bon> {
+  const r = await fetch(`/api/bons/${id}/lignes/${ligne}`, { method: "DELETE", headers: ENTETE, credentials: "same-origin" });
+  if (r.status === 401) throw new NonConnecte("NON_CONNECTE");
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.detail ?? "saisie");
+  return j;
+}

@@ -98,15 +98,21 @@ class DepotPostgres:
     def ajouter_lot(self, compte_id: str, lot: Lot) -> None:
         if lot.compte_id != compte_id:
             raise AccesRefuse("lot d'un autre compte")
+        self._executer(compte_id, *self._insert_lot(lot))
+
+    @staticmethod
+    def _insert_lot(lot: Lot):
         p = lot.prevision
-        self._executer(compte_id, """
+        return ("""
             INSERT INTO amz.lots (id, compte_id, asin, marketplace, quantite, date_achat, fournisseur, devise,
-                prix_vente_ht, frais_amazon, cout_achat, retours, stockage, autres, sources, version, remplace, motif, cree_le, designation)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                prix_vente_ht, frais_amazon, cout_achat, retours, stockage, autres, sources, version, remplace, motif, cree_le, designation, bon_commande)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (_uuid(lot.id), _uuid(lot.compte_id), lot.asin, lot.marketplace, lot.quantite, lot.date_achat,
              lot.fournisseur, p.devise, p.prix_vente_ht, p.frais_amazon, p.cout_achat, p.retours, p.stockage,
              p.autres, list(p.sources), lot.version, _uuid(lot.remplace) if lot.remplace else None,
-             lot.motif, lot.cree_le, lot.designation))
+             lot.motif, lot.cree_le, lot.designation,
+             _uuid(lot.bon_commande) if lot.bon_commande else None))
+
 
     def ajouter_vente(self, compte_id: str, vente: VenteReelle, id_externe: Optional[str] = None) -> None:
         """Rejouable : une même ligne Amazon (`id_externe`) met à jour ses montants au lieu de doubler."""
@@ -127,13 +133,14 @@ class DepotPostgres:
 
     # -------------------------------------------------------------- lecture
     _COLS_LOT = ("id, compte_id, asin, marketplace, quantite, date_achat, fournisseur, devise, prix_vente_ht, "
-                 "frais_amazon, cout_achat, retours, stockage, autres, sources, version, remplace, motif, cree_le, designation")
+                 "frais_amazon, cout_achat, retours, stockage, autres, sources, version, remplace, motif, cree_le, designation, bon_commande")
 
     @staticmethod
     def _lot(r) -> Lot:
-        (i, c, asin, mp, q, d, fo, dev, pv, fr, co, re, st, au, so, ve, rem, mo, cr, de) = r
+        (i, c, asin, mp, q, d, fo, dev, pv, fr, co, re, st, au, so, ve, rem, mo, cr, de, bc) = r
         return Lot(str(c), asin, mp, q, d, Prevision(dev, pv, fr, co, re, st, au, tuple(so)), fo, de,
-                   id=str(i), version=ve, remplace=str(rem) if rem else None, motif=mo, cree_le=cr)
+                   id=str(i), version=ve, remplace=str(rem) if rem else None, motif=mo, cree_le=cr,
+                   bon_commande=str(bc) if bc else None)
 
     def lot(self, compte_id: str, lot_id: str) -> Lot:
         rows = self._executer(compte_id, f"SELECT {self._COLS_LOT} FROM amz.lots WHERE id = %s", (_uuid(lot_id),))
@@ -199,6 +206,74 @@ class DepotPostgres:
             ORDER BY marketplace, sku, jour DESC""")
         jour = max((r[0] for r in rows), default=None)
         return jour, [PhotoStock(r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8]) for r in rows]
+
+    # -------------------------------------------------------------- achats [RM-AMZ-049 à 051]
+    def fournisseurs(self, compte_id: str) -> list:
+        from .achats import Fournisseur
+        return [Fournisseur(str(i), str(c), n, d.strip(), dl, co) for i, c, n, d, dl, co in self._executer(
+            compte_id, "SELECT id, compte_id, nom, devise, delai_jours, courriel FROM amz.fournisseurs ORDER BY lower(nom)")]
+
+    def enregistrer_fournisseur(self, compte_id: str, f) -> None:
+        if f.compte_id != compte_id:
+            raise AccesRefuse("fournisseur d'un autre compte")
+        try:
+            self._executer(compte_id, """INSERT INTO amz.fournisseurs (id, compte_id, nom, devise, delai_jours, courriel)
+                VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO UPDATE SET devise = EXCLUDED.devise,
+                delai_jours = EXCLUDED.delai_jours, courriel = EXCLUDED.courriel""",
+                (_uuid(f.id), _uuid(compte_id), f.nom, f.devise, f.delai_jours, f.courriel))
+        except psycopg.errors.UniqueViolation:
+            raise ValueError("FOURNISSEUR_EXISTE") from None
+
+    _COLS_BON = "id, compte_id, numero, fournisseur_id, statut, lignes, cree_le, envoye_le, recu_le, annule_le"
+
+    @staticmethod
+    def _bon(r):
+        from .achats import BonCommande
+        from .achats_serial import ligne_depuis_dict
+        return BonCommande(str(r[0]), str(r[1]), r[2], str(r[3]), r[4], tuple(ligne_depuis_dict(x) for x in r[5]),
+                           r[6], r[7], r[8], r[9])
+
+    def bons(self, compte_id: str) -> list:
+        return [self._bon(r) for r in self._executer(
+            compte_id, f"SELECT {self._COLS_BON} FROM amz.bons_commande ORDER BY numero DESC")]
+
+    def bon(self, compte_id: str, bon_id: str):
+        rows = self._executer(compte_id, f"SELECT {self._COLS_BON} FROM amz.bons_commande WHERE id = %s", (_uuid(bon_id),))
+        if not rows:
+            raise AccesRefuse("bon introuvable pour ce compte")
+        return self._bon(rows[0])
+
+    def prochain_numero(self, compte_id: str) -> int:
+        return self._executer(compte_id, "SELECT coalesce(max(numero), 0) + 1 FROM amz.bons_commande")[0][0]
+
+    @staticmethod
+    def _upsert_bon(bon):
+        from .achats_serial import ligne_vers_dict
+        return ("""INSERT INTO amz.bons_commande (id, compte_id, numero, fournisseur_id, statut, lignes, cree_le,
+            envoye_le, recu_le, annule_le) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            ON CONFLICT (id) DO UPDATE SET statut = EXCLUDED.statut, lignes = EXCLUDED.lignes,
+            envoye_le = EXCLUDED.envoye_le, recu_le = EXCLUDED.recu_le, annule_le = EXCLUDED.annule_le""",
+                (_uuid(bon.id), _uuid(bon.compte_id), bon.numero, _uuid(bon.fournisseur_id), bon.statut,
+                 json.dumps([ligne_vers_dict(l) for l in bon.lignes]), bon.cree_le, bon.envoye_le, bon.recu_le,
+                 bon.annule_le))
+
+    def enregistrer_bon(self, compte_id: str, bon) -> None:
+        if bon.compte_id != compte_id:
+            raise AccesRefuse("bon d'un autre compte")
+        try:
+            self._executer(compte_id, *self._upsert_bon(bon))
+        except psycopg.errors.CheckViolation:
+            raise ValueError("BON_DEFINITIF") from None
+
+    def receptionner(self, compte_id: str, bon, lots) -> None:
+        """Une seule transaction : le bon reçu et ses lots, ou rien."""
+        if bon.compte_id != compte_id or any(l.compte_id != compte_id for l in lots):
+            raise AccesRefuse("donnée d'un autre compte")
+        with connexion(self.source) as conn, conn.transaction():
+            conn.execute("SELECT set_config('app.compte_id', %s, true)", (str(_uuid(compte_id)),))
+            conn.execute(*self._upsert_bon(bon))           # le bon d'abord : les lots y font référence
+            for l in lots:
+                conn.execute(*self._insert_lot(l))
 
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:

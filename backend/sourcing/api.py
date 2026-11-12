@@ -20,6 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import achats as A
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
 from .auth import Authentification, ErreurAuth
@@ -110,6 +111,62 @@ def _resultat_json(r) -> dict:
             "verdict": r.verdict, "statut": r.statut, "prix_vente": r.prix_vente, "profit": r.profit, "roi": r.roi,
             "ventes_mois": r.ventes_mois, "remarques": msgs(r.lignes), "raisons": msgs(r.raisons),
             "alertes": msgs(r.alertes)}
+
+
+class DemandeFournisseur(BaseModel):
+    nom: str = Field(max_length=200)
+    devise: str = "EUR"
+    delai_jours: int = 7
+    courriel: Optional[str] = Field(default=None, max_length=254)
+
+
+class DemandeBon(BaseModel):
+    fournisseur_id: str
+
+
+class DemandeLigne(BaseModel):
+    jeton_analyse: Optional[str] = None
+    asin: Optional[str] = Field(default=None, max_length=20)
+    marketplace: Optional[str] = None
+    quantite: int
+    prix_unitaire: Optional[float] = None
+
+
+class DemandeReception(BaseModel):
+    quantites: dict[str, int]
+    date_reception: Optional[date] = None
+
+
+class DemandeBonStock(BaseModel):
+    fournisseur: str
+
+
+ERREURS_SAISIE = {"NOM_FOURNISSEUR_INVALIDE", "DELAI_INVALIDE", "DEVISE_INVALIDE", "COURRIEL_INVALIDE",
+                  "QUANTITE_INVALIDE", "PRIX_INVALIDE", "QUANTITE_RECUE_INVALIDE", "DEVISE_DIFFERENTE"}
+
+
+def _erreur_achat(e: Exception) -> HTTPException:
+    code = e.args[0] if e.args else "ERREUR"
+    return HTTPException(422 if code in ERREURS_SAISIE else 409, code)
+
+
+def _bon_json(b: "A.BonCommande", fournisseurs: dict) -> dict:
+    f = fournisseurs.get(b.fournisseur_id)
+    cout = sum((l.prevision.cout_achat * l.quantite for l in b.lignes), Decimal(0))
+    profit = sum((l.prevision.profit * l.quantite for l in b.lignes), Decimal(0))
+    return {
+        "id": b.id, "reference": b.reference, "statut": b.statut,
+        "fournisseur": None if f is None else {"id": f.id, "nom": f.nom, "devise": f.devise},
+        "devise": f.devise if f else None, "montant": _num(b.montant),
+        "roi_prevu": None if cout == 0 else float(round(profit / cout, 4)),
+        "cree_le": b.cree_le.isoformat(), "envoye_le": b.envoye_le.isoformat() if b.envoye_le else None,
+        "recu_le": b.recu_le.isoformat() if b.recu_le else None,
+        "lignes": [{"id": l.id, "asin": l.asin, "marketplace": l.marketplace, "designation": l.designation,
+                    "quantite": l.quantite, "prix_unitaire": _num(l.prix_unitaire),
+                    "montant": _num(l.prix_unitaire * l.quantite),
+                    "roi_prevu": None if l.prevision.roi is None else float(round(l.prevision.roi, 4)),
+                    "quantite_recue": l.quantite_recue, "lot_id": l.lot_id} for l in b.lignes],
+    }
 
 
 class DemandeLot(BaseModel):
@@ -243,6 +300,146 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         valeurs["tva"] = {k: v for k, v in valeurs["tva"].items() if v != "hors_taxe"}
         version = depot.enregistrer_parametres(c, valeurs)
         return {**p.to_dict(), "versions": version}
+
+    # ------------------------------------------------------------- fournisseurs et bons [RM-AMZ-049 à 053]
+    def _fournisseurs(c: str) -> dict:
+        return {f.id: f for f in depot.fournisseurs(c)}
+
+    def _bon(c: str, bon_id: str):
+        try:
+            return depot.bon(c, bon_id)
+        except AccesRefuse:
+            raise HTTPException(404, "BON_INTROUVABLE") from None
+
+    def _sauver(c: str, b):
+        try:
+            depot.enregistrer_bon(c, b)
+        except ValueError as e:
+            raise _erreur_achat(e) from None
+        return _bon_json(b, _fournisseurs(c))
+
+    def _dernier_lot(c: str, asin: str, mp: str):
+        lots = [l for l in depot.lots(c) if l.asin == asin and l.marketplace == mp]
+        return lots[-1] if lots else None
+
+    @app.get("/api/fournisseurs")
+    def lister_fournisseurs(c: str = Depends(compte)):
+        bs = A.bilans(depot.fournisseurs(c), depot.lots(c), depot.ventes(c), depot.bons(c), date.today())
+        return [{"id": b.fournisseur.id, "nom": b.fournisseur.nom, "devise": b.fournisseur.devise,
+                 "delai_jours": b.fournisseur.delai_jours, "courriel": b.fournisseur.courriel, "lots": b.lots,
+                 "achete_12_mois": _num(b.achete_12_mois), "roi_prevu": _num(b.roi_prevu), "roi_reel": _num(b.roi_reel),
+                 "delai_reel_jours": b.delai_reel_jours} for b in bs]
+
+    @app.post("/api/fournisseurs", status_code=201)
+    def creer_fournisseur(d: DemandeFournisseur, c: str = Depends(compte)):
+        try:
+            f = A.nouveau_fournisseur(c, d.nom, d.devise, d.delai_jours, d.courriel, depot.fournisseurs(c))
+            depot.enregistrer_fournisseur(c, f)
+        except (A.ErreurAchat, ValueError) as e:
+            raise _erreur_achat(e) from None
+        return {"id": f.id}
+
+    @app.get("/api/bons")
+    def lister_bons(c: str = Depends(compte)):
+        fs = _fournisseurs(c)
+        return [_bon_json(b, fs) for b in depot.bons(c)]
+
+    @app.post("/api/bons", status_code=201)
+    def creer_bon(d: DemandeBon, c: str = Depends(compte)):
+        f = _fournisseurs(c).get(d.fournisseur_id)
+        if f is None:
+            raise HTTPException(404, "FOURNISSEUR_INCONNU")
+        return _sauver(c, A.nouveau_bon(c, depot.prochain_numero(c), f))
+
+    @app.get("/api/bons/{bon_id}")
+    def lire_bon(bon_id: str, c: str = Depends(compte)):
+        return _bon_json(_bon(c, bon_id), _fournisseurs(c))
+
+    @app.post("/api/bons/{bon_id}/lignes")
+    def ajouter_ligne_bon(bon_id: str, d: DemandeLigne, c: str = Depends(compte)):
+        b = _bon(c, bon_id)
+        f = _fournisseurs(c).get(b.fournisseur_id)
+        if d.jeton_analyse:
+            trouve = analyses.get(d.jeton_analyse)
+            if trouve is None or trouve[0] != c:
+                raise HTTPException(404, "ANALYSE_EXPIREE")
+            _, a, couts = trouve
+            if a.rentabilite is None:
+                raise HTTPException(409, "ANALYSE_SANS_RENTABILITE")
+            mp = get_marketplace(a.marketplace)
+            base = prevision_depuis_analyse(a.rentabilite, couts, mp.devise, ["prix:" + a.origine_prix])
+            asin, mpc, designation = a.asin, a.marketplace, a.catalogue.titre
+        elif d.asin and d.marketplace:
+            lot = _dernier_lot(c, d.asin, d.marketplace)
+            if lot is None:
+                raise HTTPException(409, "PREVISION_ABSENTE")
+            base, asin, mpc, designation = lot.prevision, lot.asin, lot.marketplace, lot.designation
+        else:
+            raise HTTPException(422, "PRODUIT_MANQUANT")
+        prix = d.prix_unitaire if d.prix_unitaire is not None else base.cout_achat
+        try:
+            b = A.ajouter_ligne(b, asin, mpc, d.quantite, prix, base, designation, f.devise if f else None)
+        except A.ErreurAchat as e:
+            raise _erreur_achat(e) from None
+        return _sauver(c, b)
+
+    @app.delete("/api/bons/{bon_id}/lignes/{ligne_id}")
+    def retirer_ligne_bon(bon_id: str, ligne_id: str, c: str = Depends(compte)):
+        try:
+            return _sauver(c, A.retirer_ligne(_bon(c, bon_id), ligne_id))
+        except A.ErreurAchat as e:
+            raise _erreur_achat(e) from None
+
+    @app.post("/api/bons/{bon_id}/envoyer")
+    def envoyer_bon(bon_id: str, c: str = Depends(compte)):
+        try:
+            return _sauver(c, A.envoyer(_bon(c, bon_id)))
+        except A.ErreurAchat as e:
+            raise _erreur_achat(e) from None
+
+    @app.post("/api/bons/{bon_id}/annuler")
+    def annuler_bon(bon_id: str, c: str = Depends(compte)):
+        try:
+            return _sauver(c, A.annuler(_bon(c, bon_id)))
+        except A.ErreurAchat as e:
+            raise _erreur_achat(e) from None
+
+    @app.post("/api/bons/{bon_id}/recevoir")
+    def recevoir_bon(bon_id: str, d: DemandeReception, c: str = Depends(compte)):
+        b = _bon(c, bon_id)
+        f = _fournisseurs(c).get(b.fournisseur_id)
+        try:
+            b2, lots = A.recevoir(b, d.quantites, d.date_reception or date.today(), f)
+            depot.receptionner(c, b2, lots)
+        except (A.ErreurAchat, ValueError) as e:
+            raise _erreur_achat(e) from None
+        return {**_bon_json(b2, _fournisseurs(c)), "lots_crees": [l.id for l in lots]}
+
+    @app.post("/api/bons/depuis-stock", status_code=201)
+    def bon_depuis_stock(d: DemandeBonStock, c: str = Depends(compte)):
+        """[RM-AMZ-053] Commande suggérée → bon brouillon."""
+        f = next((x for x in depot.fournisseurs(c) if x.nom.lower() == d.fournisseur.strip().lower()), None)
+        if f is None:
+            raise HTTPException(404, "FOURNISSEUR_INCONNU")
+        p = params(c)
+        jour, photos = depot.photo_stock(c)
+        lignes = calculer_stock(photos, depot.ventes(c), depot.lots(c), jour or date.today(), p.delai_fournisseur,
+                                p.delai_reception, p.marge_securite, p.seuil_rupture, p.seuil_surstock)
+        b = A.nouveau_bon(c, depot.prochain_numero(c), f)
+        for l in lignes:
+            if l.a_commander <= 0 or (l.fournisseur or "").lower() != f.nom.lower():
+                continue
+            lot = _dernier_lot(c, l.photo.asin, l.photo.marketplace)
+            if lot is None:
+                continue
+            try:
+                b = A.ajouter_ligne(b, lot.asin, lot.marketplace, l.a_commander, lot.prevision.cout_achat,
+                                    lot.prevision, lot.designation, f.devise)
+            except A.ErreurAchat:
+                continue                     # devise différente : la ligne n'est pas proposée
+        if not b.lignes:
+            raise HTTPException(409, "RIEN_A_COMMANDER")
+        return _sauver(c, b)
 
     # ------------------------------------------------------------- stock [RM-AMZ-045 à 048]
     @app.get("/api/stock")

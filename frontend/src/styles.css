@@ -158,3 +158,16 @@ button.lien { background: none; border: none; color: var(--accent); font: 600 14
 .liste-cmd li { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; padding: 12px; border: 1px solid var(--bord); border-radius: 10px; }
 .liste-cmd .montant { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sous-titre { margin-top: 16px; }
+
+/* --- fournisseurs et bons --- */
+.statut-bon { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.statut-bon.BROUILLON { background: #eef0f3; color: #3a414c; }
+.statut-bon.ENVOYE { background: var(--accent-doux); color: var(--accent); }
+.statut-bon.RECU { background: var(--positif-doux); color: var(--positif); }
+.statut-bon.ANNULE { background: #fdecea; color: #a41e14; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+button.secondaire { min-height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid #c9cfd8; background: #fff; font: 600 15px Inter, sans-serif; color: var(--encre); cursor: pointer; }
+.etroit-num { width: 90px; min-height: 40px; }
+.contenu.sans-marge { padding: 0; margin: 0; max-width: none; }
+.h-colonne { font-size: 18px; }
+.vue > * { min-width: 0; max-width: 100%; }

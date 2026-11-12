@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Stock, lireStock } from "./api";
+import { Stock, bonDepuisStock, lireStock } from "./api";
 import { dateCourte, message, monnaie, t } from "./i18n";
 
-export function StockVue() {
+export function StockVue({ ouvrirBon }: { ouvrirBon: (id: string) => void }) {
   const [s, setS] = useState<Stock | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   useEffect(() => { lireStock().then(setS).catch((e) => setErreur(e.message)); }, []);
@@ -59,7 +59,9 @@ export function StockVue() {
             {s.commandes.map((c, i) => (
               <li key={i}><strong>{c.fournisseur ?? t("stock.fournisseur_inconnu")}</strong>
                 <span className="meta">{t("stock.ligne_cmd", { lignes: c.lignes, unites: c.unites })}</span>
-                <span className="montant">{c.montant === null ? "—" : monnaie(String(c.montant), c.devise)}</span></li>
+                <span className="montant">{c.montant === null ? "—" : monnaie(String(c.montant), c.devise)}</span>
+                {c.fournisseur && <button type="button" className="secondaire"
+                  onClick={() => bonDepuisStock(c.fournisseur!).then((b) => ouvrirBon(b.id)).catch((e) => setErreur(e.message))}>{t("stock.creer_bon")}</button>}</li>
             ))}
           </ul>
         )}

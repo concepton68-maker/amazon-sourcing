@@ -55,6 +55,7 @@ class Lot:
     prevision: Prevision
     fournisseur: Optional[str] = None
     designation: Optional[str] = None   # nom du produit, pour l'affichage
+    bon_commande: Optional[str] = None  # bon de commande d'origine [RM-AMZ-051]
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     version: int = 1
     remplace: Optional[str] = None  # id de la version précédente

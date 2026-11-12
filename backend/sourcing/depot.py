@@ -31,6 +31,8 @@ class DepotMemoire:
         self._appariements: dict[tuple[str, str, str], tuple[list[str], datetime]] = {}
         self._parametres: dict[str, list[tuple[dict, datetime]]] = {}
         self._stock: dict[tuple[str, str, str, date], object] = {}
+        self._fournisseurs: dict[str, object] = {}
+        self._bons: dict[str, object] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -100,6 +102,43 @@ class DepotMemoire:
         jour = max((j for j, _ in dernier.values()), default=None)
         return jour, [p for _, p in dernier.values()]
 
+    # -------------------------------------------------------------- achats [RM-AMZ-049 à 051]
+    def fournisseurs(self, compte_id: str) -> list:
+        return sorted((f for f in self._fournisseurs.values() if f.compte_id == compte_id), key=lambda f: f.nom.lower())
+
+    def enregistrer_fournisseur(self, compte_id: str, f) -> None:
+        if f.compte_id != compte_id:
+            raise AccesRefuse("fournisseur d'un autre compte")
+        if any(x.nom.lower() == f.nom.lower() and x.id != f.id for x in self.fournisseurs(compte_id)):
+            raise ValueError("FOURNISSEUR_EXISTE")
+        self._fournisseurs[f.id] = f
+
+    def bons(self, compte_id: str) -> list:
+        return sorted((b for b in self._bons.values() if b.compte_id == compte_id), key=lambda b: -b.numero)
+
+    def bon(self, compte_id: str, bon_id: str):
+        b = self._bons.get(bon_id)
+        if b is None or b.compte_id != compte_id:
+            raise AccesRefuse("bon introuvable pour ce compte")
+        return b
+
+    def prochain_numero(self, compte_id: str) -> int:
+        return max((b.numero for b in self.bons(compte_id)), default=0) + 1
+
+    def enregistrer_bon(self, compte_id: str, bon) -> None:
+        if bon.compte_id != compte_id:
+            raise AccesRefuse("bon d'un autre compte")
+        ancien = self._bons.get(bon.id)
+        if ancien is not None and ancien.statut in ("RECU", "ANNULE"):
+            raise ValueError("BON_DEFINITIF")
+        self._bons[bon.id] = bon
+
+    def receptionner(self, compte_id: str, bon, lots) -> None:
+        """Bon reçu et lots créés ensemble."""
+        for l in lots:
+            self.ajouter_lot(compte_id, l)
+        self.enregistrer_bon(compte_id, bon)
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -120,5 +159,7 @@ class DepotMemoire:
             self._appariements = {k: v for k, v in self._appariements.items() if k[0] != c}
             self._parametres.pop(c, None)
             self._stock = {k: v for k, v in self._stock.items() if k[0] != c}
+            self._fournisseurs = {k: v for k, v in self._fournisseurs.items() if v.compte_id != c}
+            self._bons = {k: v for k, v in self._bons.items() if v.compte_id != c}
             del self._revocations[c]
         return purges

@@ -111,6 +111,33 @@ class ContratDepot:
         self.assertEqual((jour, len(photos), photos[0].disponible), (date(2026, 11, 12), 1, 3))
         self.assertEqual(self.d.photo_stock(B), (None, []))
 
+    def test_achats_par_compte(self):
+        """[RM-AMZ-049 à 051, RM-AMZ-014] Fournisseur unique sans casse ; bon relu ; réception = bon + lots ; bon reçu définitif."""
+        from sourcing import achats as AC
+        f = AC.nouveau_fournisseur(A, "Grossiste A")
+        self.d.enregistrer_fournisseur(A, f)
+        with self.assertRaises(ValueError):
+            self.d.enregistrer_fournisseur(A, AC.nouveau_fournisseur(A, "GROSSISTE A"))
+        self.d.enregistrer_fournisseur(B, AC.nouveau_fournisseur(B, "Grossiste A"))     # autre compte : permis
+        self.assertEqual([x.nom for x in self.d.fournisseurs(A)], ["Grossiste A"])
+        self.assertEqual(self.d.prochain_numero(A), 1)
+        b = AC.nouveau_bon(A, 1, f)
+        b = AC.ajouter_ligne(b, "B0X", "FR", 5, "8", Prevision.creer("EUR", 20, 7, 8), "X")
+        self.d.enregistrer_bon(A, b)
+        relu = self.d.bon(A, b.id)
+        self.assertEqual((relu.reference, relu.lignes[0].quantite, relu.lignes[0].prevision.profit), ("BC-0001", 5, b.lignes[0].prevision.profit))
+        with self.assertRaises(AccesRefuse):
+            self.d.bon(B, b.id)
+        b = AC.envoyer(b)
+        self.d.enregistrer_bon(A, b)
+        recu, lots = AC.recevoir(b, {b.lignes[0].id: 5}, date(2026, 11, 12), f)
+        self.d.receptionner(A, recu, lots)
+        self.assertEqual(self.d.bon(A, b.id).statut, "RECU")
+        self.assertEqual(self.d.lot(A, lots[0].id).bon_commande, b.id)
+        with self.assertRaises(ValueError):
+            self.d.enregistrer_bon(A, AC.annuler(b))
+        self.assertEqual(self.d.prochain_numero(A), 2)
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):
