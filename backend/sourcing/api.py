@@ -192,6 +192,11 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(401, "NON_CONNECTE")
         return s.compte_id
 
+    @app.get("/api/sante")
+    def sante():
+        """Contrôle de santé (Docker, surveillance) : public, ne révèle rien."""
+        return {"ok": True}
+
     # ------------------------------------------------------------- session [RM-AMZ-037, 038]
     @app.post("/api/session")
     def connexion(d: DemandeConnexion):

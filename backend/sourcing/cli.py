@@ -127,6 +127,8 @@ def main(argv=None) -> int:
     cu.add_argument("--compte", required=True, help="Nom du compte vendeur")
     srv = sub.add_parser("serveur", help="Interface web (AMZ_MODE=dev ou prod)")
     srv.add_argument("--port", type=int, default=8820)
+    srv.add_argument("--hote", default="127.0.0.1", help="Adresse d'écoute (0.0.0.0 dans un conteneur)")
+    sub.add_parser("migrer", help="Appliquer les migrations (AMZ_DATABASE_URL_OWNER requis)")
     sub.add_parser("parcours-demo", help="Parcours complet sur données fictives (analyse → lot → ventes → écart)")
 
     for nom, aide in (("analyse", "Analyser un produit sur une place de marché"),
@@ -148,6 +150,19 @@ def main(argv=None) -> int:
         s.add_argument("--json", action="store_true", help="Sortie JSON")
 
     a = p.parse_args(argv)
+
+    if a.cmd == "migrer":
+        import psycopg
+
+        from .db import migrer
+        url = os.environ.get("AMZ_DATABASE_URL_OWNER")
+        if not url:
+            print("AMZ_DATABASE_URL_OWNER requis.", file=sys.stderr)
+            return 2
+        with psycopg.connect(url, autocommit=True) as conn:
+            faites = migrer(conn)
+        print("Migrations appliquées : " + (", ".join(faites) or "aucune (base à jour)"))
+        return 0
 
     if a.cmd == "creer-utilisateur":
         import getpass
@@ -177,7 +192,7 @@ def main(argv=None) -> int:
     if a.cmd == "serveur":
         import uvicorn
         from .api import app_depuis_environnement
-        uvicorn.run(app_depuis_environnement(), host="127.0.0.1", port=a.port)
+        uvicorn.run(app_depuis_environnement(), host=a.hote, port=a.port, proxy_headers=True)
         return 0
 
     if a.cmd == "parcours-demo":

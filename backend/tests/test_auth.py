@@ -127,6 +127,12 @@ class TestAcces(Base):
         r = TestClient(self.app).post("/api/session", json={"courriel": "a@exemple.fr", "mot_de_passe": MDP})
         self.assertEqual(r.status_code, 403)
 
+    def test_sante_publique(self):
+        """Contrôle de santé public et sans information ; documentation de l'API fermée quand la connexion est active."""
+        cl = self.client()
+        self.assertEqual(cl.get("/api/sante").json(), {"ok": True})
+        self.assertEqual(cl.get("/api/docs").status_code, 404)
+
     def test_creer_utilisateur_cli(self):
         """[RM-AMZ-041] La commande crée le compte vendeur et un utilisateur qui peut se connecter."""
         cid, u = creer_utilisateur(self.depot, self.auth, "Compte C", "c@exemple.fr", MDP)
