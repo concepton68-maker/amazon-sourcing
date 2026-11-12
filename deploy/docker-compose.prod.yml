@@ -1,4 +1,4 @@
-# Syllig Vente — production sur le VPS, projet Docker ISOLÉ de Syllig (D-AMZ-007, D-AMZ-021).
+# Syllig Vente — production sur son serveur dédié (VPS OVH, D-AMZ-023), projet Docker isolé (D-AMZ-021).
 # Lancement : docker compose -p syllig-vente -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --build
 # Secrets dans deploy/.env (jamais versionné) : voir deploy/env.exemple.
 name: syllig-vente
@@ -53,8 +53,24 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      AMZ_DOMAINE: ${AMZ_DOMAINE:?}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./serveur/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_donnees:/data
+      - caddy_config:/config
+    depends_on: [app]
+    networks: [sortie]
+    mem_limit: 128m
+
 networks:
   interne: { internal: true }   # la base n'a aucun accès à Internet
   sortie: {}                    # l'application parle à Amazon et Keepa
 volumes:
   amz_pg:
+  caddy_donnees:
+  caddy_config:
