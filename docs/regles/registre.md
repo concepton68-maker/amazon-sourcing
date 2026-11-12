@@ -145,3 +145,11 @@ Toutes les alertes sont des **avertissements**, jamais un blocage.
 > Limites connues (lot 12) : textes UE lus dans leur version initiale (modifications non vérifiées) ; citations françaises
 > partielles ; autres pays UE que FR/DE non recherchés ; articulation PPWR / filière française des emballages non recherchée ;
 > les numéros ne sont pas contrôlés auprès des registres (aucun accès) ; l'outil ne lit pas encore ce qui est saisi chez Amazon.
+
+## Lot 13 : exploitation du serveur (sauvegardes, tâches de nuit)
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-068 | **Purge de nuit** : chaque nuit, les comptes dont l'autorisation est retirée depuis la date limite sont supprimés (RM-AMZ-014), par le rôle propriétaire ; le résultat est écrit au journal du serveur. | RM-AMZ-014 | lu | — | `test_cli_purger`, `test_scripts_serveur` | à coder |
+| RM-AMZ-069 | **Sauvegarde quotidienne** de la base (`pg_dump`, format compressé) sur le serveur, gardée **14 jours** (choix de l'outil), en plus de la sauvegarde OVH du disque (7 jours). Une sauvegarde vide ou en erreur est signalée au journal et ne remplace pas les précédentes. | Choix de l'outil | métier | — | `test_scripts_serveur` | à coder |
+| RM-AMZ-070 | **Réglages du serveur suivis dans le dépôt** : après chaque mise à jour réussie, le serveur réapplique `deploy/serveur/configurer.sh` (scripts et minuteurs), sans rien demander. | Choix de l'outil (D-AMZ-023) | métier | — | `test_scripts_serveur` | à coder |
