@@ -54,9 +54,10 @@ class Lot:
     date_achat: date
     prevision: Prevision
     fournisseur: Optional[str] = None
-    id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     version: int = 1
     remplace: Optional[str] = None  # id de la version précédente
+    motif: Optional[str] = None     # motif de la correction (versions > 1)
     cree_le: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self):
@@ -68,7 +69,7 @@ def corriger_prevision(lot: Lot, nouvelle: Prevision, motif: str) -> Lot:
     """[RM-AMZ-011] Nouvelle version ; l'ancienne reste inchangée et consultable."""
     if not motif.strip():
         raise ValueError("une correction de prévision exige un motif")
-    return replace(lot, prevision=nouvelle, id=uuid.uuid4().hex, version=lot.version + 1, remplace=lot.id,
+    return replace(lot, prevision=nouvelle, id=str(uuid.uuid4()), version=lot.version + 1, remplace=lot.id, motif=motif.strip(),
                    cree_le=datetime.now(timezone.utc))
 
 

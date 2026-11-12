@@ -1,0 +1,19 @@
+# Postgres de développement. Mémoire plafonnée (D-AMZ-007).
+# Mot de passe administrateur lu dans l'environnement (fichier .env non versionné), jamais ici.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${AMZ_PG_ADMIN_PASSWORD:?définir AMZ_PG_ADMIN_PASSWORD dans deploy/.env}
+    ports: ["127.0.0.1:55432:5432"]
+    volumes:
+      - amz_pg:/var/lib/postgresql/data
+      - ./bootstrap_roles.sql:/docker-entrypoint-initdb.d/01_roles.sql:ro
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+volumes:
+  amz_pg:

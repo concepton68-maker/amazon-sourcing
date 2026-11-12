@@ -28,4 +28,6 @@ Outil personnel d'abord, conçu pour devenir un SaaS multi-clients (Europe + Ét
 cd backend
 python -m sourcing analyse 3700000000017 --mp FR --achat 8.50 --demo
 python -m unittest discover -s tests
+# avec Postgres (base jetable créée puis supprimée) :
+AMZ_TEST_PG="host=localhost port=55432 user=postgres password=…" python -m unittest discover -s tests
 ```
