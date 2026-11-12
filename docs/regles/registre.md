@@ -73,3 +73,11 @@ Source commune : notes `docs/recherches/notes/api-financiere/finances_spapi.md` 
 | RM-AMZ-039 | **Accès aux données** : hors mode démo, toute route `/api/*` (sauf connexion) exige une session ; le compte vendeur vient **de la session**, jamais de la requête ; une analyse ou un traitement d'un autre compte répond « introuvable ». | RM-AMZ-014 | métier | bloquant | `test_routes_protegees`, `test_jetons_par_compte` | codé |
 | RM-AMZ-040 | **Requêtes qui modifient** (POST, DELETE), hors mode démo : refusées sans l'en-tête `X-Syllig-Vente` (protection contre les requêtes intersites). | Choix de l'outil | métier | bloquant | `test_entete_anti_csrf` | codé |
 | RM-AMZ-041 | **Création d'utilisateur** : par la ligne de commande seulement, sur le serveur (pas d'inscription publique tant que l'outil n'est pas commercialisé). | D-AMZ-001 | métier | — | `test_creer_utilisateur_cli` | codé |
+
+## Lot 8 : paramètres du compte
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-042 | **Paramètres du compte** : seuils d'achat (ROI minimum 0 à 1 000 %, profit minimum 0 à 1 000, ventes minimales 0 à 100 000/mois, part de ventes minimale, écart maximal prix/moyenne 0 à 500 %), coûts par défaut par unité (envoi, préparation, stockage : 0 à 1 000 ; provision retours 0 à 100 %), régime de TVA par place de marché (assujetti / non assujetti ; places à prix HT toujours « hors taxe »). Valeur hors bornes : refusée avec son champ. Sans réglage : valeurs par défaut de l'outil. | Choix de l'outil | métier | bloquant (bornes) | `test_parametres_bornes_et_defauts` | à coder |
+| RM-AMZ-043 | **Historique** : chaque enregistrement crée une nouvelle version (date, contenu) ; aucune version n'est modifiée ni effacée (hors purge du compte). | Choix de l'outil | métier | — | `test_parametres_versions` | à coder |
+| RM-AMZ-044 | **Application** : l'analyse et le sourcing utilisent les paramètres en vigueur au lancement (seuils, coûts par défaut, régime de TVA de la place choisie) ; une valeur saisie dans le formulaire prime pour cette analyse seulement. | Choix de l'outil | métier | — | `test_parametres_appliques_a_l_analyse` | à coder |
