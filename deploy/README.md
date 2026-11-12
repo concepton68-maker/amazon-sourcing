@@ -1,4 +1,23 @@
-# Déploiement de Syllig Vente sur le VPS
+# Déploiement de Syllig Vente
+
+## Serveur dédié OVH (D-AMZ-023) — sans commande pour Sam
+
+Serveur : VPS OVH (Debian 13), domaine `vente.concepton.fr` (zone DNS chez OVH). Rien n'est partagé avec Syllig.
+
+| Fichier | Rôle |
+|---|---|
+| `windows/Installer Syllig Vente.bat` + `serveur/installer.sh` | Double-clic sur le PC : envoie et lance l'installation ; mots de passe tapés dans la fenêtre, jamais dans le chat |
+| `serveur/installer.sh` | Docker (paquets Debian), clé de lecture du dépôt (à coller une fois dans GitHub), mots de passe de la base tirés au sort sur le serveur, démarrage, minuteur de mise à jour, premier compte |
+| `serveur/mettre-a-jour.sh` | Toutes les 5 min : nouvelle version de `main` → construction, migrations, redémarrage ; retour à la version précédente si `/api/sante` ne répond plus. Journal : `/var/log/syllig-vente-maj.log`. Aucun workflow GitHub (D-AMZ-009) |
+| `serveur/Caddyfile` | HTTPS automatique et en-têtes de sécurité, dans le projet Docker |
+
+Après l'installation : enregistrement A `vente` → IP du serveur dans la zone DNS `concepton.fr` (OVH).
+**Non vérifié ici** (ni Docker ni Debian 13 dans l'environnement de développement) : la première installation réelle le dira.
+Paquets Debian 13 lus sur packages.debian.org le 12/11/2026 : `docker.io` 26.1.5, `docker-compose` 2.26.1, `docker-buildx` 0.13.1.
+
+---
+
+## Ancien plan : VPS de Syllig (D-AMZ-007, remplacé par D-AMZ-023)
 
 Projet Docker **isolé** de Syllig (D-AMZ-007, D-AMZ-021) : sa propre base, son propre réseau, mémoire plafonnée
 (Postgres 512 Mo, application 512 Mo, migration 256 Mo). La base n'a aucun accès à Internet.

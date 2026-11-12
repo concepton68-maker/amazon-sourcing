@@ -1,0 +1,13 @@
+# Syllig Vente — HTTPS automatique (certificat Let's Encrypt) pour le domaine du serveur dédié (D-AMZ-023).
+{$AMZ_DOMAINE} {
+	encode zstd gzip
+	reverse_proxy app:8830
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+		-Server
+	}
+}
