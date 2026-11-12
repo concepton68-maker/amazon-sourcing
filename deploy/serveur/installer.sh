@@ -1,5 +1,5 @@
 #!/bin/bash
-# Syllig Vente — installation sur un VPS Debian 13 neuf (D-AMZ-023). Lancé par « Installer Syllig Vente.bat ».
+# Syllig Vente — installation sur un VPS neuf (Debian 13 ; Ubuntu accepté, paquets essayés dans l'ordre) (D-AMZ-023). Lancé par « Installer Syllig Vente.bat ».
 # Rejouable : chaque étape vérifie ce qui est déjà fait. Aucun secret ne sort du serveur.
 set -euo pipefail
 DOMAINE="${1:-vente.concepton.fr}"
@@ -12,7 +12,10 @@ etape() { printf '\n==> %s\n' "$1"; }
 etape "1/7 Logiciels (Docker, Git, mises à jour de sécurité automatiques)"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
-apt-get install -y -q git docker.io docker-compose docker-buildx openssl curl ca-certificates unattended-upgrades
+apt-get install -y -q git docker.io openssl curl ca-certificates unattended-upgrades
+# Compose v2 : paquet « docker-compose » sur Debian 13, « docker-compose-v2 » s'il existe (Ubuntu) ; buildx si disponible
+apt-get install -y -q docker-compose-v2 2>/dev/null || apt-get install -y -q docker-compose
+apt-get install -y -q docker-buildx 2>/dev/null || true
 systemctl enable --now docker
 docker compose version >/dev/null
 

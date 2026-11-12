@@ -13,7 +13,7 @@ set DOMAINE=vente.concepton.fr
 ssh-keygen -R %IP% >nul 2>&1
 set OPT=-i "%CLE%" -o IdentitiesOnly=yes -o PreferredAuthentications=publickey -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15
 set UTIL=
-for %%U in (debian root) do (
+for %%U in (debian ubuntu root) do (
   if not defined UTIL ssh %OPT% %%U@%IP% "true" >nul 2>&1 && set UTIL=%%U
 )
 if not defined UTIL (
