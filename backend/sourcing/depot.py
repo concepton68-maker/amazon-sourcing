@@ -33,6 +33,8 @@ class DepotMemoire:
         self._stock: dict[tuple[str, str, str, date], object] = {}
         self._fournisseurs: dict[str, object] = {}
         self._bons: dict[str, object] = {}
+        self._verses: dict[tuple[str, str], object] = {}
+        self._cas: dict[tuple[str, str], object] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -139,6 +141,21 @@ class DepotMemoire:
             self.ajouter_lot(compte_id, l)
         self.enregistrer_bon(compte_id, bon)
 
+    # -------------------------------------------------------------- remboursements [RM-AMZ-054 à 059]
+    def enregistrer_verses(self, compte_id: str, verses) -> None:
+        for v in verses:
+            self._verses[(compte_id, v.reimbursement_id)] = v
+
+    def verses(self, compte_id: str) -> list:
+        return [v for (c, _), v in self._verses.items() if c == compte_id]
+
+    def enregistrer_cas(self, compte_id: str, cas) -> None:
+        for x in cas:
+            self._cas[(compte_id, x.cle)] = x
+
+    def cas_remboursement(self, compte_id: str) -> list:
+        return [x for (c, _), x in self._cas.items() if c == compte_id]
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -161,5 +178,7 @@ class DepotMemoire:
             self._stock = {k: v for k, v in self._stock.items() if k[0] != c}
             self._fournisseurs = {k: v for k, v in self._fournisseurs.items() if v.compte_id != c}
             self._bons = {k: v for k, v in self._bons.items() if v.compte_id != c}
+            self._verses = {k: v for k, v in self._verses.items() if k[0] != c}
+            self._cas = {k: v for k, v in self._cas.items() if k[0] != c}
             del self._revocations[c]
         return purges

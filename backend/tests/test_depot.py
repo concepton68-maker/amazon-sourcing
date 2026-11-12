@@ -138,6 +138,22 @@ class ContratDepot:
             self.d.enregistrer_bon(A, AC.annuler(b))
         self.assertEqual(self.d.prochain_numero(A), 2)
 
+    def test_remboursements_par_compte(self):
+        """[RM-AMZ-059, RM-AMZ-014] Versements et cas relus à l'identique, propres au compte, suivi mis à jour."""
+        from decimal import Decimal
+        from sourcing import remboursements as RB
+        v = RB.RemboursementVerse("R1", date(2026, 10, 1), "C-1", None, "S", "X1", "B0X", "EUR", Decimal("9.8"), 1)
+        self.d.enregistrer_verses(A, [v, v])
+        self.assertEqual(len(self.d.verses(A)), 1)
+        self.assertEqual(self.d.verses(B), [])
+        cas = RB.Cas("PERTE_ENTREPOT:DE:X1", RB.PERTE, "DE", "B0X", "S", "X1", None, 2, Decimal("19.6"), "EUR",
+                     date(2026, 11, 12), date(2026, 11, 30), faits={"perdus_abimes": 4})
+        self.d.enregistrer_cas(A, [cas])
+        self.d.enregistrer_cas(A, [RB.changer_suivi(cas, RB.DOSSIER_ENVOYE, "C-9")])
+        (relu,) = self.d.cas_remboursement(A)
+        self.assertEqual((relu.statut, relu.case_id, relu.unites, relu.faits), ("DOSSIER_ENVOYE", "C-9", 2, {"perdus_abimes": 4}))
+        self.assertEqual(self.d.cas_remboursement(B), [])
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):

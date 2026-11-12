@@ -171,3 +171,13 @@ button.secondaire { min-height: 44px; padding: 0 18px; border-radius: 8px; borde
 .contenu.sans-marge { padding: 0; margin: 0; max-width: none; }
 .h-colonne { font-size: 18px; }
 .vue > * { min-width: 0; max-width: 100%; }
+
+/* --- remboursements --- */
+.statut-cas { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.statut-cas.DETECTE { background: var(--negatif-doux); color: #8f4208; }
+.statut-cas.DOSSIER_ENVOYE { background: var(--accent-doux); color: var(--accent); }
+.statut-cas.REMBOURSE { background: var(--positif-doux); color: var(--positif); }
+.statut-cas.REFUSE { background: #fdecea; color: #a41e14; }
+.statut-cas.CLOS { background: #eef0f3; color: #3a414c; }
+tr.dossier td { background: #f9fafb; }
+.texte-dossier { margin: 0 0 10px; font-size: 14px; max-width: 900px; }

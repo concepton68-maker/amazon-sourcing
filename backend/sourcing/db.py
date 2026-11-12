@@ -275,6 +275,40 @@ class DepotPostgres:
             for l in lots:
                 conn.execute(*self._insert_lot(l))
 
+    # -------------------------------------------------------------- remboursements [RM-AMZ-054 à 059]
+    def enregistrer_verses(self, compte_id: str, verses) -> None:
+        for v in verses:
+            self._executer(compte_id, """INSERT INTO amz.remboursements_verses (compte_id, reimbursement_id, jour, case_id,
+                commande, sku, fnsku, asin, devise, montant, quantite) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (compte_id, reimbursement_id) DO UPDATE SET jour = EXCLUDED.jour, case_id = EXCLUDED.case_id,
+                commande = EXCLUDED.commande, sku = EXCLUDED.sku, fnsku = EXCLUDED.fnsku, asin = EXCLUDED.asin,
+                devise = EXCLUDED.devise, montant = EXCLUDED.montant, quantite = EXCLUDED.quantite""",
+                (_uuid(compte_id), v.reimbursement_id, v.jour, v.case_id, v.commande, v.sku, v.fnsku, v.asin, v.devise,
+                 v.montant, v.quantite))
+
+    def verses(self, compte_id: str) -> list:
+        from .remboursements import RemboursementVerse
+        return [RemboursementVerse(*r) for r in self._executer(compte_id, """SELECT reimbursement_id, jour, case_id,
+            commande, sku, fnsku, asin, trim(devise), montant, quantite FROM amz.remboursements_verses""")]
+
+    def enregistrer_cas(self, compte_id: str, cas) -> None:
+        for x in cas:
+            self._executer(compte_id, """INSERT INTO amz.remboursements_cas (compte_id, cle, type, marketplace, asin, sku,
+                fnsku, commande, unites, valeur_achat, devise, detecte_le, echeance, statut, case_id, montant_verse, faits)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (compte_id, cle) DO UPDATE SET unites = EXCLUDED.unites, valeur_achat = EXCLUDED.valeur_achat,
+                echeance = EXCLUDED.echeance, statut = EXCLUDED.statut, case_id = EXCLUDED.case_id,
+                montant_verse = EXCLUDED.montant_verse, faits = EXCLUDED.faits""",
+                (_uuid(compte_id), x.cle, x.type, x.marketplace, x.asin, x.sku, x.fnsku, x.commande, x.unites,
+                 x.valeur_achat, x.devise, x.detecte_le, x.echeance, x.statut, x.case_id, x.montant_verse,
+                 json.dumps(x.faits)))
+
+    def cas_remboursement(self, compte_id: str) -> list:
+        from .remboursements import Cas
+        return [Cas(*r[:15], faits=dict(r[15])) for r in self._executer(compte_id, """SELECT cle, type, marketplace, asin,
+            sku, fnsku, commande, unites, valeur_achat, trim(devise), detecte_le, echeance, statut, case_id, montant_verse,
+            faits FROM amz.remboursements_cas""")]
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         self._executer(compte_id, "UPDATE amz.comptes SET revoque_le = coalesce(revoque_le, %s)", (jour,))

@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import achats as A
+from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
 from .auth import Authentification, ErreurAuth
@@ -167,6 +168,18 @@ def _bon_json(b: "A.BonCommande", fournisseurs: dict) -> dict:
                     "roi_prevu": None if l.prevision.roi is None else float(round(l.prevision.roi, 4)),
                     "quantite_recue": l.quantite_recue, "lot_id": l.lot_id} for l in b.lignes],
     }
+
+
+class DemandeSuivi(BaseModel):
+    statut: str
+    case_id: Optional[str] = Field(default=None, max_length=40)
+
+
+def _cas_json(x: "RB.Cas") -> dict:
+    return {"cle": x.cle, "type": x.type, "marketplace": x.marketplace, "asin": x.asin, "sku": x.sku, "fnsku": x.fnsku,
+            "commande": x.commande, "unites": x.unites, "valeur_achat": _num(x.valeur_achat), "devise": x.devise,
+            "detecte_le": x.detecte_le.isoformat(), "echeance": x.echeance.isoformat() if x.echeance else None,
+            "statut": x.statut, "case_id": x.case_id, "montant_verse": _num(x.montant_verse), "faits": x.faits}
 
 
 class DemandeLot(BaseModel):
@@ -440,6 +453,38 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         if not b.lignes:
             raise HTTPException(409, "RIEN_A_COMMANDER")
         return _sauver(c, b)
+
+    # ------------------------------------------------------------- remboursements [RM-AMZ-054 à 059]
+    @app.get("/api/remboursements")
+    def remboursements(c: str = Depends(compte)):
+        cas = depot.cas_remboursement(c)
+        ordre = {RB.DETECTE: 0, RB.DOSSIER_ENVOYE: 1, RB.REMBOURSE: 2, RB.REFUSE: 3, RB.CLOS: 4}
+        cas.sort(key=lambda x: (ordre[x.statut], x.echeance or date.max, x.cle))
+        un_an = date.today().replace(year=date.today().year - 1)
+        verse: dict[str, Decimal] = {}
+        n = 0
+        for v in depot.verses(c):
+            if v.jour and v.jour >= un_an and v.montant is not None:
+                verse[v.devise or "?"] = verse.get(v.devise or "?", Decimal(0)) + v.montant
+                n += 1
+        return {"cas": [_cas_json(x) for x in cas],
+                "compteurs": {"a_verifier": sum(1 for x in cas if x.statut == RB.DETECTE),
+                              "en_cours": sum(1 for x in cas if x.statut == RB.DOSSIER_ENVOYE),
+                              "verses_12_mois": [{"devise": d, "montant": _num(m)} for d, m in verse.items()],
+                              "nb_verses_12_mois": n},
+                "source_delais": RB.SOURCE_DELAIS}
+
+    @app.post("/api/remboursements/{cle:path}/suivi")
+    def suivre_cas(cle: str, d: DemandeSuivi, c: str = Depends(compte)):
+        x = next((y for y in depot.cas_remboursement(c) if y.cle == cle), None)
+        if x is None:
+            raise HTTPException(404, "CAS_INTROUVABLE")
+        try:
+            x = RB.changer_suivi(x, d.statut, (d.case_id or "").strip() or None)
+        except ValueError as e:
+            raise HTTPException(422, e.args[0]) from None
+        depot.enregistrer_cas(c, [x])
+        return _cas_json(x)
 
     # ------------------------------------------------------------- stock [RM-AMZ-045 à 048]
     @app.get("/api/stock")

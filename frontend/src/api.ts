@@ -156,3 +156,16 @@ export async function retirerLigneBon(id: string, ligne: string): Promise<Bon> {
   if (!r.ok) throw new Error(j.detail ?? "saisie");
   return j;
 }
+
+export interface CasRemb {
+  cle: string; type: string; marketplace: string; asin: string | null; sku: string | null; fnsku: string | null;
+  commande: string | null; unites: number | null; valeur_achat: number | null; devise: string; detecte_le: string;
+  echeance: string | null; statut: string; case_id: string | null; montant_verse: number | null; faits: Record<string, string | number>;
+}
+export interface Remboursements {
+  cas: CasRemb[]; source_delais: string;
+  compteurs: { a_verifier: number; en_cours: number; verses_12_mois: { devise: string; montant: number }[]; nb_verses_12_mois: number };
+}
+export const lireRemboursements = () => lire<Remboursements>("/api/remboursements");
+export const suivreCas = (cle: string, statut: string, case_id?: string) =>
+  envoyer<CasRemb>(`/api/remboursements/${encodeURIComponent(cle)}/suivi`, { statut, case_id: case_id ?? null });

@@ -3,6 +3,7 @@ passées par la vraie chaîne (normalisation Amazon → synchro → dépôt)."""
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from decimal import Decimal
 
 from .depot import DepotMemoire
 from .lots import Lot, Prevision
@@ -71,6 +72,9 @@ def construire() -> tuple[DepotMemoire, str]:
            for i in range(5)]
     tx += [_tx("PS1", "2026-10-31", "B0DEMO0004", "P-C1", {"Stockage": -18.5}, qte=0)]
     tx += _ventes("K", "B0DEMO0005", 18, 32.70, 11.62, date(2026, 10, 5), mp="IT")
+    # remboursements clients anciens : l'un sans retour (cas), l'autre retourné (pas de cas)
+    tx += [_tx("GR1", "2026-09-15", "B0DEMO0001", "G-C5", {"Principal": -20.75, "Commission": 0.60}, qte=0),
+           _tx("GR2", "2026-09-16", "B0DEMO0001", "G-C6", {"Principal": -20.75, "Commission": 0.60}, qte=0)]
     synchroniser(c, get_marketplace("FR"), _AmazonSimule(tx), d, datetime(2026, 11, 12, 3, tzinfo=timezone.utc),
                  classement=CLASSEMENT, attendre=lambda s: None)
     # fournisseurs et bons (fictifs) [RM-AMZ-049, 050]
@@ -87,6 +91,19 @@ def construire() -> tuple[DepotMemoire, str]:
     brouillon = A.nouveau_bon(c, d.prochain_numero(c), fb)
     brouillon = A.ajouter_ligne(brouillon, "B0DEMO0004", "FR", 30, "6.10", lots[2].prevision, "Puzzle 1000 pièces", "EUR")
     d.enregistrer_bon(c, brouillon)
+    # remboursements FBA (fictifs) [RM-AMZ-054 à 059]
+    from . import remboursements as RB
+    verses = [RB.RemboursementVerse("R-1001", date(2026, 9, 2), "C-55501", None, "PUZZLE-1000", "X-PUZZLE", "B0DEMO0004",
+                                    "EUR", Decimal("12.80"), 2),
+              RB.RemboursementVerse("R-1002", date(2026, 10, 20), None, None, "LAMPE-LED", "X-LAMPE", "B0DEMO0003",
+                                    "EUR", Decimal("9.80"), 1)]
+    ledger = [RB.LigneLedger(date(2026, 10, 1), "DE", "X-LAMPE", "B0DEMO0003", "LAMPE-LED", 3, 1, 1)]
+    retours = [RB.RetourClient(date(2026, 9, 25), "G-C6", "GOURDE-750", "B0DEMO0001", "X-GOURDE", 1)]
+    envois = [RB.LigneEnvoi("FBA-DEMO1", "CLOSED", "IT", "COUTEAUX-5", "X-COUTEAUX", 40, 37)]
+    d.enregistrer_verses(c, verses)
+    asins = {"COUTEAUX-5": "B0DEMO0005", "LAMPE-LED": "B0DEMO0003", "GOURDE-750": "B0DEMO0001"}
+    cas = RB.detecter(ledger, verses, retours, d.ventes(c), envois, d.lots(c), date(2026, 11, 12), "EUR", asins)
+    d.enregistrer_cas(c, RB.appliquer_suivi(cas, [], verses))
     jour = date(2026, 11, 12)
     d.enregistrer_photo_stock(c, jour, [
         PhotoStock("FR", "GOURDE-750", "B0DEMO0001", "Gourde inox 750 ml", 3, 0),
