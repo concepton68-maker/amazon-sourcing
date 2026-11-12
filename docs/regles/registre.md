@@ -83,3 +83,14 @@ Source commune : notes `docs/recherches/notes/api-financiere/finances_spapi.md` 
 | RM-AMZ-044 | **Application** : l'analyse et le sourcing utilisent les paramètres en vigueur au lancement (seuils, coûts par défaut, régime de TVA de la place choisie) ; une valeur saisie dans le formulaire prime pour cette analyse seulement. | Choix de l'outil | métier | — | `test_parametres_appliques_a_l_analyse` | codé |
 
 > Limite connue (lot 8) : les taxes du Brésil ne sont pas modélisées ; la place y est traitée comme « hors taxe » — **non sourcé**, à corriger avant toute vente sur amazon.com.br.
+
+## Lot 9 : stock et réapprovisionnement
+
+Source : notes `docs/recherches/notes/stock/stock_spapi.md` (documentation SP-API lue le 12/11/2026).
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-045 | **Stock** : photo complète chaque nuit par place de marché via `getInventorySummaries` (`details=true`, sans `startDateTime`) : disponible = `fulfillableQuantity` ; en route = préparation + expédié + réception ; réservé ; invendable. Une photo par compte, place, SKU et jour ; relancer la même nuit remplace la photo. Les places UE ne sont **jamais additionnées** (stock Pan-UE possiblement compté plusieurs fois : non vérifié). | Notes § 1 ; Pan-UE : **non vérifié** | lu / non lu | — | `test_inventaire_parse_et_photo` | à coder |
+| RM-AMZ-046 | **Vitesse de vente** = unités vendues sur les 30 derniers jours (ventes réelles synchronisées, par ASIN et place) ÷ 30. **Couverture** = (disponible + en route) ÷ vitesse, en jours ; vitesse nulle : couverture illimitée, pas de rupture prévue. | Choix de l'outil | métier | — | `test_vitesse_et_couverture` | à coder |
+| RM-AMZ-047 | **Quantité à commander** = max(0, arrondi supérieur de vitesse × (délai fournisseur + délai de réception Amazon + marge de sécurité) − disponible − en route). Délais réglables dans les paramètres (défauts : 7, 10 et 14 jours, choix de l'outil). | Choix de l'outil | métier | — | `test_quantite_a_commander` | à coder |
+| RM-AMZ-048 | **Alertes** : rupture si couverture < seuil (défaut 15 jours) ; surstock si couverture > seuil (défaut 180 jours). Commandes suggérées regroupées par fournisseur (fournisseur et coût du dernier lot du produit). | Choix de l'outil | métier | avertissement | `test_alertes_stock_et_commandes` | à coder |
