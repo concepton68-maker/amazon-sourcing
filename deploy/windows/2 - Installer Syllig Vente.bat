@@ -18,6 +18,10 @@ for %%U in (debian ubuntu root) do (
 )
 if not defined UTIL (
   echo.
+  echo --- Diagnostic pour Claude ---
+  ssh-keygen -lf "%CLE%.pub"
+  for %%U in (debian ubuntu root) do ssh -v %OPT% %%U@%IP% "true" 2>&1 | findstr /C:"Authenticated" /C:"Offering public key" /C:"can continue" /C:"Permission denied" /C:"timed out" /C:"refused" /C:"Remote protocol version"
+  echo --- fin du diagnostic ---
   echo Le serveur refuse la cle. Il a ete installe sans elle.
   echo Chez OVH : Reinstaller mon VPS, Debian 13, Ctrl+V de la cle dans le cadre, Confirmer. Puis relancez ce fichier 5 minutes apres.
   pause
