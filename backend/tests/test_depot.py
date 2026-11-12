@@ -56,6 +56,11 @@ class ContratDepot:
         self.d.ajouter_vente(A, vente(A, 2, 42), id_externe="amz-1")
         res, _ = rattacher_fifo(self.d.lots(A), self.d.ventes(A))
         self.assertEqual(res[l2.id].quantite_vendue, 2)
+        v = VenteReelle(A, "B0X", "FR", date(2026, 10, 9), 0, E(-20), E(0), E(0), E(0), E(0),
+                        commande="111-1", differe=True)
+        self.d.ajouter_vente(A, v, id_externe="amz-2")
+        relue = [x for x in self.d.ventes(A) if x.jour == date(2026, 10, 9)][0]
+        self.assertEqual((relue.commande, relue.differe), ("111-1", True))
 
     def test_vente_rejouable(self):
         """Rejouer la même ligne Amazon met à jour ses montants sans la doubler."""
