@@ -24,6 +24,10 @@ AMZ_TEST_PG="host=<socket ou hôte> port=55432 user=postgres" python -m unittest
 Postgres local de test (conteneur cloud) : données dans `/var/lib/postgresql/amz-test` (le dossier temporaire de session perd ses droits), démarré par
 `su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /var/lib/postgresql/amz-test/data -o '-p 55432 -k /var/lib/postgresql/amz-test' -l /var/lib/postgresql/amz-test/log.txt start"`.
 
+## Interface
+
+`cd frontend && npm install && npm run build`, puis `cd backend && AMZ_MODE=dev python -m sourcing serveur` (http://127.0.0.1:8820, données fictives). Captures de preuve : `docs/captures/<version>/` avec `LISEZ-MOI.md`.
+
 ## Repères
 
 - Règles : `docs/regles/registre.md` · Décisions : `docs/decisions/registre.md` · Maquette : `docs/maquettes/README.md`

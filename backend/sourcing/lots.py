@@ -54,6 +54,7 @@ class Lot:
     date_achat: date
     prevision: Prevision
     fournisseur: Optional[str] = None
+    designation: Optional[str] = None   # nom du produit, pour l'affichage
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     version: int = 1
     remplace: Optional[str] = None  # id de la version précédente

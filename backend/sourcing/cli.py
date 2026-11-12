@@ -113,6 +113,8 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("places", help="Lister les places de marché gérées")
+    srv = sub.add_parser("serveur", help="Interface web (AMZ_MODE=dev requis)")
+    srv.add_argument("--port", type=int, default=8820)
     sub.add_parser("parcours-demo", help="Parcours complet sur données fictives (analyse → lot → ventes → écart)")
 
     for nom, aide in (("analyse", "Analyser un produit sur une place de marché"),
@@ -134,6 +136,12 @@ def main(argv=None) -> int:
         s.add_argument("--json", action="store_true", help="Sortie JSON")
 
     a = p.parse_args(argv)
+
+    if a.cmd == "serveur":
+        import uvicorn
+        from .api import app_depuis_environnement
+        uvicorn.run(app_depuis_environnement(), host="127.0.0.1", port=a.port)
+        return 0
 
     if a.cmd == "parcours-demo":
         from .demo_parcours import executer

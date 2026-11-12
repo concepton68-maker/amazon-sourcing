@@ -79,12 +79,12 @@ class DepotPostgres:
         p = lot.prevision
         self._executer(compte_id, """
             INSERT INTO amz.lots (id, compte_id, asin, marketplace, quantite, date_achat, fournisseur, devise,
-                prix_vente_ht, frais_amazon, cout_achat, retours, stockage, autres, sources, version, remplace, motif, cree_le)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                prix_vente_ht, frais_amazon, cout_achat, retours, stockage, autres, sources, version, remplace, motif, cree_le, designation)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (_uuid(lot.id), _uuid(lot.compte_id), lot.asin, lot.marketplace, lot.quantite, lot.date_achat,
              lot.fournisseur, p.devise, p.prix_vente_ht, p.frais_amazon, p.cout_achat, p.retours, p.stockage,
              p.autres, list(p.sources), lot.version, _uuid(lot.remplace) if lot.remplace else None,
-             lot.motif, lot.cree_le))
+             lot.motif, lot.cree_le, lot.designation))
 
     def ajouter_vente(self, compte_id: str, vente: VenteReelle, id_externe: Optional[str] = None) -> None:
         """Rejouable : une même ligne Amazon (`id_externe`) met à jour ses montants au lieu de doubler."""
@@ -105,12 +105,12 @@ class DepotPostgres:
 
     # -------------------------------------------------------------- lecture
     _COLS_LOT = ("id, compte_id, asin, marketplace, quantite, date_achat, fournisseur, devise, prix_vente_ht, "
-                 "frais_amazon, cout_achat, retours, stockage, autres, sources, version, remplace, motif, cree_le")
+                 "frais_amazon, cout_achat, retours, stockage, autres, sources, version, remplace, motif, cree_le, designation")
 
     @staticmethod
     def _lot(r) -> Lot:
-        (i, c, asin, mp, q, d, fo, dev, pv, fr, co, re, st, au, so, ve, rem, mo, cr) = r
-        return Lot(str(c), asin, mp, q, d, Prevision(dev, pv, fr, co, re, st, au, tuple(so)), fo,
+        (i, c, asin, mp, q, d, fo, dev, pv, fr, co, re, st, au, so, ve, rem, mo, cr, de) = r
+        return Lot(str(c), asin, mp, q, d, Prevision(dev, pv, fr, co, re, st, au, tuple(so)), fo, de,
                    id=str(i), version=ve, remplace=str(rem) if rem else None, motif=mo, cree_le=cr)
 
     def lot(self, compte_id: str, lot_id: str) -> Lot:

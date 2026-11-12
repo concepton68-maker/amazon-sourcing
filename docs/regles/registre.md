@@ -40,6 +40,6 @@ Source commune : notes `docs/recherches/notes/api-financiere/finances_spapi.md` 
 
 | N° | Règle | Source | Statut | Blocage | Test | État |
 |---|---|---|---|---|---|---|
-| RM-AMZ-024 | **Statut d'un lot** : *en vente* tant que des unités restent ; *écoulé* quand toutes les unités sont rattachées à des ventes. Aucun autre statut n'est déduit. | Choix de l'outil | métier | — | `test_api_statut_lot` | à coder |
-| RM-AMZ-025 | **Base de comparaison** : prévu et réel sont comparés sur les **unités vendues** (même quantité des deux côtés) ; le profit prévu du lot entier est affiché à part. | Choix de l'outil | métier | — | `test_api_detail_lot` | à coder |
-| RM-AMZ-026 | **Écran sans texte en dur** : l'API renvoie des codes (`statut`, `cause`) et des montants avec leur devise ; l'interface les traduit (fichier `fr.json`) et formate selon la langue. | D-AMZ-010 | métier | — | `test_api_codes_sans_texte` | à coder |
+| RM-AMZ-024 | **Statut d'un lot** : *en vente* tant que des unités restent ; *écoulé* quand toutes les unités sont rattachées à des ventes. Aucun autre statut n'est déduit. | Choix de l'outil | métier | — | `test_api_statut_lot` | codé |
+| RM-AMZ-025 | **Base de comparaison** : prévu et réel sont comparés sur les **unités vendues** (même quantité des deux côtés) ; le profit prévu du lot entier est affiché à part. | Choix de l'outil | métier | — | `test_api_detail_lot`, `test_api_lot_autre_compte_introuvable` | codé |
+| RM-AMZ-026 | **Écran sans texte en dur** : l'API renvoie des codes (`statut`, `cause`) et des montants avec leur devise ; l'interface les traduit (fichier `fr.json`) et formate selon la langue. | D-AMZ-010 | métier | — | `test_api_codes_sans_texte` | codé |
