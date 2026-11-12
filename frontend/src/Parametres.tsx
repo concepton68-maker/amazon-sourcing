@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Params, Place, ecrireParametres, lireParametres, listerPlaces } from "./api";
 import { t } from "./i18n";
+import { ConnexionsVue } from "./Connexions";
 
 const POURCENT = new Set(["roi_min", "ecart_prix_max", "retours"]);
 const SEUILS = ["roi_min", "profit_min", "ventes_mois_min", "part_ventes_min", "ecart_prix_max"] as const;
@@ -45,6 +46,7 @@ export function ParametresVue() {
   );
   const [code, champErreur] = (erreur ?? "").split("|");
   return (
+    <div className="vue">
     <form className="vue" onSubmit={enregistrer}>
       <div className="entete-vue">
         <h1>{t("parametres.titre")}</h1>
@@ -72,5 +74,7 @@ export function ParametresVue() {
         </div>
       </div>
     </form>
+    <ConnexionsVue />
+    </div>
   );
 }

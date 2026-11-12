@@ -159,3 +159,11 @@ Toutes les alertes sont des **avertissements**, jamais un blocage.
 | N° | Règle | Source | Statut | Blocage | Test | État |
 |---|---|---|---|---|---|---|
 | RM-AMZ-071 | **Aucune source branchée** (ni SP-API ni Keepa) : l'analyse d'un produit et le traitement d'un fichier fournisseur répondent `SOURCE_NON_CONFIGUREE`, jamais « produit introuvable » (on ne conclut rien sans avoir cherché). | Règle de Sam : ne jamais présenter une donnée non vérifiée | métier | bloquant | `test_sans_source_branchee` | codé |
+
+## Lot 15 : connexions aux sources (Amazon SP-API, Keepa) depuis le site
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-072 | **Identifiants saisis par le vendeur sur le site**, par compte : SP-API (identifiant client, secret client, jeton de rafraîchissement, région EU / NA / FE) et Keepa (clé). **Chiffrés** (AES-256-GCM, compte et source liés au chiffré) avec une clé propre au serveur (`AMZ_CLE_CHIFFREMENT`, tirée au sort sur le serveur, jamais dans le dépôt) ; **jamais réaffichés** : l'écran montre seulement « enregistrée le … ». Champ vide ou de plus de 2 000 caractères refusé ; format non contrôlé (non sourcé). | Choix de sécurité ; politique de protection des données Amazon **non relue dans cette session** | métier / non lu | bloquant | `test_connexions_chiffrees`, `test_connexions_par_compte` | codé |
+| RM-AMZ-073 | **Sources utilisées par l'analyse et le sourcing** : celles du compte si elles existent, sinon celles du serveur (variables d'environnement) ; sans aucune : `SOURCE_NON_CONFIGUREE` (RM-AMZ-071). | RM-AMZ-071 | métier | — | `test_sources_du_compte` | codé |
+| RM-AMZ-074 | **Sans clé de chiffrement sur le serveur**, toute saisie d'identifiant est refusée (`CHIFFREMENT_NON_CONFIGURE`) : jamais d'enregistrement en clair. La clé est ajoutée au serveur par `configurer.sh` si elle manque. | Choix de sécurité | métier | bloquant | `test_connexions_chiffrees`, `test_scripts_serveur` | codé |

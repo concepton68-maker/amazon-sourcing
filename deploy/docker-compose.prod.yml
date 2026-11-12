@@ -46,6 +46,7 @@ services:
       SPAPI_REFRESH_TOKEN_EU: ${SPAPI_REFRESH_TOKEN_EU:-}
       SPAPI_REFRESH_TOKEN_NA: ${SPAPI_REFRESH_TOKEN_NA:-}
       KEEPA_API_KEY: ${KEEPA_API_KEY:-}
+      AMZ_CLE_CHIFFREMENT: ${AMZ_CLE_CHIFFREMENT:-}   # identifiants saisis sur le site [RM-AMZ-072, 074]
     depends_on:
       migrer: { condition: service_completed_successfully }
     ports: ["127.0.0.1:${AMZ_PORT:-8830}:8830"]   # seulement en local : Caddy est devant

@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from . import achats as A
 from . import conformite as CF
+from . import connexions as CX
 from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
@@ -255,6 +256,24 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     app = FastAPI(title="Syllig Vente", docs_url="/api/docs" if auth is None else None,
                   openapi_url="/api/openapi.json" if auth is None else None)
     fournisseurs = fournisseurs or Fournisseurs()
+    _cache_sources: dict[str, tuple[tuple, Fournisseurs]] = {}
+
+    def sources(c: str) -> Fournisseurs:
+        """[RM-AMZ-073] Sources du compte si elles existent, sinon celles du serveur."""
+        cx = depot.connexions(c)
+        cle = CX.cle_serveur()
+        if not cx or not cle:
+            return fournisseurs
+        empreinte = tuple(sorted((s, x.maj.isoformat()) for s, x in cx.items()))
+        deja = _cache_sources.get(c)
+        if deja and deja[0] == empreinte:
+            return deja[1]
+        try:
+            f = CX.fournisseurs_du_compte({s: CX.dechiffrer(cle, c, s, x.chiffre) for s, x in cx.items()})
+        except Exception:  # identifiants illisibles (clé changée) : on ne devine rien
+            return fournisseurs
+        _cache_sources[c] = (empreinte, f)
+        return f
     seuils = seuils or Seuils()
     analyses: "OrderedDict[str, tuple[str, AnalyseProduit, ParametresCout]]" = OrderedDict()
     utilisees: set[str] = set()                   # [RM-AMZ-029] une analyse, un lot
@@ -501,6 +520,31 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         depot.enregistrer_cas(c, [x])
         return _cas_json(x)
 
+    # ------------------------------------------------------------- connexions [RM-AMZ-072 à 074]
+    @app.get("/api/connexions")
+    def lire_connexions(c: str = Depends(compte)):
+        cx = depot.connexions(c)
+        return {"chiffrement": CX.cle_serveur() is not None,
+                "sources": [{"source": s, "champs": list(ch), "enregistree_le": cx[s].maj.isoformat() if s in cx else None}
+                            for s, ch in CX.SOURCES.items()], "regions": list(CX.REGIONS)}
+
+    @app.put("/api/connexions/{source}")
+    def ecrire_connexion(source: str, brut: dict, c: str = Depends(compte)):
+        try:
+            valeurs = CX.valider(source, brut)
+            chiffre = CX.chiffrer(CX.cle_serveur(), c, source, valeurs)
+        except CX.ConnexionInvalide as e:
+            raise HTTPException(503 if e.args[0] == "CHIFFREMENT_NON_CONFIGURE" else 422,
+                                {"code": e.args[0], "champ": e.args[1]}) from None
+        depot.enregistrer_connexion(c, source, chiffre)
+        return {"source": source, "enregistree": True}
+
+    @app.delete("/api/connexions/{source}")
+    def retirer_connexion(source: str, c: str = Depends(compte)):
+        if not depot.supprimer_connexion(c, source):
+            raise HTTPException(404, "CONNEXION_INTROUVABLE")
+        return {"source": source, "retiree": True}
+
     # ------------------------------------------------------------- conformité [RM-AMZ-060 à 067]
     @app.get("/api/conformite")
     def conformite(c: str = Depends(compte)):
@@ -608,10 +652,11 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         regime = d.regime_tva or p.regime(mp.code)
         if regime not in REGIMES_TVA:
             raise HTTPException(422, "REGIME_TVA_INCONNU")
-        if not fournisseurs.catalogue:  # [RM-AMZ-071]
+        fx = sources(c)
+        if not fx.catalogue:  # [RM-AMZ-071]
             raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
         try:
-            asins = resoudre_asins(mp, d.code, fournisseurs)
+            asins = resoudre_asins(mp, d.code, fx)
         except ErreurFournisseur:
             raise HTTPException(502, "SOURCE_INDISPONIBLE") from None
         if not asins:
@@ -619,7 +664,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         couts = p.couts(d.prix_achat, d.achat_ttc, d.taux_tva)
         sortie = []
         for asin in asins:
-            a = analyser_asin(mp, asin, couts, fournisseurs, regime, p.seuils(), d.prix_vente, d.taux_tva)
+            a = analyser_asin(mp, asin, couts, fx, regime, p.seuils(), d.prix_vente, d.taux_tva)
             jeton = str(uuid.uuid4())
             analyses[jeton] = (c, a, couts)
             while len(analyses) > 500:
@@ -665,7 +710,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
 
     @app.post("/api/sourcing/fichiers/{fid}/traitements", status_code=201)
     def lancer_traitement(fid: str, d: DemandeTraitement, c: str = Depends(compte)):
-        if not fournisseurs.catalogue:  # [RM-AMZ-071]
+        fx = sources(c)
+        if not fx.catalogue:  # [RM-AMZ-071]
             raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
         f = fichiers.get(fid)
         if f is None or f[0] != c:
@@ -683,7 +729,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             prep = fich.preparer(f[2], colonnes, d.prix_par_carton)
         except fich.FichierInvalide as e:
             raise HTTPException(422, e.args[0]) from None
-        t = traitements.lancer(c, prep, mp, fournisseurs, depot, regime, d.achat_ttc, p.seuils(),
+        t = traitements.lancer(c, prep, mp, fx, depot, regime, d.achat_ttc, p.seuils(),
                                en_fond=traitement_en_fond, parametres=p)
         return {"traitement_id": t.id}
 

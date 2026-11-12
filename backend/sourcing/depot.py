@@ -37,6 +37,7 @@ class DepotMemoire:
         self._cas: dict[tuple[str, str], object] = {}
         self._enregs: dict[tuple[str, str], object] = {}
         self._fiches: dict[tuple[str, str], object] = {}
+        self._connexions: dict[tuple[str, str], object] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -174,6 +175,17 @@ class DepotMemoire:
     def enregistrer_fiche(self, compte_id: str, fiche) -> None:
         self._fiches[(compte_id, fiche.asin)] = fiche
 
+    # -------------------------------------------------------------- connexions [RM-AMZ-072]
+    def connexions(self, compte_id: str) -> dict:
+        return {s: x for (c, s), x in self._connexions.items() if c == compte_id}
+
+    def enregistrer_connexion(self, compte_id: str, source: str, chiffre: bytes) -> None:
+        from .connexions import Connexion
+        self._connexions[(compte_id, source)] = Connexion(source, chiffre, datetime.now(timezone.utc))
+
+    def supprimer_connexion(self, compte_id: str, source: str) -> bool:
+        return self._connexions.pop((compte_id, source), None) is not None
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -200,5 +212,6 @@ class DepotMemoire:
             self._cas = {k: v for k, v in self._cas.items() if k[0] != c}
             self._enregs = {k: v for k, v in self._enregs.items() if k[0] != c}
             self._fiches = {k: v for k, v in self._fiches.items() if k[0] != c}
+            self._connexions = {k: v for k, v in self._connexions.items() if k[0] != c}
             del self._revocations[c]
         return purges

@@ -175,6 +175,16 @@ class ContratDepot:
         self.assertEqual(self.d.fiches(A), {"B0X": f})
         self.assertEqual(self.d.fiches(B), {})
 
+    def test_connexions_par_compte(self):
+        """[RM-AMZ-072, RM-AMZ-014] Chiffré relu à l'identique, propre au compte, remplacé puis retiré."""
+        self.d.enregistrer_connexion(A, "KEEPA", b"x" * 40)
+        self.d.enregistrer_connexion(A, "KEEPA", b"y" * 40)
+        self.assertEqual(self.d.connexions(A)["KEEPA"].chiffre, b"y" * 40)
+        self.assertEqual(self.d.connexions(B), {})
+        self.assertFalse(self.d.supprimer_connexion(B, "KEEPA"))
+        self.assertTrue(self.d.supprimer_connexion(A, "KEEPA"))
+        self.assertEqual(self.d.connexions(A), {})
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):

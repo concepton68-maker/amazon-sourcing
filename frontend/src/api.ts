@@ -207,3 +207,11 @@ export const ecrireFiche = (f: FicheConf) => {
   const { asin, ...corps } = f;
   return requete<FicheConf>("PUT", `/api/conformite/fiches/${encodeURIComponent(asin)}`, corps);
 };
+
+// ------------------------------------------------------------ connexions [RM-AMZ-072 à 074]
+export interface SourceConnexion { source: string; champs: string[]; enregistree_le: string | null }
+export interface Connexions { chiffrement: boolean; sources: SourceConnexion[]; regions: string[] }
+export const lireConnexions = () => lire<Connexions>("/api/connexions");
+export const ecrireConnexion = (source: string, valeurs: Record<string, string>) =>
+  requete<{ enregistree: boolean }>("PUT", `/api/connexions/${source}`, valeurs);
+export const retirerConnexion = (source: string) => requete<{ retiree: boolean }>("DELETE", `/api/connexions/${source}`);
