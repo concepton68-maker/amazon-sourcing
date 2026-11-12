@@ -43,3 +43,11 @@ Source commune : notes `docs/recherches/notes/api-financiere/finances_spapi.md` 
 | RM-AMZ-024 | **Statut d'un lot** : *en vente* tant que des unités restent ; *écoulé* quand toutes les unités sont rattachées à des ventes. Aucun autre statut n'est déduit. | Choix de l'outil | métier | — | `test_api_statut_lot` | codé |
 | RM-AMZ-025 | **Base de comparaison** : prévu et réel sont comparés sur les **unités vendues** (même quantité des deux côtés) ; le profit prévu du lot entier est affiché à part. | Choix de l'outil | métier | — | `test_api_detail_lot`, `test_api_lot_autre_compte_introuvable` | codé |
 | RM-AMZ-026 | **Écran sans texte en dur** : l'API renvoie des codes (`statut`, `cause`) et des montants avec leur devise ; l'interface les traduit (fichier `fr.json`) et formate selon la langue. | D-AMZ-010 | métier | — | `test_api_codes_sans_texte` | codé |
+
+## Lot 4 : écran « Analyse produit »
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-027 | **Messages codés** : raisons, alertes, données non vérifiées et hypothèses de calcul sont des codes avec paramètres (ex. `ROI_SOUS_SEUIL {roi, seuil}`), jamais des phrases ; le verdict se décide sur ces codes. | D-AMZ-010 | métier | — | `test_messages_codes`, `test_verdict_sur_codes` | à coder |
+| RM-AMZ-028 | **Analyse par l'interface** : code produit (ASIN, EAN, UPC, ISBN), place de marché, prix d'achat (HT ou TTC), régime de TVA, taux réduit éventuel ; seuils et coûts par défaut du compte. Un code qui donne plusieurs ASIN renvoie une analyse par ASIN. Code introuvable : réponse « introuvable », jamais une analyse inventée. | RM-AMZ-001 à 010 | métier | — | `test_api_analyse`, `test_api_analyse_introuvable` | à coder |
+| RM-AMZ-029 | **Créer un lot depuis une analyse** : la prévision du lot est celle de l'analyse au moment du clic (prix, frais, coûts, ROI, sources), figée ; quantité > 0 obligatoire ; analyse sans rentabilité calculée : création refusée. | RM-AMZ-011 | métier | — | `test_api_creer_lot_depuis_analyse` | à coder |
