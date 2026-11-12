@@ -27,3 +27,6 @@ unite syllig-vente-sauvegarde "Syllig Vente - sauvegarde de la base" /usr/local/
 unite syllig-vente-purge "Syllig Vente - purge des comptes revoques" /usr/local/bin/syllig-vente-purger "OnCalendar=*-*-* 02:45:00 UTC"
 systemctl daemon-reload
 for t in syllig-vente-maj syllig-vente-sauvegarde syllig-vente-purge; do systemctl enable --now "$t.timer" >/dev/null 2>&1; done
+
+# [RM-AMZ-077] sécurité du serveur (pare-feu, fail2ban, SSH par clé, antivirus)
+bash "$S/securite.sh" || echo "$(date -u +%FT%TZ) sécurité : ÉCHEC de securite.sh" >> /var/log/syllig-vente-maj.log

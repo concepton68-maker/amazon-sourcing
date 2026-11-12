@@ -241,6 +241,14 @@ COOKIE = "sv_session"
 ENTETE_ANTI_CSRF = "x-syllig-vente"
 
 
+class DemandeMotDePasse(BaseModel):
+    nouveau: str = Field(max_length=200)
+
+
+class DemandeCode(BaseModel):
+    code: str = Field(max_length=20)
+
+
 class DemandeConnexion(BaseModel):
     courriel: str = Field(min_length=3, max_length=254)
     mot_de_passe: str = Field(min_length=1, max_length=1024)
@@ -296,7 +304,22 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         s = auth.session_valide(request.cookies.get(COOKIE))
         if s is None:
             raise HTTPException(401, "NON_CONNECTE")
+        if s.niveau != "COMPLET":  # [RM-AMZ-075, 076] mot de passe à changer ou double authentification à faire
+            raise HTTPException(401, "DOUBLE_AUTHENTIFICATION")
         return s.compte_id
+
+    def session_partielle(request: Request):
+        if auth is None:
+            raise HTTPException(404, "MODE_DEMO")
+        s = auth.session_valide(request.cookies.get(COOKIE))
+        if s is None:
+            raise HTTPException(401, "NON_CONNECTE")
+        return s
+
+    def _erreur_auth(e: "ErreurAuth"):
+        code = e.args[0]
+        statut = {"TROP_D_ESSAIS": 429, "CHIFFREMENT_NON_CONFIGURE": 503, "NON_CONNECTE": 401}.get(code, 400)
+        raise HTTPException(statut, code) from None
 
     @app.get("/api/sante")
     def sante():
@@ -312,10 +335,48 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             jeton, _ = auth.connecter(d.courriel, d.mot_de_passe)
         except ErreurAuth as e:
             raise HTTPException(401 if e.args[0] == "IDENTIFIANTS_INVALIDES" else 429, e.args[0]) from None
-        r = JSONResponse({"ok": True})
+        r = JSONResponse({"ok": True, "etape": _.niveau})
         r.set_cookie(COOKIE, jeton, httponly=True, samesite="lax", secure=cookie_secure, path="/",
                      max_age=int(30 * 24 * 3600))
         return r
+
+    # ------------------------------------------------------------- étapes après le mot de passe [RM-AMZ-075, 076]
+    @app.get("/api/session/etape")
+    def etape(s=Depends(session_partielle)):
+        return {"etape": s.niveau}
+
+    @app.post("/api/session/mot-de-passe")
+    def nouveau_mot_de_passe(d: DemandeMotDePasse, s=Depends(session_partielle)):
+        try:
+            return {"etape": auth.changer_mot_de_passe(s, d.nouveau)}
+        except ErreurAuth as e:
+            _erreur_auth(e)
+
+    @app.post("/api/session/enrolement")
+    def enrolement(s=Depends(session_partielle)):
+        import base64
+        from .auth import qr_svg
+        try:
+            secret, uri = auth.debuter_enrolement(s)
+        except ErreurAuth as e:
+            _erreur_auth(e)
+        return {"secret": base64.b32encode(secret).decode().rstrip("="), "uri": uri,
+                "qr": "data:image/svg+xml;base64," + base64.b64encode(qr_svg(uri).encode()).decode()}
+
+    @app.post("/api/session/enrolement/confirmer")
+    def confirmer_enrolement(d: DemandeCode, s=Depends(session_partielle)):
+        try:
+            return {"etape": "COMPLET", "codes_secours": auth.confirmer_enrolement(s, d.code)}
+        except ErreurAuth as e:
+            _erreur_auth(e)
+
+    @app.post("/api/session/code")
+    def code_double_authentification(d: DemandeCode, s=Depends(session_partielle)):
+        try:
+            auth.verifier_code(s, d.code)
+        except ErreurAuth as e:
+            _erreur_auth(e)
+        return {"etape": "COMPLET"}
 
     @app.delete("/api/session")
     def deconnexion(request: Request):
