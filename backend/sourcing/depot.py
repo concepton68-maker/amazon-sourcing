@@ -10,7 +10,7 @@ au plus tard 30 jours après le retrait (politique de protection des données).
 from __future__ import annotations
 
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from .lots import Lot, VenteReelle
@@ -28,6 +28,7 @@ class DepotMemoire:
         self._lots: dict[str, Lot] = {}
         self._ventes: dict[tuple[str, str], VenteReelle] = {}  # (compte, id_externe) -> vente
         self._revocations: dict[str, date] = {}
+        self._appariements: dict[tuple[str, str, str], tuple[list[str], datetime]] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -62,6 +63,14 @@ class DepotMemoire:
     def ventes(self, compte_id: str) -> list[VenteReelle]:
         return sorted((v for (c, _), v in self._ventes.items() if c == compte_id), key=lambda v: v.jour)
 
+    # -------------------------------------------------------------- appariements [RM-AMZ-034]
+    def appariement(self, compte_id: str, marketplace: str, code: str) -> Optional[tuple[list[str], datetime]]:
+        return self._appariements.get((compte_id, marketplace, code))
+
+    def memoriser_appariement(self, compte_id: str, marketplace: str, code: str, asins: list[str],
+                              quand: Optional[datetime] = None) -> None:
+        self._appariements[(compte_id, marketplace, code)] = (list(asins), quand or datetime.now(timezone.utc))
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -79,5 +88,6 @@ class DepotMemoire:
             self._lots = {k: l for k, l in self._lots.items() if l.compte_id != c}
             self._ventes = {k: v for k, v in self._ventes.items() if k[0] != c}
             self._comptes.discard(c)
+            self._appariements = {k: v for k, v in self._appariements.items() if k[0] != c}
             del self._revocations[c]
         return purges

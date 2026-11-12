@@ -111,11 +111,11 @@ function Resultat({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
   );
 }
 
-export function AnalyseVue({ lotCree }: { lotCree: (id: string) => void }) {
+export function AnalyseVue({ lotCree, initial }: { lotCree: (id: string) => void; initial?: { code: string; prix: number } }) {
   const [places, setPlaces] = useState<Place[]>([]);
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initial?.code ?? "");
   const [place, setPlace] = useState("FR");
-  const [prix, setPrix] = useState("");
+  const [prix, setPrix] = useState(initial ? String(initial.prix).replace(".", ",") : "");
   const [ttc, setTtc] = useState(false);
   const [regime, setRegime] = useState("assujetti");
   const [taux, setTaux] = useState("");
@@ -126,8 +126,11 @@ export function AnalyseVue({ lotCree }: { lotCree: (id: string) => void }) {
 
   useEffect(() => { listerPlaces().then(setPlaces).catch(() => setErreur("chargement")); }, []);
 
-  const lancer = async (e: FormEvent) => {
-    e.preventDefault();
+  const lancer = (e: FormEvent) => { e.preventDefault(); executer(code, prix); };
+
+  useEffect(() => { if (initial) executer(initial.code, String(initial.prix)); }, [initial]);  // eslint-disable-line
+
+  async function executer(code: string, prix: string) {
     setErreur(null); setEncours(true); setAnalyses([]);
     try {
       const r = await analyser({ code: code.trim(), marketplace: place, prix_achat: Number(prix.replace(",", ".")),
@@ -135,7 +138,7 @@ export function AnalyseVue({ lotCree }: { lotCree: (id: string) => void }) {
       setAnalyses(r.analyses); setChoix(0);
     } catch (x) { setErreur((x as Error).message); }
     finally { setEncours(false); }
-  };
+  }
 
   return (
     <div className="vue">

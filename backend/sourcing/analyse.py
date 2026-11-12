@@ -167,7 +167,7 @@ def analyser_asin(
             if rent.roi is not None and rent.roi < seuils.roi_min:
                 raisons.append(m("R_ROI_SOUS_SEUIL", roi=rent.roi, seuil=seuils.roi_min))
             if rent.profit_net < seuils.profit_min:
-                raisons.append(m("R_PROFIT_SOUS_SEUIL", profit=rent.profit_net, seuil=seuils.profit_min,
+                raisons.append(m("R_PROFIT_SOUS_SEUIL", profit=rent.profit_net, minimum=seuils.profit_min,
                                  devise=mp.devise))
     if rent_prudente and rent_prudente.profit_net <= 0 < (rent.profit_net if rent else 0):
         alertes.append(m("A_PRUDENT_NEGATIF", prix=rent_prudente.prix_vente, profit=rent_prudente.profit_net))

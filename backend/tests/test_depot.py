@@ -80,6 +80,18 @@ class ContratDepot:
         self.assertEqual(self.d.lots(A), [])
         self.assertEqual(len(self.d.lots(B)), 1)
 
+    def test_appariements_par_compte(self):
+        """[RM-AMZ-034, RM-AMZ-014] Mémoire code → ASIN propre à chaque compte, mise à jour, purgée avec le compte."""
+        self.d.memoriser_appariement(A, "FR", "2000000000015", ["B0GEN00015"])
+        self.assertEqual(self.d.appariement(A, "FR", "2000000000015")[0], ["B0GEN00015"])
+        self.assertIsNone(self.d.appariement(B, "FR", "2000000000015"))
+        self.assertIsNone(self.d.appariement(A, "DE", "2000000000015"))
+        self.d.memoriser_appariement(A, "FR", "2000000000015", ["B0X1", "B0X2"])
+        self.assertEqual(self.d.appariement(A, "FR", "2000000000015")[0], ["B0X1", "B0X2"])
+        self.d.revoquer(A, date(2026, 11, 1))
+        self.purger(date(2026, 11, 2))
+        self.assertIsNone(self.d.appariement(A, "FR", "2000000000015"))
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):

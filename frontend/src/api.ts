@@ -55,3 +55,30 @@ export const listerPlaces = () => lire<Place[]>("/api/places");
 export const analyser = (d: DemandeAnalyse) => envoyer<{ analyses: Analyse[] }>("/api/analyse", d);
 export const creerLot = (jeton_analyse: string, quantite: number, fournisseur: string) =>
   envoyer<{ id: string }>("/api/lots", { jeton_analyse, quantite, fournisseur: fournisseur || null });
+
+export type Colonnes = Record<string, number | null>;
+export interface Fichier { fichier_id: string; nom: string; entetes: string[]; apercu: string[][]; nb_lignes: number; colonnes: Colonnes }
+export interface LigneResultat {
+  ligne: number; code: string; designation: string | null; asin: string | null; titre: string | null;
+  prix_unitaire: number; unites_lot: number; cout_achat: number | null; verdict: string | null; statut: string;
+  prix_vente: number | null; profit: number | null; roi: number | null; ventes_mois: number | null;
+  remarques: Msg[]; raisons: Msg[]; alertes: Msg[];
+}
+export interface Suivi {
+  statut: string; total: number; faits: number; marketplace: string; devise: string;
+  compteurs: Record<string, number>; resultats: LigneResultat[];
+  rejets: { ligne: number; message: Msg }[]; doublons: { ligne: number; code: string }[];
+}
+
+export async function deposerFichier(f: File): Promise<Fichier> {
+  const corps = new FormData();
+  corps.append("fichier", f);
+  const r = await fetch("/api/sourcing/fichiers", { method: "POST", body: corps });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail ?? "chargement");
+  return r.json();
+}
+export const lancerTraitement = (fid: string, d: { colonnes: Colonnes; marketplace: string; regime_tva: string;
+  achat_ttc: boolean; prix_par_carton: boolean }) =>
+  envoyer<{ traitement_id: string }>(`/api/sourcing/fichiers/${encodeURIComponent(fid)}/traitements`, d);
+export const suivreTraitement = (tid: string) => lire<Suivi>(`/api/sourcing/traitements/${encodeURIComponent(tid)}`);
+export const urlExport = (tid: string) => `/api/sourcing/traitements/${encodeURIComponent(tid)}/export.csv`;

@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import pathlib
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 
 import psycopg
@@ -129,6 +129,19 @@ class DepotPostgres:
             FROM amz.ventes ORDER BY jour""")
         return [VenteReelle(str(c), a, m, j, q, Montant(ca, d), Montant(f, d), Montant(r, d), Montant(s, d),
                             Montant(o, d), cmd, dif) for (c, a, m, j, q, d, ca, f, r, s, o, cmd, dif) in rows]
+
+    # -------------------------------------------------------------- appariements [RM-AMZ-034]
+    def appariement(self, compte_id: str, marketplace: str, code: str):
+        rows = self._executer(compte_id, "SELECT asins, vu_le FROM amz.appariements WHERE marketplace = %s AND code = %s",
+                              (marketplace, code))
+        return (list(rows[0][0]), rows[0][1]) if rows else None
+
+    def memoriser_appariement(self, compte_id: str, marketplace: str, code: str, asins: list[str],
+                              quand: Optional[datetime] = None) -> None:
+        self._executer(compte_id, """INSERT INTO amz.appariements (compte_id, marketplace, code, asins, vu_le)
+            VALUES (%s, %s, %s, %s, %s) ON CONFLICT (compte_id, marketplace, code)
+            DO UPDATE SET asins = EXCLUDED.asins, vu_le = EXCLUDED.vu_le""",
+            (_uuid(compte_id), marketplace, code, list(asins), quand or datetime.now(timezone.utc)))
 
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:

@@ -15,13 +15,17 @@ import uuid
 from collections import OrderedDict
 from datetime import date
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
 from .depot import AccesRefuse
+from . import fichier as fich
+from .messages import texte_fr
+from .traitement import Traitements, export_csv
 from .lots import Lot, ResultatLot, decomposer_ecart, prevision_depuis_analyse, rattacher_fifo
 from .marketplaces import MARKETPLACES, get_marketplace
 from .profit import REGIMES_TVA, ParametresCout
@@ -85,6 +89,27 @@ class DemandeAnalyse(BaseModel):
     prix_vente: Optional[float] = Field(default=None, gt=0)
 
 
+class DemandeTraitement(BaseModel):
+    colonnes: dict[str, Optional[int]]
+    marketplace: str = "FR"
+    regime_tva: str = "assujetti"
+    achat_ttc: bool = False
+    prix_par_carton: bool = False
+
+
+def _num(x):
+    return None if x is None else float(x)
+
+
+def _resultat_json(r) -> dict:
+    msgs = lambda l: [x.to_dict() for x in l]  # noqa: E731
+    return {"ligne": r.numero, "code": r.code, "designation": r.designation, "asin": r.asin, "titre": r.titre,
+            "prix_unitaire": _num(r.prix_unitaire), "unites_lot": r.unites_lot, "cout_achat": _num(r.cout_achat),
+            "verdict": r.verdict, "statut": r.statut, "prix_vente": r.prix_vente, "profit": r.profit, "roi": r.roi,
+            "ventes_mois": r.ventes_mois, "remarques": msgs(r.lignes), "raisons": msgs(r.raisons),
+            "alertes": msgs(r.alertes)}
+
+
 class DemandeLot(BaseModel):
     jeton_analyse: str
     quantite: int = Field(gt=0)
@@ -125,12 +150,15 @@ def _analyse_json(a: AnalyseProduit, jeton: str) -> dict:
 
 
 def creer_app(depot, compte_id: str, servir_interface: bool = True, demo: bool = False,
-              fournisseurs: Optional[Fournisseurs] = None, seuils: Optional[Seuils] = None) -> FastAPI:
+              fournisseurs: Optional[Fournisseurs] = None, seuils: Optional[Seuils] = None,
+              traitement_en_fond: bool = True) -> FastAPI:
     app = FastAPI(title="Syllig Vente", docs_url="/api/docs", openapi_url="/api/openapi.json")
     fournisseurs = fournisseurs or Fournisseurs()
     seuils = seuils or Seuils()
     analyses: "OrderedDict[str, tuple[AnalyseProduit, ParametresCout]]" = OrderedDict()  # gardées côté serveur
     utilisees: set[str] = set()  # [RM-AMZ-029] une analyse, un lot
+    fichiers: "OrderedDict[str, tuple[str, fich.Table]]" = OrderedDict()
+    traitements = Traitements()
 
     @app.get("/api/places")
     def places():
@@ -160,6 +188,67 @@ def creer_app(depot, compte_id: str, servir_interface: bool = True, demo: bool =
                 analyses.popitem(last=False)
             sortie.append(_analyse_json(a, jeton))
         return {"analyses": sortie}
+
+    # ------------------------------------------------------------- sourcing par fichier [RM-AMZ-030 à 035]
+    @app.post("/api/sourcing/fichiers", status_code=201)
+    async def deposer_fichier(fichier: UploadFile = File(...)):
+        contenu = await fichier.read(fich.MAX_OCTETS + 1)
+        try:
+            table = fich.lire(contenu, fichier.filename or "")
+        except fich.FichierInvalide as e:
+            raise HTTPException(422, e.args[0]) from None
+        fid = str(uuid.uuid4())
+        fichiers[fid] = (fichier.filename or "", table)
+        while len(fichiers) > 20:
+            fichiers.popitem(last=False)
+        return {"fichier_id": fid, "nom": fichier.filename, "entetes": table.entetes, "apercu": table.lignes[:5],
+                "nb_lignes": len(table.lignes), "colonnes": fich.proposer_colonnes(table.entetes)}
+
+    @app.post("/api/sourcing/fichiers/{fid}/traitements", status_code=201)
+    def lancer_traitement(fid: str, d: DemandeTraitement):
+        if fid not in fichiers:
+            raise HTTPException(404, "FICHIER_EXPIRE")
+        try:
+            mp = get_marketplace(d.marketplace)
+        except ValueError:
+            raise HTTPException(422, "PLACE_INCONNUE") from None
+        if d.regime_tva not in REGIMES_TVA:
+            raise HTTPException(422, "REGIME_TVA_INCONNU")
+        colonnes = {r: d.colonnes.get(r) for r in fich.ROLES}
+        try:
+            prep = fich.preparer(fichiers[fid][1], colonnes, d.prix_par_carton)
+        except fich.FichierInvalide as e:
+            raise HTTPException(422, e.args[0]) from None
+        t = traitements.lancer(compte_id, prep, mp, fournisseurs, depot, d.regime_tva, d.achat_ttc, seuils,
+                               en_fond=traitement_en_fond)
+        return {"traitement_id": t.id}
+
+    @app.get("/api/sourcing/traitements/{tid}")
+    def suivre_traitement(tid: str):
+        t = traitements.obtenir(compte_id, tid)
+        if t is None:
+            raise HTTPException(404, "TRAITEMENT_INTROUVABLE")
+        res = t.tries()
+        compte = lambda v: sum(1 for r in res if r.verdict == v and r.statut == "ANALYSEE")  # noqa: E731
+        return {
+            "statut": t.statut, "total": t.total, "faits": t.faits, "marketplace": t.marketplace,
+            "devise": get_marketplace(t.marketplace).devise,
+            "compteurs": {"ACHETER": compte("ACHETER"), "A_VERIFIER": compte("A_VERIFIER"), "PASSER": compte("PASSER"),
+                          "INTROUVABLE": sum(1 for r in res if r.statut == "INTROUVABLE"),
+                          "ERREUR_SOURCE": sum(1 for r in res if r.statut == "ERREUR_SOURCE"),
+                          "REJETEE": len(t.rejets), "DOUBLON": len(t.doublons), "MEMOIRE": t.appariements_memoire},
+            "resultats": [_resultat_json(r) for r in res],
+            "rejets": [{"ligne": n, "message": msg.to_dict()} for n, msg in t.rejets],
+            "doublons": [{"ligne": n, "code": c} for n, c in t.doublons],
+        }
+
+    @app.get("/api/sourcing/traitements/{tid}/export.csv")
+    def exporter(tid: str):
+        t = traitements.obtenir(compte_id, tid)
+        if t is None:
+            raise HTTPException(404, "TRAITEMENT_INTROUVABLE")
+        return Response(export_csv(t, texte_fr), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="sourcing-{tid[:8]}.csv"'})
 
     @app.post("/api/lots", status_code=201)
     def creer_lot(d: DemandeLot):

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DetailLot, ResumeLot, detailLot, listerLots } from "./api";
 import { AnalyseVue } from "./Analyse";
+import { SourcingVue } from "./Sourcing";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
 function signeClasse(v: string | null): string {
@@ -131,8 +132,11 @@ function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: bo
   );
 }
 
-type Vue = "analyse" | "lots";
-const vueDepuisAdresse = (): Vue => (window.location.hash === "#lots" ? "lots" : "analyse");
+type Vue = "analyse" | "sourcing" | "lots";
+const vueDepuisAdresse = (): Vue => {
+  const h = window.location.hash;
+  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : "analyse";
+};
 
 export function App() {
   const [vue, setVue] = useState<Vue>(vueDepuisAdresse());
@@ -146,7 +150,9 @@ export function App() {
   }, []);
   useEffect(() => { listerLots().then((r) => setDemo(r.demo)).catch(() => undefined); }, []);
 
+  const [analyseInitiale, setAnalyseInitiale] = useState<{ code: string; prix: number }>();
   const lotCree = (id: string) => { setLotInitial(id); window.location.hash = "#lots"; };
+  const analyser = (code: string, prix: number) => { setAnalyseInitiale({ code, prix }); window.location.hash = "#analyse"; };
 
   return (
     <div className="page">
@@ -154,11 +160,13 @@ export function App() {
         <span className="marque">{t("app.nom")}</span>
         <nav aria-label="Navigation principale">
           <a href="#analyse" aria-current={vue === "analyse" ? "page" : undefined}>{t("nav.analyse")}</a>
+          <a href="#sourcing" aria-current={vue === "sourcing" ? "page" : undefined}>{t("nav.sourcing")}</a>
           <a href="#lots" aria-current={vue === "lots" ? "page" : undefined}>{t("nav.lots")}</a>
         </nav>
         {demo && <span className="badge-demo">{t("demo")}</span>}
       </header>
-      {vue === "analyse" ? <main className="contenu-plein"><AnalyseVue lotCree={lotCree} /></main>
+      {vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
+        : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue analyser={analyser} /></main>
         : <main><LotsVue key={lotInitial ?? "lots"} lotInitial={lotInitial} setDemo={setDemo} /></main>}
     </div>
   );

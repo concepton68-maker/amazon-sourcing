@@ -28,7 +28,7 @@ export function dateCourte(iso: string): string {
 
 // Messages codés [RM-AMZ-027] : les paramètres sont formatés selon leur nature.
 const POURCENTS = new Set(["roi", "seuil", "taux", "pct", "amplitude"]);
-const MONTANTS = new Set(["profit", "montant", "prix", "moyenne"]);
+const MONTANTS = new Set(["profit", "montant", "prix", "moyenne", "minimum"]);
 
 export interface Msg { code: string; params: Record<string, string | number | null> }
 
@@ -38,6 +38,7 @@ export function message(msg: Msg, devise: string): string {
     if (v === null) p[k] = "—";
     else if (POURCENTS.has(k)) p[k] = pourcent(String(v));
     else if (MONTANTS.has(k)) p[k] = monnaie(String(v), devise);
+    else if (typeof v === "number") p[k] = new Intl.NumberFormat(locale).format(v);
     else p[k] = String(v);
   }
   return t(`msg.${msg.code}`, p);

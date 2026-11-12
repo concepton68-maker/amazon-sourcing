@@ -46,7 +46,7 @@ FR: dict[str, str] = {
     "R_APPROBATION_REQUISE": "Vente non autorisée : approbation requise",
     "R_PROFIT_NEGATIF": "Profit négatif ({profit:.2f} {devise})",
     "R_ROI_SOUS_SEUIL": "ROI {roi:.0%} sous l'objectif {seuil:.0%}",
-    "R_PROFIT_SOUS_SEUIL": "Profit {profit:.2f} sous le minimum {seuil:.2f} {devise}",
+    "R_PROFIT_SOUS_SEUIL": "Profit {profit:.2f} sous le minimum {minimum:.2f} {devise}",
     "R_PRIX_ACHAT_MAX": "Prix d'achat maximum pour {roi:.0%} de ROI : {montant:.2f} {devise}",
     "R_VENTES_FAIBLES": "Ventes faibles ({ventes}/mois)",
     "R_PART_FAIBLE": "Part de ventes estimée faible (~{part}/mois)",
@@ -59,6 +59,17 @@ FR: dict[str, str] = {
     "A_PIC_PRIX": "Prix actuel {prix:.2f} > moyenne 90 j {moyenne:.2f} de plus de {seuil:.0%}",
     "A_LOT_MULTIPLE": "Listing en lot de {n} : le prix d'achat doit couvrir le lot",
     "A_PRIX_INSTABLE": "Prix instable : écart {amplitude:.0%} entre min et max sur 90 j",
+    # lignes de fichier fournisseur
+    "L_CODE_ABSENT": "Code produit absent",
+    "L_PRIX_ABSENT": "Prix absent",
+    "L_PRIX_INVALIDE": "Prix illisible, nul ou négatif ({valeur})",
+    "L_COLISAGE_ABSENT": "Prix par carton sans colisage",
+    "L_ZEROS_AJOUTES": "Zéros de tête rétablis (perdus par le tableur)",
+    "L_CLE_INVALIDE": "Clé de contrôle du code-barres incorrecte",
+    "L_DOUBLON": "Code en double",
+    "L_LOT_AMAZON": "Listing en lot de {n} : coût = {n} × prix unitaire",
+    "L_INTROUVABLE": "Introuvable sur Amazon",
+    "L_SOURCE_ERREUR": "Source indisponible",
 }
 
 
