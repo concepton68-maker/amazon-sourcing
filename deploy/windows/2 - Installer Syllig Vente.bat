@@ -10,16 +10,20 @@ set /p IP=Adresse IP du serveur (courriel d OVH) :
 set UTIL=debian
 set /p UTIL=Utilisateur du serveur [debian] : 
 set DOMAINE=vente.concepton.fr
+set OPT=-o StrictHostKeyChecking=accept-new
+if exist "%USERPROFILE%\.ssh\syllig_vente" set OPT=%OPT% -i "%USERPROFILE%\.ssh\syllig_vente"
+rem serveur reinstalle : on oublie son ancienne empreinte
+ssh-keygen -R %IP% >nul 2>&1
 echo.
 echo Premiere connexion. Si le serveur demande de changer le mot de passe :
 echo   "Current password" = mot de passe du courriel d OVH, puis deux fois votre nouveau mot de passe (a garder pour vous).
-ssh -t -o StrictHostKeyChecking=accept-new %UTIL%@%IP% "echo Connexion au serveur reussie."
+ssh -t %OPT% %UTIL%@%IP% "echo Connexion au serveur reussie."
 if errorlevel 1 goto erreur
 echo.
 echo Envoi du programme d installation (mot de passe du serveur : le nouveau s il a ete change)...
-scp -o StrictHostKeyChecking=accept-new installer.sh %UTIL%@%IP%:/tmp/installer-syllig-vente.sh
+scp %OPT% installer.sh %UTIL%@%IP%:/tmp/installer-syllig-vente.sh
 if errorlevel 1 goto erreur
-ssh -t -o StrictHostKeyChecking=accept-new %UTIL%@%IP% "if command -v sudo >/dev/null; then sudo bash /tmp/installer-syllig-vente.sh %DOMAINE%; else bash /tmp/installer-syllig-vente.sh %DOMAINE%; fi"
+ssh -t %OPT% %UTIL%@%IP% "if command -v sudo >/dev/null; then sudo bash /tmp/installer-syllig-vente.sh %DOMAINE%; else bash /tmp/installer-syllig-vente.sh %DOMAINE%; fi"
 if errorlevel 1 goto erreur
 echo.
 echo Installation terminee.

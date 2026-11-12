@@ -6,7 +6,7 @@ Serveur : VPS OVH (Debian 13), domaine `vente.concepton.fr` (zone DNS chez OVH).
 
 | Fichier | Rôle |
 |---|---|
-| `windows/Installer Syllig Vente.bat` + `serveur/installer.sh` | Double-clic sur le PC : envoie et lance l'installation ; mots de passe tapés dans la fenêtre, jamais dans le chat |
+| `windows/1 - Creer ma cle.bat` puis `windows/2 - Installer Syllig Vente.bat` + `serveur/installer.sh` | Double-clic sur le PC : envoie et lance l'installation ; clé de connexion créée sur le PC (partie secrète jamais transmise), collée dans la réinstallation OVH ; aucun mot de passe |
 | `serveur/installer.sh` | Docker (paquets Debian), clé de lecture du dépôt (à coller une fois dans GitHub), mots de passe de la base tirés au sort sur le serveur, démarrage, minuteur de mise à jour, premier compte |
 | `serveur/mettre-a-jour.sh` | Toutes les 5 min : nouvelle version de `main` → construction, migrations, redémarrage ; retour à la version précédente si `/api/sante` ne répond plus. Journal : `/var/log/syllig-vente-maj.log`. Aucun workflow GitHub (D-AMZ-009) |
 | `serveur/Caddyfile` | HTTPS automatique et en-têtes de sécurité, dans le projet Docker |
