@@ -129,6 +129,7 @@ def main(argv=None) -> int:
     srv.add_argument("--port", type=int, default=8820)
     srv.add_argument("--hote", default="127.0.0.1", help="Adresse d'écoute (0.0.0.0 dans un conteneur)")
     sub.add_parser("migrer", help="Appliquer les migrations (AMZ_DATABASE_URL_OWNER requis)")
+    sub.add_parser("purger", help="Supprimer les comptes révoqués arrivés à échéance (AMZ_DATABASE_URL_OWNER requis)")
     sub.add_parser("parcours-demo", help="Parcours complet sur données fictives (analyse → lot → ventes → écart)")
 
     for nom, aide in (("analyse", "Analyser un produit sur une place de marché"),
@@ -162,6 +163,21 @@ def main(argv=None) -> int:
         with psycopg.connect(url, autocommit=True) as conn:
             faites = migrer(conn)
         print("Migrations appliquées : " + (", ".join(faites) or "aucune (base à jour)"))
+        return 0
+
+    if a.cmd == "purger":  # [RM-AMZ-068]
+        from datetime import date
+
+        import psycopg
+
+        from .db import purger
+        url = os.environ.get("AMZ_DATABASE_URL_OWNER")
+        if not url:
+            print("AMZ_DATABASE_URL_OWNER requis.", file=sys.stderr)
+            return 2
+        with psycopg.connect(url, autocommit=True) as conn:
+            faits = purger(conn, date.today())
+        print(f"Comptes supprimés : {len(faits)}")
         return 0
 
     if a.cmd == "creer-utilisateur":

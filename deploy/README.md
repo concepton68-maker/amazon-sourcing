@@ -6,9 +6,12 @@ Serveur : VPS OVH (Debian 13), domaine `vente.concepton.fr` (zone DNS chez OVH).
 
 | Fichier | Rôle |
 |---|---|
-| `windows/Installer Syllig Vente.bat` + `serveur/installer.sh` | Double-clic sur le PC : envoie et lance l'installation ; mots de passe tapés dans la fenêtre, jamais dans le chat |
+| `windows/1 - Creer ma cle.bat` puis `windows/2 - Installer Syllig Vente.bat` + `serveur/installer.sh` | Double-clic sur le PC : envoie et lance l'installation ; clé de connexion créée sur le PC (partie secrète jamais transmise), collée dans la réinstallation OVH ; aucun mot de passe |
 | `serveur/installer.sh` | Docker (paquets Debian), clé de lecture du dépôt (à coller une fois dans GitHub), mots de passe de la base tirés au sort sur le serveur, démarrage, minuteur de mise à jour, premier compte |
 | `serveur/mettre-a-jour.sh` | Toutes les 5 min : nouvelle version de `main` → construction, migrations, redémarrage ; retour à la version précédente si `/api/sante` ne répond plus. Journal : `/var/log/syllig-vente-maj.log`. Aucun workflow GitHub (D-AMZ-009) |
+| `serveur/configurer.sh` | Scripts et minuteurs (mise à jour 5 min, sauvegarde 02:15 UTC, purge 02:45 UTC), rejoués après chaque mise à jour réussie |
+| `serveur/sauvegarder.sh` | `pg_dump` quotidien dans `/var/backups/syllig-vente`, 14 jours, jamais remplacé par une sauvegarde vide (RM-AMZ-069) |
+| `serveur/purger.sh` | Purge de nuit des comptes révoqués (RM-AMZ-068) |
 | `serveur/Caddyfile` | HTTPS automatique et en-têtes de sécurité, dans le projet Docker |
 
 Après l'installation : enregistrement A `vente` → IP du serveur dans la zone DNS `concepton.fr` (OVH).

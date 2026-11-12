@@ -406,5 +406,6 @@
   "erreur.CHAMP_OBLIGATOIRE": "Champ obligatoire manquant",
   "erreur.TROP_LONG": "Texte trop long",
   "erreur.SAISIE_INVALIDE": "Saisie invalide",
-  "erreur.ENREGISTREMENT_INTROUVABLE": "Enregistrement introuvable"
+  "erreur.ENREGISTREMENT_INTROUVABLE": "Enregistrement introuvable",
+  "erreur.SOURCE_NON_CONFIGUREE": "Aucune source de données branchée (Amazon, Keepa) : rien n'a été cherché"
 }

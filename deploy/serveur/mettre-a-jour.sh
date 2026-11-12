@@ -16,6 +16,7 @@ log "nouvelle version $APRES (était $AVANT)"
 git checkout -q --detach "$APRES"
 if "${DC[@]}" up -d --build >> "$JOURNAL" 2>&1 && repond; then
   log "version $APRES en ligne"
+  bash "$DOSSIER/deploy/serveur/configurer.sh" >> "$JOURNAL" 2>&1 || log "réglages du serveur non réappliqués"
   docker image prune -f >/dev/null 2>&1
 else
   log "ÉCHEC de $APRES : retour à $AVANT (les migrations déjà appliquées restent)"

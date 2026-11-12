@@ -1,5 +1,5 @@
 #!/bin/bash
-# Syllig Vente — installation sur un VPS Debian 13 neuf (D-AMZ-023). Lancé par « Installer Syllig Vente.bat ».
+# Syllig Vente — installation sur un VPS neuf (Debian 13 ; Ubuntu accepté, paquets essayés dans l'ordre) (D-AMZ-023). Lancé par « Installer Syllig Vente.bat ».
 # Rejouable : chaque étape vérifie ce qui est déjà fait. Aucun secret ne sort du serveur.
 set -euo pipefail
 DOMAINE="${1:-vente.concepton.fr}"
@@ -12,7 +12,10 @@ etape() { printf '\n==> %s\n' "$1"; }
 etape "1/7 Logiciels (Docker, Git, mises à jour de sécurité automatiques)"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
-apt-get install -y -q git docker.io docker-compose docker-buildx openssl curl ca-certificates unattended-upgrades
+apt-get install -y -q git docker.io openssl curl ca-certificates unattended-upgrades
+# Compose v2 : paquet « docker-compose » sur Debian 13, « docker-compose-v2 » s'il existe (Ubuntu) ; buildx si disponible
+apt-get install -y -q docker-compose-v2 2>/dev/null || apt-get install -y -q docker-compose
+apt-get install -y -q docker-buildx 2>/dev/null || true
 systemctl enable --now docker
 docker compose version >/dev/null
 
@@ -58,26 +61,8 @@ for i in $(seq 1 60); do curl -fsS http://127.0.0.1:8830/api/sante >/dev/null 2>
 curl -fsS http://127.0.0.1:8830/api/sante >/dev/null || { echo "L'application ne répond pas. Rien n'est perdu : relancez l'installation."; exit 1; }
 echo "Application démarrée."
 
-etape "6/7 Mise à jour automatique (toutes les 5 minutes, depuis main)"
-install -m 755 "$DOSSIER/deploy/serveur/mettre-a-jour.sh" /usr/local/bin/syllig-vente-mettre-a-jour
-cat > /etc/systemd/system/syllig-vente-maj.service <<UNIT
-[Unit]
-Description=Syllig Vente - mise a jour depuis GitHub
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/syllig-vente-mettre-a-jour
-UNIT
-cat > /etc/systemd/system/syllig-vente-maj.timer <<UNIT
-[Unit]
-Description=Syllig Vente - verifier les nouvelles versions
-[Timer]
-OnBootSec=2min
-OnUnitActiveSec=5min
-[Install]
-WantedBy=timers.target
-UNIT
-systemctl daemon-reload
-systemctl enable --now syllig-vente-maj.timer
+etape "6/7 Mise à jour automatique, sauvegarde et purge de nuit"
+bash "$DOSSIER/deploy/serveur/configurer.sh"
 
 etape "7/7 Premier compte"
 N=$("${DC[@]}" exec -T postgres psql -U postgres -d amz -tAc "SELECT count(*) FROM amz.utilisateurs" | tr -d '[:space:]')
