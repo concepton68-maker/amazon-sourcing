@@ -592,8 +592,14 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     @app.put("/api/connexions/{source}")
     def ecrire_connexion(source: str, brut: dict, c: str = Depends(compte)):
         try:
-            valeurs = CX.valider(source, brut)
-            chiffre = CX.chiffrer(CX.cle_serveur(), c, source, valeurs)
+            ancien, cle, cx = None, CX.cle_serveur(), depot.connexions(c)
+            if source in cx and cle:
+                try:
+                    ancien = CX.dechiffrer(cle, c, source, cx[source].chiffre)
+                except Exception:  # illisible (clé changée) : tout doit être ressaisi
+                    ancien = None
+            valeurs = CX.valider(source, brut, ancien)
+            chiffre = CX.chiffrer(cle, c, source, valeurs)
         except CX.ConnexionInvalide as e:
             raise HTTPException(503 if e.args[0] == "CHIFFREMENT_NON_CONFIGURE" else 422,
                                 {"code": e.args[0], "champ": e.args[1]}) from None

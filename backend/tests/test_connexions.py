@@ -44,6 +44,12 @@ class TestConnexions(unittest.TestCase):
             self.assertNotIn("secret-test", str(j))
             sp = next(x for x in j["sources"] if x["source"] == "SPAPI")
             self.assertIsNotNone(sp["enregistree_le"])
+            # remplacement : seul le jeton change, le reste est gardé
+            self.assertEqual(cl.put("/api/connexions/SPAPI", json={"client_id": "", "client_secret": "", "refresh_token": "jeton-2",
+                                                                    "region": "EU"}).status_code, 200)
+            ch = d.connexions(c)["SPAPI"].chiffre
+            self.assertEqual(CX.dechiffrer(bytes.fromhex(CLE), c, "SPAPI", ch), {**SP, "refresh_token": "jeton-2"})
+            self.assertEqual(cl.put("/api/connexions/KEEPA", json={"cle": ""}).json()["detail"]["code"], "CHAMP_OBLIGATOIRE")
             self.assertEqual(cl.delete("/api/connexions/SPAPI").json()["retiree"], True)
             self.assertEqual(cl.delete("/api/connexions/SPAPI").status_code, 404)
 
