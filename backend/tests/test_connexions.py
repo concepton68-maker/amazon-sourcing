@@ -68,6 +68,40 @@ class TestConnexions(unittest.TestCase):
             fx = r.call_args.args[2]
             self.assertEqual(type(fx.catalogue[0]).__name__, "ClientKeepa")
 
+    def test_tester_connexion(self):
+        """[RM-AMZ-079] Une ligne par accès, refus d'Amazon détaillé, aucun secret renvoyé."""
+        class R:
+            def __init__(self, code, corps, rid="REQ-1"):
+                self.status_code, self._c, self.headers, self.text = code, corps, {"x-amzn-RequestId": rid}, str(corps)
+            def json(self):
+                return self._c
+
+        class Session:
+            def post(self, url, data, timeout):
+                return R(200, {"access_token": "acces", "expires_in": 3600})
+            def get(self, url, params, timeout, headers):
+                if "/catalog/" in url:
+                    return R(200, {"items": [{"asin": "B0TEST"}]})
+                if "/pricing/" in url or "/finances/" in url:
+                    return R(403, {"errors": [{"code": "Unauthorized", "message": "Access to requested resource is denied."}]}, "REQ-403")
+                return R(200, {})
+        d, c = construire()
+        cl = TestClient(creer_app(d, c, servir_interface=False))
+        with mock.patch.dict(os.environ, {"AMZ_CLE_CHIFFREMENT": CLE}), \
+                mock.patch("sourcing.providers.spapi.requests.Session", Session):
+            self.assertEqual(cl.post("/api/connexions/SPAPI/test", json={}).status_code, 404)
+            cl.put("/api/connexions/SPAPI", json=SP)
+            j = cl.post("/api/connexions/SPAPI/test", json={"marketplace": "FR"}).json()
+            self.assertEqual(cl.post("/api/connexions/SPAPI/test", json={"marketplace": "US"}).json()["detail"], "REGION_DIFFERENTE")
+        etat = {e["etape"]: e["ok"] for e in j["etapes"]}
+        self.assertEqual(etat, {"IDENTIFICATION": True, "COMPTE": True, "CATALOGUE": True, "OFFRES": False, "STOCK": True,
+                                "FINANCES": False})
+        offres = next(e for e in j["etapes"] if e["etape"] == "OFFRES")
+        self.assertEqual((offres["statut"], offres["requete"]), (403, "REQ-403"))
+        self.assertIn("denied", offres["message"])
+        for secret in ("secret-test", "jeton-test", "acces"):
+            self.assertNotIn(secret, str(j))
+
 
 if __name__ == "__main__":
     unittest.main()

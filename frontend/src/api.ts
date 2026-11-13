@@ -233,3 +233,6 @@ export const debuterEnrolement = () => etapeAuth<{ secret: string; uri: string; 
 export const confirmerEnrolement = (code: string) =>
   etapeAuth<{ etape: string; codes_secours: string[] }>("/api/session/enrolement/confirmer", { code });
 export const envoyerCode = (code: string) => etapeAuth<{ etape: string }>("/api/session/code", { code });
+export interface EtapeTest { etape: string; ok: boolean | null; statut: number | null; message: string; requete: string | null }
+export const testerConnexion = (marketplace: string) =>
+  requete<{ marketplace: string; etapes: EtapeTest[] }>("POST", "/api/connexions/SPAPI/test", { marketplace });

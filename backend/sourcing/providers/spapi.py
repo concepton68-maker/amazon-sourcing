@@ -197,6 +197,53 @@ class ClientSPAPI:
             params["nextToken"] = next_token
         return self._appel(mp, "GET", "/finances/2024-06-19/transactions", params=params)
 
+    # ------------------------------------------------------------------ test de la connexion [RM-AMZ-079]
+    def tester(self, mp: Marketplace) -> list[dict]:
+        """Essaie chaque accès séparément ; renvoie une ligne par étape, sans aucun secret."""
+        from datetime import datetime, timedelta, timezone
+        etapes: list[dict] = []
+
+        def ligne(etape, ok, statut=None, message="", requete=None):
+            etapes.append({"etape": etape, "ok": ok, "statut": statut, "message": message[:300], "requete": requete})
+
+        try:
+            jeton = self._jeton(mp.region)
+            ligne("IDENTIFICATION", True, 200)
+        except ErreurFournisseur as e:
+            ligne("IDENTIFICATION", False, None, str(e))
+            for x in ("COMPTE", "CATALOGUE", "OFFRES", "STOCK", "FINANCES"):
+                ligne(x, None)
+            return etapes
+        base = SPAPI_ENDPOINTS[mp.region]
+
+        def essai(etape, chemin, params):
+            try:
+                r = self.session.get(base + chemin, params=params, timeout=30,
+                                     headers={"x-amz-access-token": jeton, "content-type": "application/json"})
+            except requests.RequestException as e:
+                ligne(etape, False, None, f"réseau : {e}")
+                return None
+            ok = r.status_code < 400
+            ligne(etape, ok, r.status_code, "" if ok else r.text, r.headers.get("x-amzn-RequestId"))
+            return r.json() if ok else None
+
+        essai("COMPTE", "/sellers/v1/marketplaceParticipations", {})
+        cat = essai("CATALOGUE", "/catalog/2022-04-01/items",
+                    {"marketplaceIds": mp.marketplace_id, "keywords": "gourde", "pageSize": "1"})
+        asin = ((cat or {}).get("items") or [{}])[0].get("asin")
+        if asin:
+            essai("OFFRES", f"/products/pricing/v0/items/{asin}/offers",
+                  {"MarketplaceId": mp.marketplace_id, "ItemCondition": "New"})
+        else:
+            ligne("OFFRES", None, None, "aucun ASIN pour tester")
+        essai("STOCK", "/fba/inventory/v1/summaries",
+              {"granularityType": "Marketplace", "granularityId": mp.marketplace_id, "marketplaceIds": mp.marketplace_id})
+        maintenant = datetime.now(timezone.utc)
+        essai("FINANCES", "/finances/2024-06-19/transactions",
+              {"postedAfter": (maintenant - timedelta(days=7)).isoformat(timespec="seconds"),
+               "postedBefore": (maintenant - timedelta(minutes=5)).isoformat(timespec="seconds")})
+        return etapes
+
     # ------------------------------------------------------------------ stock [RM-AMZ-045]
     def page_inventaire(self, mp: Marketplace, next_token: Optional[str] = None) -> dict:
         """Une page de `GET /fba/inventory/v1/summaries`, photo complète (sans startDateTime). Rôle Amazon Fulfillment."""
