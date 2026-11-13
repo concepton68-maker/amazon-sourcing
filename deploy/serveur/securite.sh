@@ -68,6 +68,8 @@ R=$(nice -n 19 clamscan -r -i --no-summary --exclude-dir='^/opt/syllig-vente/.gi
     /opt/syllig-vente /var/backups/syllig-vente /tmp /var/tmp 2>&1); c=$?
 case $c in 0) m="aucun fichier infecté";; 1) m="FICHIER INFECTÉ : $R";; *) m="erreur d'analyse : $R";; esac
 echo "$(date -u +%FT%TZ) antivirus : $m" >> /var/log/syllig-vente-maj.log
+install -d -m 755 /opt/syllig-vente/deploy/etat
+echo "$(date -u +%FT%TZ) $([ $c = 0 ] && echo OK || echo ECHEC)" > /opt/syllig-vente/deploy/etat/antivirus.txt
 exit $c
 AV
 chmod 755 /usr/local/bin/syllig-vente-antivirus

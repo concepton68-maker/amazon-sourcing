@@ -49,10 +49,23 @@ services:
       AMZ_CLE_CHIFFREMENT: ${AMZ_CLE_CHIFFREMENT:-}   # identifiants saisis sur le site [RM-AMZ-072, 074]
     depends_on:
       migrer: { condition: service_completed_successfully }
+    volumes:
+      - ./etat:/etat:ro                               # état du serveur pour /version.json [RM-AMZ-081]
     ports: ["127.0.0.1:${AMZ_PORT:-8830}:8830"]   # seulement en local : Caddy est devant
     networks: [interne, sortie]
     mem_limit: 512m
     cpus: 1.0
+
+  taches:                                           # synchronisation de nuit [RM-AMZ-080], lancée par le minuteur
+    image: syllig-vente:courante
+    profiles: ["taches"]
+    command: ["python", "-m", "sourcing", "synchroniser-nuit"]
+    environment:
+      AMZ_DATABASE_URL_OWNER: postgresql://amz_owner:${AMZ_OWNER_PASSWORD}@postgres:5432/amz
+      AMZ_CLE_CHIFFREMENT: ${AMZ_CLE_CHIFFREMENT:-}
+    networks: [interne, sortie]                     # base + Amazon
+    mem_limit: 512m
+    restart: "no"
 
   caddy:
     image: caddy:2

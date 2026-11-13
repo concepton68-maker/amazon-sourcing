@@ -11,6 +11,8 @@ Serveur : VPS OVH (Debian 13), domaine `vente.concepton.fr` (zone DNS chez OVH).
 | `serveur/mettre-a-jour.sh` | Toutes les 5 min : nouvelle version de `main` → construction, migrations, redémarrage ; retour à la version précédente si `/api/sante` ne répond plus. Journal : `/var/log/syllig-vente-maj.log`. Aucun workflow GitHub (D-AMZ-009) |
 | `serveur/configurer.sh` | Scripts et minuteurs (mise à jour 5 min, sauvegarde 02:15 UTC, purge 02:45 UTC), rejoués après chaque mise à jour réussie |
 | `serveur/sauvegarder.sh` | `pg_dump` quotidien dans `/var/backups/syllig-vente`, 14 jours, jamais remplacé par une sauvegarde vide (RM-AMZ-069) |
+| `serveur/synchroniser.sh` | Synchronisation Amazon de nuit (03:15 UTC) par le service `taches` du compose (RM-AMZ-080) |
+| `etat/` (sur le serveur, non versionné) | Dates et statuts lus par la page publique `/version.json` (RM-AMZ-081) |
 | `serveur/purger.sh` | Purge de nuit des comptes révoqués (RM-AMZ-068) |
 | `serveur/Caddyfile` | HTTPS automatique et en-têtes de sécurité, dans le projet Docker |
 
