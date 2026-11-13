@@ -354,6 +354,30 @@ class DepotPostgres:
         self._executer(compte_id, "DELETE FROM amz.connexions WHERE source = %s", (source,))
         return avant
 
+    # -------------------------------------------------------------- synchronisation de nuit [RM-AMZ-080]
+    def curseur_synchro(self, compte_id: str, tache: str) -> Optional[datetime]:
+        r = self._executer(compte_id, "SELECT curseur FROM amz.synchro_curseurs WHERE tache = %s", (tache,))
+        return r[0][0] if r else None
+
+    def enregistrer_curseur_synchro(self, compte_id: str, tache: str, curseur: Optional[datetime]) -> None:
+        if curseur:
+            self._executer(compte_id, """INSERT INTO amz.synchro_curseurs (compte_id, tache, curseur) VALUES (%s,%s,%s)
+                ON CONFLICT (compte_id, tache) DO UPDATE SET curseur = EXCLUDED.curseur""", (_uuid(compte_id), tache, curseur))
+
+    def journaliser_synchro(self, compte_id: str, r) -> None:
+        self._executer(compte_id, """INSERT INTO amz.synchro_journal (compte_id, tache, debut, fin, ok, message)
+            VALUES (%s,%s,%s,%s,%s,%s)""", (_uuid(compte_id), r.tache, r.debut, r.fin, r.ok, r.message))
+
+    def journal_synchro(self, compte_id: str) -> list:
+        from .synchro_nuit import ResultatTache
+        return [ResultatTache(*x) for x in self._executer(
+            compte_id, "SELECT tache, debut, fin, ok, message FROM amz.synchro_journal ORDER BY debut")]
+
+    def etat_synchros(self) -> dict:
+        """[RM-AMZ-081] Vue sans donnée de compte (fonction SECURITY DEFINER)."""
+        with connexion(self.source) as conn:
+            return {t: (f, ok) for t, f, ok in conn.execute("SELECT tache, fin, ok FROM amz.etat_synchros()").fetchall()}
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         self._executer(compte_id, "UPDATE amz.comptes SET revoque_le = coalesce(revoque_le, %s)", (jour,))
@@ -362,6 +386,13 @@ class DepotPostgres:
     def echeance_suppression(self, compte_id: str) -> Optional[date]:
         rows = self._executer(compte_id, "SELECT revoque_le FROM amz.comptes")
         return rows[0][0] + DELAI_SUPPRESSION if rows and rows[0][0] else None
+
+
+def comptes_connectes(conn_owner: psycopg.Connection) -> list[tuple[str, bytes]]:
+    """[RM-AMZ-080] Comptes actifs ayant une connexion SP-API (rôle propriétaire) : (compte_id, chiffré)."""
+    return [(str(c), bytes(ch)) for c, ch in conn_owner.execute(
+        "SELECT x.compte_id, x.chiffre FROM amz.connexions x JOIN amz.comptes c ON c.id = x.compte_id "
+        "WHERE x.source = 'SPAPI' AND c.revoque_le IS NULL ORDER BY x.compte_id").fetchall()]
 
 
 def purger(conn_owner: psycopg.Connection, aujourd_hui: date) -> list[str]:

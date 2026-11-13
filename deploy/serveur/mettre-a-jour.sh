@@ -5,6 +5,7 @@ set -uo pipefail
 DOSSIER=/opt/syllig-vente
 JOURNAL=/var/log/syllig-vente-maj.log
 exec 9>/run/syllig-vente-maj.lock; flock -n 9 || exit 0
+etat() { install -d -m 755 /opt/syllig-vente/deploy/etat; echo "$(date -u +%FT%TZ) $2" > "/opt/syllig-vente/deploy/etat/$1.txt"; }  # [RM-AMZ-081]
 log() { echo "$(date -u +%FT%TZ) $*" >> "$JOURNAL"; }
 DC=(docker compose -p syllig-vente -f "$DOSSIER/deploy/docker-compose.prod.yml" --env-file "$DOSSIER/deploy/.env")
 cd "$DOSSIER" || exit 1
@@ -16,10 +17,12 @@ log "nouvelle version $APRES (était $AVANT)"
 git checkout -q --detach "$APRES"
 if "${DC[@]}" up -d --build >> "$JOURNAL" 2>&1 && repond; then
   log "version $APRES en ligne"
+  etat maj OK; echo "$APRES" > "$DOSSIER/deploy/etat/version.txt"
   bash "$DOSSIER/deploy/serveur/configurer.sh" >> "$JOURNAL" 2>&1 || log "réglages du serveur non réappliqués"
   docker image prune -f >/dev/null 2>&1
 else
   log "ÉCHEC de $APRES : retour à $AVANT (les migrations déjà appliquées restent)"
+  etat maj ECHEC
   git checkout -q --detach "$AVANT"
   "${DC[@]}" up -d --build >> "$JOURNAL" 2>&1 && repond && log "retour à $AVANT réussi" || log "RETOUR IMPOSSIBLE : intervention nécessaire"
 fi

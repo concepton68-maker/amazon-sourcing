@@ -197,6 +197,18 @@ class ClientSPAPI:
             params["nextToken"] = next_token
         return self._appel(mp, "GET", "/finances/2024-06-19/transactions", params=params)
 
+    # ------------------------------------------------------------------ places du vendeur [RM-AMZ-080]
+    def participations(self, mp: Marketplace) -> list[str]:
+        """Identifiants des places où le vendeur participe (`GET /sellers/v1/marketplaceParticipations`)."""
+        data = self._appel(mp, "GET", "/sellers/v1/marketplaceParticipations")
+        out = []
+        for x in data.get("payload", []) or []:
+            if (x.get("participation") or {}).get("isParticipating", True):
+                mid = (x.get("marketplace") or {}).get("id")
+                if mid:
+                    out.append(mid)
+        return out
+
     # ------------------------------------------------------------------ test de la connexion [RM-AMZ-079]
     def tester(self, mp: Marketplace) -> list[dict]:
         """Essaie chaque accès séparément ; renvoie une ligne par étape, sans aucun secret."""

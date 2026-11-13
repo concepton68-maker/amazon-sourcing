@@ -38,6 +38,8 @@ class DepotMemoire:
         self._enregs: dict[tuple[str, str], object] = {}
         self._fiches: dict[tuple[str, str], object] = {}
         self._connexions: dict[tuple[str, str], object] = {}
+        self._curseurs: dict[tuple[str, str], datetime] = {}
+        self._journal: list[tuple[str, object]] = []
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -186,6 +188,28 @@ class DepotMemoire:
     def supprimer_connexion(self, compte_id: str, source: str) -> bool:
         return self._connexions.pop((compte_id, source), None) is not None
 
+    # -------------------------------------------------------------- synchronisation de nuit [RM-AMZ-080]
+    def curseur_synchro(self, compte_id: str, tache: str) -> Optional[datetime]:
+        return self._curseurs.get((compte_id, tache))
+
+    def enregistrer_curseur_synchro(self, compte_id: str, tache: str, curseur: Optional[datetime]) -> None:
+        if curseur:
+            self._curseurs[(compte_id, tache)] = curseur
+
+    def journaliser_synchro(self, compte_id: str, r) -> None:
+        self._journal.append((compte_id, r))
+
+    def journal_synchro(self, compte_id: str) -> list:
+        return [r for c, r in self._journal if c == compte_id]
+
+    def etat_synchros(self) -> dict:
+        """[RM-AMZ-081] Dernier passage par tâche, tous comptes confondus, sans aucune donnée de compte."""
+        out: dict = {}
+        for _, r in self._journal:
+            if r.tache not in out or r.fin >= out[r.tache][0]:
+                out[r.tache] = (r.fin, r.ok)
+        return out
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -213,5 +237,7 @@ class DepotMemoire:
             self._enregs = {k: v for k, v in self._enregs.items() if k[0] != c}
             self._fiches = {k: v for k, v in self._fiches.items() if k[0] != c}
             self._connexions = {k: v for k, v in self._connexions.items() if k[0] != c}
+            self._curseurs = {k: v for k, v in self._curseurs.items() if k[0] != c}
+            self._journal = [x for x in self._journal if x[0] != c]
             del self._revocations[c]
         return purges

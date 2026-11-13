@@ -321,6 +321,28 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         statut = {"TROP_D_ESSAIS": 429, "CHIFFREMENT_NON_CONFIGURE": 503, "NON_CONNECTE": 401}.get(code, 400)
         raise HTTPException(statut, code) from None
 
+    @app.get("/version.json")
+    def page_controle():
+        """[RM-AMZ-081] Public : dates et OK/ÉCHEC seulement, aucune donnée de compte."""
+        dossier = pathlib.Path(os.environ.get("AMZ_ETAT_DIR", "/etat"))
+
+        def lire(nom):
+            try:
+                quand, _, statut = (dossier / f"{nom}.txt").read_text(encoding="utf-8").strip().partition(" ")
+                return {"le": quand or None, "statut": statut or None}
+            except OSError:
+                return None
+        try:
+            version = (dossier / "version.txt").read_text(encoding="utf-8").strip()[:40] or None
+        except OSError:
+            version = None
+        try:
+            synchros = {t: {"le": f.isoformat(), "statut": "OK" if ok else "ECHEC"} for t, (f, ok) in depot.etat_synchros().items()}
+        except Exception:
+            synchros = None
+        return {"version": version, "mise_a_jour": lire("maj"), "sauvegarde": lire("sauvegarde"), "purge": lire("purge"),
+                "antivirus": lire("antivirus"), "synchronisation": synchros}
+
     @app.get("/api/sante")
     def sante():
         """Contrôle de santé (Docker, surveillance) : public, ne révèle rien."""

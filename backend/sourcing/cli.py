@@ -129,6 +129,7 @@ def main(argv=None) -> int:
     srv.add_argument("--port", type=int, default=8820)
     srv.add_argument("--hote", default="127.0.0.1", help="Adresse d'écoute (0.0.0.0 dans un conteneur)")
     sub.add_parser("migrer", help="Appliquer les migrations (AMZ_DATABASE_URL_OWNER requis)")
+    sub.add_parser("synchroniser-nuit", help="Synchronisation de nuit de tous les comptes connectés (AMZ_DATABASE_URL_OWNER, AMZ_CLE_CHIFFREMENT)")
     sub.add_parser("purger", help="Supprimer les comptes révoqués arrivés à échéance (AMZ_DATABASE_URL_OWNER requis)")
     sub.add_parser("parcours-demo", help="Parcours complet sur données fictives (analyse → lot → ventes → écart)")
 
@@ -164,6 +165,32 @@ def main(argv=None) -> int:
             faites = migrer(conn)
         print("Migrations appliquées : " + (", ".join(faites) or "aucune (base à jour)"))
         return 0
+
+    if a.cmd == "synchroniser-nuit":  # [RM-AMZ-080]
+        from datetime import datetime, timezone
+
+        import psycopg
+
+        from . import connexions as CX
+        from .db import DepotPostgres, comptes_connectes
+        from .synchro_nuit import executer
+        url, cle = os.environ.get("AMZ_DATABASE_URL_OWNER"), CX.cle_serveur()
+        if not url or not cle:
+            print("AMZ_DATABASE_URL_OWNER et AMZ_CLE_CHIFFREMENT requis.", file=sys.stderr)
+            return 2
+        with psycopg.connect(url, autocommit=True) as conn:
+            comptes = []
+            for cid, chiffre in comptes_connectes(conn):
+                try:
+                    comptes.append((cid, CX.dechiffrer(cle, cid, "SPAPI", chiffre)))
+                except Exception:
+                    print(f"compte {cid[:8]} : identifiants illisibles", file=sys.stderr)
+            res = executer(comptes, DepotPostgres(conn), datetime.now(timezone.utc))
+        echecs = sum(1 for r in res.values() for t in r if not t.ok)
+        for cid, r in res.items():
+            print(f"compte {cid[:8]} : " + " ; ".join(f"{t.tache} {'OK' if t.ok else 'ÉCHEC'} {t.message}" for t in r))
+        print(f"{len(res)} compte(s), {echecs} tâche(s) en échec")
+        return 1 if echecs else 0
 
     if a.cmd == "purger":  # [RM-AMZ-068]
         from datetime import date
