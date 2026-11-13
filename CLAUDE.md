@@ -7,7 +7,7 @@ Façon de travailler : celle de Syllig (`concepton68-maker/syllig-suite`, `BONNE
 - **La règle d'abord** : toute fonction métier commence par sa ligne dans `docs/regles/registre.md` (règle, source ou « non sourcé », test), puis le test, puis le code. Un commit « règles » avant le commit de code.
 - Jamais une valeur réglementaire de mémoire : source lue et citée, sinon « non sourcé », jamais bloquant.
 - Décisions structurantes : `docs/decisions/registre.md` (numéro suivant le dernier sur `main`).
-- Une branche par lot (`lot/<sujet>`), PR en brouillon ; fusion seulement avec la suite complète verte sur le dernier commit.
+- Une branche par lot (`lot/<sujet>`), PR en brouillon ; fusion seulement avec la suite complète verte sur le dernier commit. **Mandat de fusion permanent de Sam (D-AMZ-024)** : fusionner sans redemander une fois la suite et le build verts, puis vérifier la mise en ligne et le dire.
 - Pas de workflow GitHub automatique (D-AMZ-009) : les tests tournent en local.
 - Écrans sobres : données et une action, pas de phrases d'explication (BONNES-MANIERES 1.11).
 - Rien d'identifiant vers un moteur IA sans minimisation (D-AMZ-008).
