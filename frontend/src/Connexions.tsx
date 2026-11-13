@@ -23,7 +23,8 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
                 <select value={v.region} onChange={(e) => setV({ ...v, region: e.target.value })}>
                   {regions.map((r) => <option key={r} value={r}>{t(`connexion.region.${r}`)}</option>)}</select></label>
             : <label key={c} className="ligne-reglage">{t(`connexion.champ.${c}`)}
-                <input type="password" autoComplete="new-password" spellCheck={false} maxLength={2000} required
+                <input type="password" autoComplete="new-password" spellCheck={false} maxLength={2000} required={!s.enregistree_le}
+                  placeholder={s.enregistree_le ? t("connexion.inchange") : undefined}
                   value={v[c]} onChange={(e) => setV({ ...v, [c]: e.target.value })} /></label>)}
           <div className="formulaire nu">
             <button type="submit" className="principal">{t("connexion.enregistrer")}</button>

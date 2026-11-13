@@ -39,15 +39,18 @@ def cle_serveur() -> Optional[bytes]:
     return cle if len(cle) == 32 else None
 
 
-def valider(source: str, brut: dict) -> dict:
-    """[RM-AMZ-072] Champs attendus, non vides, 2 000 caractères au plus ; région connue."""
+def valider(source: str, brut: dict, ancien: Optional[dict] = None) -> dict:
+    """[RM-AMZ-072] Champs attendus, non vides, 2 000 caractères au plus ; région connue.
+    En remplacement (`ancien`), un champ absent ou vide garde la valeur enregistrée."""
     if source not in SOURCES:
         raise ConnexionInvalide("SOURCE_INCONNUE", "source")
-    if not isinstance(brut, dict) or set(brut) != set(SOURCES[source]):
+    if not isinstance(brut, dict) or set(brut) - set(SOURCES[source]) or (ancien is None and set(brut) != set(SOURCES[source])):
         raise ConnexionInvalide("SAISIE_INVALIDE", "champs")
     propre = {}
     for k in SOURCES[source]:
-        v = brut[k]
+        v = brut.get(k)
+        if ancien and (v is None or (isinstance(v, str) and not v.strip())):
+            v = ancien.get(k)
         if not isinstance(v, str) or not v.strip():
             raise ConnexionInvalide("CHAMP_OBLIGATOIRE", k)
         if len(v) > MAX:

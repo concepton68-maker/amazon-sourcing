@@ -448,5 +448,6 @@
   "erreur.MOT_DE_PASSE_IDENTIQUE": "Choisissez un mot de passe différent de l'actuel",
   "erreur.MOTS_DE_PASSE_DIFFERENTS": "Les deux saisies diffèrent",
   "erreur.DOUBLE_AUTHENTIFICATION": "Double authentification à faire",
-  "erreur.ENROLEMENT_NON_COMMENCE": "Recommencez la double authentification"
+  "erreur.ENROLEMENT_NON_COMMENCE": "Recommencez la double authentification",
+  "connexion.inchange": "Vide = inchangé"
 }
