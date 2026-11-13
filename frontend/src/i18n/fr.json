@@ -449,5 +449,15 @@
   "erreur.MOTS_DE_PASSE_DIFFERENTS": "Les deux saisies diffèrent",
   "erreur.DOUBLE_AUTHENTIFICATION": "Double authentification à faire",
   "erreur.ENROLEMENT_NON_COMMENCE": "Recommencez la double authentification",
-  "connexion.inchange": "Vide = inchangé"
+  "connexion.inchange": "Vide = inchangé",
+  "connexion.tester": "Tester la connexion",
+  "connexion.test_en_cours": "Test en cours…",
+  "connexion.requete": "n° de requête",
+  "connexion.etape.IDENTIFICATION": "Identification (codes et jeton)",
+  "connexion.etape.COMPTE": "Compte vendeur",
+  "connexion.etape.CATALOGUE": "Catalogue (rôle Offre de produits)",
+  "connexion.etape.OFFRES": "Offres et prix (rôle Tarification)",
+  "connexion.etape.STOCK": "Stock FBA (rôle Expédié par Amazon)",
+  "connexion.etape.FINANCES": "Finances (rôle Finances et comptabilité)",
+  "erreur.REGION_DIFFERENTE": "Place hors de la région enregistrée"
 }

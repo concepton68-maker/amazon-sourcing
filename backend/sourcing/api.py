@@ -606,6 +606,26 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         depot.enregistrer_connexion(c, source, chiffre)
         return {"source": source, "enregistree": True}
 
+    @app.post("/api/connexions/SPAPI/test")
+    def tester_connexion(d: dict, c: str = Depends(compte)):
+        """[RM-AMZ-079] Une ligne par accès : OK ou refusé, message d'Amazon, identifiant de requête."""
+        cx, cle = depot.connexions(c), CX.cle_serveur()
+        if "SPAPI" not in cx:
+            raise HTTPException(404, "CONNEXION_INTROUVABLE")
+        if not cle:
+            raise HTTPException(503, "CHIFFREMENT_NON_CONFIGURE")
+        try:
+            mp = get_marketplace(str(d.get("marketplace") or "FR"))
+        except ValueError:
+            raise HTTPException(422, "PLACE_INCONNUE") from None
+        from .providers.spapi import ClientSPAPI
+        v = CX.dechiffrer(cle, c, "SPAPI", cx["SPAPI"].chiffre)
+        client = ClientSPAPI(client_id=v["client_id"], client_secret=v["client_secret"],
+                             refresh_tokens={v["region"]: v["refresh_token"]})
+        if mp.region != v["region"]:
+            raise HTTPException(422, "REGION_DIFFERENTE")
+        return {"marketplace": mp.code, "etapes": client.tester(mp)}
+
     @app.delete("/api/connexions/{source}")
     def retirer_connexion(source: str, c: str = Depends(compte)):
         if not depot.supprimer_connexion(c, source):

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Connexions, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion } from "./api";
+import { Connexions, EtapeTest, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
 import { dateCourte, t } from "./i18n";
 
 function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; maj: () => void }) {
@@ -7,6 +7,10 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
   const [v, setV] = useState<Record<string, string>>(vide);
   const [ouvert, setOuvert] = useState(!s.enregistree_le);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [test, setTest] = useState<EtapeTest[] | null>(null);
+  const [enTest, setEnTest] = useState(false);
+  const tester = () => { setEnTest(true); setTest(null); setErreur(null);
+    testerConnexion("FR").then((r) => setTest(r.etapes)).catch((x) => setErreur((x as Error).message)).finally(() => setEnTest(false)); };
   const envoyer = (e: FormEvent) => {
     e.preventDefault();
     ecrireConnexion(s.source, v).then(() => { setV(vide()); setOuvert(false); setErreur(null); maj(); })
@@ -33,10 +37,18 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
         </form>
       ) : (
         <div className="formulaire nu">
+          {s.source === "SPAPI" && <button type="button" className="principal" disabled={enTest} onClick={tester}>
+            {enTest ? t("connexion.test_en_cours") : t("connexion.tester")}</button>}
           <button type="button" className="secondaire" onClick={() => setOuvert(true)}>{t("connexion.remplacer")}</button>
           <button type="button" className="lien" onClick={() => retirerConnexion(s.source).then(maj).catch((x) => setErreur((x as Error).message))}>{t("connexion.retirer")}</button>
         </div>
       )}
+      {test && <ul className="test-connexion">{test.map((e) => (
+        <li key={e.etape} className={e.ok === null ? "neutre" : e.ok ? "ok" : "ko"}>
+          <strong>{e.ok === null ? "—" : e.ok ? "✓" : "✗"} {t(`connexion.etape.${e.etape}`)}</strong>
+          {e.ok === false && <div className="meta">{e.statut ?? ""} {e.message}{e.requete ? ` · ${t("connexion.requete")} ${e.requete}` : ""}</div>}
+          {e.ok === null && e.message && <div className="meta">{e.message}</div>}
+        </li>))}</ul>}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
     </div>
   );
