@@ -102,6 +102,29 @@ class TestConnexions(unittest.TestCase):
         for secret in ("secret-test", "jeton-test", "acces"):
             self.assertNotIn(secret, str(j))
 
+    def test_diagnostic_autre_region(self):
+        """[RM-AMZ-079] Compte refusé en Europe mais accepté ailleurs (ex. Sandbox) : signalé."""
+        class R:
+            def __init__(self, code, corps=None):
+                self.status_code, self._c, self.headers, self.text = code, corps or {}, {}, str(corps)
+            def json(self):
+                return self._c
+
+        class Session:
+            def post(self, url, data, timeout):
+                return R(200, {"access_token": "acces", "expires_in": 3600})
+            def get(self, url, params, timeout, headers):
+                return R(200) if url.startswith("https://sandbox.sellingpartnerapi-eu") else R(403, {"errors": []})
+        d, c = construire()
+        cl = TestClient(creer_app(d, c, servir_interface=False))
+        with mock.patch.dict(os.environ, {"AMZ_CLE_CHIFFREMENT": CLE}), \
+                mock.patch("sourcing.providers.spapi.requests.Session", Session):
+            cl.put("/api/connexions/SPAPI", json=SP)
+            j = cl.post("/api/connexions/SPAPI/test", json={}).json()
+        self.assertIn("AILLEURS_SANDBOX_EU", [e["etape"] for e in j["etapes"] if e["ok"]])
+        for secret in ("secret-test", "jeton-test", "acces"):
+            self.assertNotIn(secret, str(j))
+
 
 if __name__ == "__main__":
     unittest.main()

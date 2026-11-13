@@ -459,5 +459,11 @@
   "connexion.etape.OFFRES": "Offres et prix (rôle Tarification)",
   "connexion.etape.STOCK": "Stock FBA (rôle Expédié par Amazon)",
   "connexion.etape.FINANCES": "Finances (rôle Finances et comptabilité)",
-  "erreur.REGION_DIFFERENTE": "Place hors de la région enregistrée"
+  "erreur.REGION_DIFFERENTE": "Place hors de la région enregistrée",
+  "connexion.etape.AILLEURS_NA": "Le jeton marche sur les serveurs Amérique du Nord : refaites l'autorisation depuis le Seller Central européen",
+  "connexion.etape.AILLEURS_FE": "Le jeton marche sur les serveurs Extrême-Orient : refaites l'autorisation depuis le Seller Central européen",
+  "connexion.etape.AILLEURS_EU": "Le jeton marche sur les serveurs Europe : choisissez la région Europe",
+  "connexion.etape.AILLEURS_SANDBOX_EU": "Le jeton marche seulement en mode Sandbox (essai) : créez l'application en Production",
+  "connexion.etape.AILLEURS_SANDBOX_NA": "Le jeton marche seulement en Sandbox Amérique : créez l'application en Production, autorisée depuis le Seller Central européen",
+  "connexion.etape.AILLEURS_SANDBOX_FE": "Le jeton marche seulement en Sandbox Extrême-Orient : créez l'application en Production"
 }
