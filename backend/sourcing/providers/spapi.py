@@ -227,7 +227,19 @@ class ClientSPAPI:
             ligne(etape, ok, r.status_code, "" if ok else r.text, r.headers.get("x-amzn-RequestId"))
             return r.json() if ok else None
 
-        essai("COMPTE", "/sellers/v1/marketplaceParticipations", {})
+        compte = essai("COMPTE", "/sellers/v1/marketplaceParticipations", {})
+        if compte is None:  # diagnostic : le même jeton ailleurs (autre région, serveurs d'essai Sandbox)
+            for region, hote in list(SPAPI_ENDPOINTS.items()) + [
+                    (f"SANDBOX_{r}", h.replace("https://", "https://sandbox.")) for r, h in SPAPI_ENDPOINTS.items()]:
+                if hote == base:
+                    continue
+                try:
+                    r = self.session.get(hote + "/sellers/v1/marketplaceParticipations", params={}, timeout=30,
+                                         headers={"x-amz-access-token": jeton, "content-type": "application/json"})
+                    if r.status_code < 400:
+                        ligne(f"AILLEURS_{region}", True, r.status_code, "")
+                except requests.RequestException:
+                    pass
         cat = essai("CATALOGUE", "/catalog/2022-04-01/items",
                     {"marketplaceIds": mp.marketplace_id, "keywords": "gourde", "pageSize": "1"})
         asin = ((cat or {}).get("items") or [{}])[0].get("asin")
