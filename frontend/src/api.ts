@@ -238,3 +238,12 @@ export const testerConnexion = (marketplace: string) =>
   requete<{ marketplace: string; etapes: EtapeTest[] }>("POST", "/api/connexions/SPAPI/test", { marketplace });
 export interface TacheSynchro { tache: string; le: string; ok: boolean; message: string }
 export const lireJournalSynchro = () => lire<TacheSynchro[]>("/api/synchro/journal");
+
+// ------------------------------------------------------------ ce que je peux vendre [RM-AMZ-084, 085]
+export interface ProduitSonde { asin: string; titre: string | null; bsr: number | null; categorie: string | null; statut: string }
+export interface RayonSonde { code: string; statut: string; testes: number; autorises: number; approbation: number; interdits: number;
+  inconnus: number; erreur: string | null; produits: ProduitSonde[] }
+export interface Exploration { en_cours: boolean; progression: [number, number] | null;
+  resultat: { place: string; le: string; rayons: RayonSonde[] } | null }
+export const lireExploration = () => lire<Exploration>("/api/exploration");
+export const lancerExploration = () => requete<{ lancee: boolean }>("POST", "/api/exploration", {});

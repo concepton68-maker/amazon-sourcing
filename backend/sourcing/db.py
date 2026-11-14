@@ -378,6 +378,16 @@ class DepotPostgres:
         with connexion(self.source) as conn:
             return {t: (f, ok) for t, f, ok in conn.execute("SELECT tache, fin, ok FROM amz.etat_synchros()").fetchall()}
 
+    # -------------------------------------------------------------- exploration [RM-AMZ-085]
+    def enregistrer_exploration(self, compte_id: str, resultat: dict) -> None:
+        self._executer(compte_id, """INSERT INTO amz.explorations (compte_id, resultat) VALUES (%s, %s)
+            ON CONFLICT (compte_id) DO UPDATE SET resultat = EXCLUDED.resultat, maj = now()""",
+            (_uuid(compte_id), json.dumps(resultat)))
+
+    def exploration(self, compte_id: str) -> Optional[dict]:
+        r = self._executer(compte_id, "SELECT resultat FROM amz.explorations")
+        return dict(r[0][0]) if r else None
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         self._executer(compte_id, "UPDATE amz.comptes SET revoque_le = coalesce(revoque_le, %s)", (jour,))

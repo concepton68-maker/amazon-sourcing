@@ -147,6 +147,13 @@ class ClientSPAPI:
         )
         return parser_catalogue(asin, mp, data)
 
+    # ------------------------------------------------------------------ recherche par mots-clés [RM-AMZ-084]
+    def rechercher(self, mp: Marketplace, mots: str, taille: int = 20) -> list[InfosCatalogue]:
+        data = self._appel(mp, "GET", "/catalog/2022-04-01/items",
+                           params={"marketplaceIds": mp.marketplace_id, "keywords": mots, "pageSize": str(min(taille, 20)),
+                                   "includedData": "summaries,salesRanks"})
+        return [parser_catalogue(it.get("asin"), mp, it) for it in data.get("items", []) or [] if it.get("asin")]
+
     # ------------------------------------------------------------------ offres
     def offres(self, mp: Marketplace, asin: str) -> InfosOffres:
         data = self._appel(

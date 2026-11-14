@@ -8,6 +8,7 @@ import { StockVue } from "./Stock";
 import { FournisseursVue } from "./Fournisseurs";
 import { RemboursementsVue } from "./Remboursements";
 import { ConformiteVue } from "./Conformite";
+import { VendableVue } from "./Vendable";
 import { NonConnecte, deconnecter, moi } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
@@ -139,10 +140,10 @@ function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: bo
   );
 }
 
-type Vue = "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "conformite" | "parametres";
+type Vue = "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "conformite" | "vendable" | "parametres";
 const vueDepuisAdresse = (): Vue => {
   const h = window.location.hash;
-  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : "analyse";
+  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : h === "#vendable" ? "vendable" : "analyse";
 };
 
 export function App() {
@@ -181,6 +182,7 @@ export function App() {
         <span className="marque">{t("app.nom")}</span>
         <nav aria-label="Navigation principale">
           <a href="#analyse" aria-current={vue === "analyse" ? "page" : undefined}>{t("nav.analyse")}</a>
+          <a href="#vendable" aria-current={vue === "vendable" ? "page" : undefined}>{t("nav.vendable")}</a>
           <a href="#sourcing" aria-current={vue === "sourcing" ? "page" : undefined}>{t("nav.sourcing")}</a>
           <a href="#lots" aria-current={vue === "lots" ? "page" : undefined}>{t("nav.lots")}</a>
           <a href="#stock" aria-current={vue === "stock" ? "page" : undefined}>{t("nav.stock")}</a>
@@ -198,6 +200,7 @@ export function App() {
         : vue === "stock" ? <main className="contenu-plein"><StockVue ouvrirBon={ouvrirBon} /></main>
         : vue === "remboursements" ? <main className="contenu-plein"><RemboursementsVue /></main>
         : vue === "conformite" ? <main className="contenu-plein"><ConformiteVue /></main>
+        : vue === "vendable" ? <main className="contenu-plein"><VendableVue analyser={(code) => analyser(code, 0)} /></main>
         : vue === "fournisseurs" ? <main className="contenu-plein"><FournisseursVue key={bonInitial ?? "f"} bonInitial={bonInitial} voirLot={lotCree} /></main>
         : <main><LotsVue key={lotInitial ?? "lots"} lotInitial={lotInitial} setDemo={setDemo} /></main>}
     </div>

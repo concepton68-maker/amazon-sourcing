@@ -230,3 +230,13 @@ a.info:hover, a.info:focus-visible { color: var(--accent); }
 .tab-roles th.ignore select { color: var(--doux); }
 .tab-roles th .nom { display: block; font-size: 12px; color: var(--doux); font-weight: 500; margin-top: 6px; }
 .tab-roles td.ignore { color: #a6adb8; }
+
+/* ce que je peux vendre [RM-AMZ-084] */
+.statut-rayon { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.statut-rayon.OUVERT { background: var(--positif-doux); color: var(--positif); }
+.statut-rayon.PARTIEL { background: var(--accent-doux); color: var(--accent); }
+.statut-rayon.FERME { background: #fdecea; color: #a41e14; }
+.statut-rayon.INCONNU { background: #eef0f3; color: #3a414c; }
+.barre-part { width: 140px; height: 8px; border-radius: 4px; background: #eef0f3; overflow: hidden; }
+.barre-part > div { height: 100%; background: var(--positif); }
+tr.sous-ligne td { background: var(--fond); }
