@@ -24,10 +24,11 @@ const cle = (p: ProduitRentable) => `${p.origine}|${p.marketplace}|${p.code}|${p
 function Ligne({ p, analyser, nouveau, coche, basculer }: { p: ProduitRentable; analyser: (code: string, prix: number) => void;
   nouveau: boolean; coche: boolean; basculer: () => void }) {
   return (
-    <tr className={`cliquable ${nouveau ? "arrivee" : ""} ${coche ? "choisie" : ""}`} onClick={basculer}>
+    <tr className={`cliquable ${nouveau ? "arrivee" : ""} ${coche ? "choisie" : ""}`} onClick={basculer}
+      onDoubleClick={() => analyser(p.asin, p.cout_achat ?? 0)} title={t("rent.double_clic")}>
       <td className="case"><input type="checkbox" checked={coche} onChange={basculer} onClick={(e) => e.stopPropagation()}
         aria-label={t("rent.choisir", { p: p.titre ?? p.asin })} /></td>
-      <td><button type="button" className="lien produit" onClick={(e) => { e.stopPropagation(); analyser(p.asin, p.cout_achat ?? 0); }}>{p.titre ?? p.designation ?? p.asin}</button>
+      <td><span className="produit">{p.titre ?? p.designation ?? p.asin}</span>
         {nouveau && <span className="nouveau">{t("vendable.nouveau")}</span>}
         <div className="meta">{p.asin} · {p.origine_nom}{p.unites_lot > 1 ? ` · ${t("rent.lot", { n: p.unites_lot })}` : ""}</div></td>
       <td className="num">{eur(p.cout_achat)}</td>

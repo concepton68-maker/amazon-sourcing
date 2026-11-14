@@ -977,5 +977,6 @@
   "erreur.CARTON_VIDE": "Carton vide.",
   "erreur.ENVOI_OCCUPE": "Une action est déjà en cours sur cet envoi.",
   "erreur.ETAPE_DEJA_FAITE": "Plan déjà créé.",
-  "erreur.OPTION_INCONNUE": "Choisissez une option."
+  "erreur.OPTION_INCONNUE": "Choisissez une option.",
+  "rent.double_clic": "Clic : cocher · double-clic : analyser"
 }

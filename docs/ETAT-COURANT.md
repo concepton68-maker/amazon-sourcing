@@ -54,6 +54,8 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 
 | (lot envoi-fba-1) | Envoi FBA par l'API, partie 1 : brouillon depuis le stock, plan chez Amazon, options d'emballage, confirmation (définitive, sur un clic), cartons, annulation ; adresse d'expédition dans Paramètres › Société ; réglages du sourcing repliés après lancement ; verdicts « À acheter / À vérifier / Ne pas acheter » | RM-AMZ-137 à 139 | 1.21 |
 
+| (lot double-clic) | Produits rentables : clic sur la ligne = cocher, double-clic = analyser (le titre n'est plus un lien) | — | — |
+
 Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 139) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 034).
 
@@ -71,7 +73,7 @@ Index : `docs/recherches/README.md`.
 - **Ordinateur d'abord** (D-AMZ-025) ; **téléphone = mode nomade** (D-AMZ-033) : suivi, actions urgentes, scan, rien d'autre ; **reporté** jusqu'à ce que la partie ordinateur soit à peu près figée.
 - **Ergonomie** :
   - tout ce qui se coche a « tout cocher / tout décocher » et une sélection groupée ;
-  - **un clic sur la ligne coche la case** ;
+  - **un clic sur la ligne coche ou décoche la case, un double-clic ouvre le détail ou l'analyse** (Sam, 14/11) ;
   - affichage dense et professionnel, sans grosses pastilles ni phrases d'explication inutiles (infobulle ⓘ) ;
   - réglages rangés par rubriques logiques ;
   - pluriels corrects.
