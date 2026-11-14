@@ -213,3 +213,9 @@ td.coupe { overflow-wrap: anywhere; }
 .test-connexion li { overflow-wrap: anywhere; }
 .test-connexion li.ok strong { color: var(--positif); }
 .test-connexion li.ko strong { color: #a41e14; }
+
+/* petite icône d'information avec infobulle */
+a.info { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 6px;
+  border: 1.5px solid currentColor; border-radius: 50%; font: italic 700 11px/1 Georgia, serif; text-decoration: none;
+  color: var(--doux); vertical-align: middle; }
+a.info:hover, a.info:focus-visible { color: var(--accent); }
