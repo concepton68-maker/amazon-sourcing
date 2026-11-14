@@ -438,3 +438,4 @@ button.tri.actif { color: var(--accent); }
 .sans-retour { white-space: nowrap; }
 tr.cliquable { cursor: pointer; } tr.cliquable:hover td { background: #f6f8fb; } tr.cliquable.choisie:hover td { background: var(--accent-doux); }
 .nouveau { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: var(--positif-doux); color: var(--positif); font: 700 11px Inter, sans-serif; text-transform: uppercase; letter-spacing: .04em; vertical-align: middle; }
+.en-cours { color: var(--accent); font-weight: 600; }

@@ -7,7 +7,8 @@ journalisées ; le curseur des ventes n'avance qu'en cas de réussite. Aucun sec
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+import threading
+from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from .marketplaces import MARKETPLACES
@@ -39,26 +40,41 @@ def places_du_vendeur(client, region: str) -> list:
 
 
 def executer_compte(compte_id: str, client, region: str, depot, maintenant: datetime,
-                    horloge: Callable[[], datetime] = None, attendre=None) -> list[ResultatTache]:
+                    horloge: Callable[[], datetime] = None, attendre=None, taches: Optional[set] = None,
+                    suivi: Optional[Callable] = None) -> list[ResultatTache]:
+    """`taches` : sous-ensemble à exécuter (None = toutes) ; `suivi(tache, resultat|None)` : début et fin de chaque
+    tâche, pour l'avancement réel [RM-AMZ-115]."""
     horloge = horloge or (lambda: datetime.now(maintenant.tzinfo))
     res: list[ResultatTache] = []
+    voulues = [t for t in TACHES if taches is None or t in taches]
     t0 = horloge()
     try:
         places = places_du_vendeur(client, region)
     except Exception as e:  # sans les places, aucune tâche ne peut tourner
-        return [ResultatTache(t, t0, horloge(), False, "places : " + _message(e)) for t in TACHES]
+        res = [ResultatTache(t, t0, horloge(), False, "places : " + _message(e)) for t in voulues]
+        for r in res:
+            suivi and suivi(r.tache, r)
+        return res
     if not places:
-        return [ResultatTache(t, t0, horloge(), False, "aucune place gérée où le vendeur participe") for t in TACHES]
+        res = [ResultatTache(t, t0, horloge(), False, "aucune place gérée où le vendeur participe") for t in voulues]
+        for r in res:
+            suivi and suivi(r.tache, r)
+        return res
     principale = next((m for m in places if m.code == "FR"), places[0])
     kw = {} if attendre is None else {"attendre": attendre}
 
     def tache(nom, f):
+        if nom not in voulues:
+            return
+        suivi and suivi(nom, None)
         d = horloge()
         try:
             msg = f() or ""
-            res.append(ResultatTache(nom, d, horloge(), True, msg))
+            r = ResultatTache(nom, d, horloge(), True, msg)
         except Exception as e:
-            res.append(ResultatTache(nom, d, horloge(), False, _message(e)))
+            r = ResultatTache(nom, d, horloge(), False, _message(e))
+        res.append(r)
+        suivi and suivi(nom, r)
 
     def ventes():
         r = synchroniser(compte_id, principale, client, depot, maintenant,
@@ -105,15 +121,59 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
     return res
 
 
+def client_spapi(v: dict):
+    from .providers.spapi import ClientSPAPI
+    return ClientSPAPI(client_id=v["client_id"], client_secret=v["client_secret"], seller_id=v.get("seller_id"),
+                       refresh_tokens={v["region"]: v["refresh_token"]})
+
+
+class SynchrosManuelles:
+    """[RM-AMZ-115] Une exécution manuelle à la fois par compte ; état réel au fil de l'eau ; journal « manuel »."""
+
+    def __init__(self, en_fond: bool = True):
+        self.etats: dict[str, dict] = {}
+        self.en_fond = en_fond
+        self._verrou = threading.Lock()
+
+    def lancer(self, compte_id: str, client, region: str, depot, taches: Optional[set] = None, attendre=None) -> bool:
+        with self._verrou:
+            if self.etats.get(compte_id, {}).get("en_cours"):
+                return False
+            voulues = [t for t in TACHES if taches is None or t in taches]
+            etat = {"en_cours": True, "debut": datetime.now(timezone.utc).isoformat(), "taches": voulues,
+                    "courante": None, "terminees": []}
+            self.etats[compte_id] = etat
+
+        def suivi(tache, r):
+            if r is None:
+                etat["courante"] = tache
+                return
+            r = ResultatTache(r.tache, r.debut, r.fin, r.ok, ("manuel · " + r.message).strip(" ·"))
+            depot.journaliser_synchro(compte_id, r)
+            etat["terminees"].append({"tache": r.tache, "ok": r.ok, "message": r.message, "fin": r.fin.isoformat()})
+            etat["courante"] = None
+
+        def travail():
+            try:
+                executer_compte(compte_id, client, region, depot, datetime.now(timezone.utc), attendre=attendre,
+                                taches=set(voulues), suivi=suivi)
+            except Exception as e:  # garde-fou : l'état ne reste jamais « en cours »
+                etat["terminees"].append({"tache": etat.get("courante") or "?", "ok": False, "message": _message(e),
+                                          "fin": datetime.now(timezone.utc).isoformat()})
+            finally:
+                etat["en_cours"], etat["courante"] = False, None
+                etat["fin"] = datetime.now(timezone.utc).isoformat()
+        if self.en_fond:
+            threading.Thread(target=travail, daemon=True).start()
+        else:
+            travail()
+        return True
+
+
 def executer(comptes: list[tuple[str, dict]], depot, maintenant: datetime, fabrique: Optional[Callable] = None,
              attendre=None) -> dict[str, list[ResultatTache]]:
     """`comptes` : [(compte_id, identifiants SP-API déchiffrés)]. Journalise chaque tâche."""
-    if fabrique is None:
-        from .providers.spapi import ClientSPAPI
-
-        def fabrique(v):
-            return ClientSPAPI(client_id=v["client_id"], client_secret=v["client_secret"], seller_id=v.get("seller_id"),
-                               refresh_tokens={v["region"]: v["refresh_token"]})
+    fabrique = fabrique or client_spapi
     tout = {}
     for compte_id, v in comptes:
         res = executer_compte(compte_id, fabrique(v), v["region"], depot, maintenant, attendre=attendre)

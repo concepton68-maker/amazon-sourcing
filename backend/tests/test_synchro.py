@@ -153,3 +153,47 @@ class TestSynchro(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSynchroManuelle(unittest.TestCase):
+    def setUp(self):
+        from sourcing import correspondance as CO
+        from sourcing import exploration as EX
+        for mod, nom in ((EX, "PAUSE_RECHERCHE"), (EX, "PAUSE_RESTRICTIONS"), (CO, "PAUSE_CATALOGUE")):
+            p = mock.patch.object(mod, nom, 0)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def app(self, panne=None):
+        d, c = construire()
+        d.enregistrer_connexion(c, "SPAPI", b"chiffre-factice")
+        return d, c, TestClient(creer_app(d, c, servir_interface=False, traitement_en_fond=False,
+                                          fabrique_spapi=lambda v: Faux(panne=panne)))
+
+    def test_synchro_manuelle(self):
+        """[RM-AMZ-115] Toutes les tâches, dans l'ordre ; état final ; journal « manuel » ; sans connexion : refus."""
+        d, c, cl = self.app(panne="STOCK")
+        r = cl.post("/api/synchro/manuelle", json={"taches": list(SN.TACHES)})
+        self.assertEqual(r.status_code, 202)
+        e = cl.get("/api/synchro/manuelle").json()["etat"]
+        self.assertFalse(e["en_cours"])
+        self.assertEqual([x["tache"] for x in e["terminees"]], list(SN.TACHES))
+        self.assertEqual([x["ok"] for x in e["terminees"]][:3], [True, False, True])
+        self.assertTrue(all(x["message"].startswith("manuel") for x in e["terminees"]))
+        self.assertEqual(len(d.journal_synchro(c)), len(SN.TACHES))
+        d2, c2 = construire()
+        self.assertEqual(TestClient(creer_app(d2, c2, servir_interface=False)).post(
+            "/api/synchro/manuelle", json={"taches": ["VENTES"]}).status_code, 503)
+
+    def test_synchro_manuelle_choix(self):
+        """[RM-AMZ-115] Seulement les tâches choisies ; tâche inconnue refusée ; suivi début/fin."""
+        d, c, cl = self.app()
+        self.assertEqual(cl.post("/api/synchro/manuelle", json={"taches": ["MAGIE"]}).status_code, 422)
+        self.assertEqual(cl.post("/api/synchro/manuelle", json={"taches": []}).status_code, 422)
+        cl.post("/api/synchro/manuelle", json={"taches": ["EXPLORATION", "VENTES"]})
+        e = cl.get("/api/synchro/manuelle").json()["etat"]
+        self.assertEqual([x["tache"] for x in e["terminees"]], ["VENTES", "EXPLORATION"])   # ordre de la nuit
+        etapes = []
+        SN.executer_compte(c, Faux(), "EU", d, NUIT, attendre=lambda s: None, taches={"STOCK"},
+                           suivi=lambda t, r: etapes.append((t, r is None)))
+        self.assertEqual(etapes, [("STOCK", True), ("STOCK", False)])
