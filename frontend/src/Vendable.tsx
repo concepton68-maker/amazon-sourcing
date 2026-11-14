@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Exploration, RayonSonde, choisirFamilles, explorationVue, lancerExploration, lireExploration, lireMarche, suivreProduit } from "./api";
 import { t } from "./i18n";
+import { EligibiliteVue } from "./Eligibilite";
 
 const affiche = (r: RayonSonde) => (r.statut === "FERME" && r.approbation > 0 ? "APPROBATION" : r.statut);
 
@@ -107,6 +108,7 @@ export function VendableVue({ analyser }: { analyser: (code: string) => void }) 
               basculer={() => enregistrer(suivies.includes(r.code) ? suivies.filter((c) => c !== r.code) : [...suivies, r.code])} />)}</tbody>
           </table></div>)}
       </section>
+      <EligibiliteVue analyser={analyser} />
     </div>
   );
 }

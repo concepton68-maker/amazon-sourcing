@@ -46,6 +46,7 @@ class InfosRestrictions:
     autorise: Optional[bool] = None          # None = inconnu
     approbation_requise: bool = False
     motifs: list[str] = field(default_factory=list)
+    liens: list[dict] = field(default_factory=list)   # [RM-AMZ-120] liens de suite donnés par Amazon (titre, url)
 
 
 @dataclass

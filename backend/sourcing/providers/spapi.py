@@ -533,5 +533,9 @@ def parser_restrictions(data: dict) -> InfosRestrictions:
             if code == "APPROVAL_REQUIRED":
                 res.approbation_requise = True
             res.motifs.append(f"{code} : {raison.get('message', '')}".strip(" :"))
+            for l in raison.get("links", []) or []:                      # [RM-AMZ-120] tels quels
+                url = l.get("resource")
+                if url and url.startswith("https://") and not any(x["url"] == url for x in res.liens):
+                    res.liens.append({"titre": l.get("title") or None, "url": url})
     return res
 

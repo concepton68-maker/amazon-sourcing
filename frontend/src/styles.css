@@ -451,3 +451,7 @@ tr.arrivee td { background: #f2fbf6; }
 .mini-kpis strong { font: 600 18px var(--chiffre); }
 .mini-kpis em { font-style: normal; font-size: 11px; color: var(--doux); }
 @media (max-width: 900px) { .mini-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.saisie-codes { display: flex; flex-direction: column; gap: 10px; }
+.saisie-codes textarea { border: 1px solid #d5dbe4; border-radius: 10px; padding: 10px 12px; font: 13.5px var(--chiffre); resize: vertical; }
+a.lien-externe { margin-left: 10px; font-weight: 600; font-size: 13px; color: var(--accent); text-decoration: none; white-space: nowrap; }
+a.lien-externe:hover { text-decoration: underline; }
