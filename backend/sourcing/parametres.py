@@ -21,6 +21,9 @@ BORNES = {
     "seuil_rupture": (0, 365), "seuil_surstock": (1, 3650),
 }
 REGIMES_REGLABLES = ("assujetti", "non_assujetti")
+# [RM-AMZ-127] identité de l'acheteur reprise sur le bon de commande
+CHAMPS_SOCIETE = {"raison_sociale": 300, "adresse": 500, "adresse_livraison": 500, "tva_intra": 300,
+                  "courriel": 300, "telephone": 300}
 
 
 class ParametreInvalide(ValueError):
@@ -54,6 +57,7 @@ class Parametres:
     seuil_rupture: int = 15
     seuil_surstock: int = 180
     tva: dict[str, str] = field(default_factory=dict)     # place -> régime ; absent = assujetti
+    societe: dict[str, str] = field(default_factory=dict)  # [RM-AMZ-127]
 
     def regime(self, mp_code: str) -> str:
         if _hors_taxe(mp_code):
@@ -96,6 +100,22 @@ def valider(brut: dict) -> Parametres:
                 if regime not in REGIMES_REGLABLES:
                     raise ParametreInvalide("REGIME_TVA_INCONNU", f"tva.{mp}")
                 p.tva[mp] = regime
+            continue
+        if cle == "societe":
+            if not isinstance(valeur, dict) or set(valeur) - set(CHAMPS_SOCIETE):
+                raise ParametreInvalide("PARAMETRE_INVALIDE", "societe")
+            for k, v in valeur.items():
+                if v is None:
+                    continue
+                if not isinstance(v, str):
+                    raise ParametreInvalide("PARAMETRE_INVALIDE", f"societe.{k}")
+                v = v.strip()
+                if len(v) > CHAMPS_SOCIETE[k]:
+                    raise ParametreInvalide("TEXTE_TROP_LONG", f"societe.{k}")
+                if k == "courriel" and v and "@" not in v:
+                    raise ParametreInvalide("COURRIEL_INVALIDE", "societe.courriel")
+                if v:
+                    p.societe[k] = v
             continue
         if cle == "carburant_inclus":                     # ancien réglage (1 jour en ligne) : « inclus » = inactif
             p.carburant_actif = 0 if valeur else 1

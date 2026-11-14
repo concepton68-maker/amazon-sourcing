@@ -443,7 +443,7 @@ class DepotPostgres:
     # -------------------------------------------------------------- produits rentables [RM-AMZ-105]
     _COLS_OP = ("origine, origine_nom, marketplace, code, asin, titre, designation, prix_achat, unites_lot, cout_achat, "
                 "prix_vente, profit, roi, marge, prix_achat_max, verdict, vendabilite, motif, bsr, nb_vendeurs, "
-                "amazon_vend, analyse_le")
+                "amazon_vend, analyse_le, prevision")
 
     def enregistrer_opportunites(self, compte_id: str, origine: str, origine_nom: str, marketplace: str, ops) -> None:
         c = _uuid(compte_id)
@@ -452,12 +452,12 @@ class DepotPostgres:
             conn.execute("DELETE FROM amz.opportunites WHERE origine = %s AND marketplace = %s", (origine, marketplace))
             with conn.cursor() as cur:
                 cur.executemany(f"INSERT INTO amz.opportunites (compte_id, {self._COLS_OP}) VALUES "
-                                "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                                "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                                 "ON CONFLICT DO NOTHING",
                                 [(c, o.origine, o.origine_nom, o.marketplace, o.code, o.asin, o.titre, o.designation,
                                   o.prix_achat, o.unites_lot, o.cout_achat, o.prix_vente, o.profit, o.roi, o.marge,
                                   o.prix_achat_max, o.verdict, o.vendabilite, o.motif, o.bsr, o.nb_vendeurs,
-                                  o.amazon_vend, o.analyse_le) for o in ops])
+                                  o.amazon_vend, o.analyse_le, None if o.prevision is None else json.dumps(o.prevision)) for o in ops])
 
     def enregistrer_alertes_prix(self, compte_id: str, alertes: list[dict]) -> None:
         """[RM-AMZ-124] Remplace les alertes du compte."""
@@ -484,17 +484,17 @@ class DepotPostgres:
         cols = self._COLS_OP.replace(" ", "").split(",")
         maj = ", ".join(f"{k} = EXCLUDED.{k}" for k in cols if k not in ("origine", "marketplace", "code", "asin"))
         self._executer_lignes(compte_id, f"INSERT INTO amz.opportunites (compte_id, {self._COLS_OP}) VALUES "
-                              "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                              "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                               f"ON CONFLICT (compte_id, origine, marketplace, code, asin) DO UPDATE SET {maj}",
                               [(c, origine, o.origine_nom, marketplace, o.code, o.asin, o.titre, o.designation,
                                 o.prix_achat, o.unites_lot, o.cout_achat, o.prix_vente, o.profit, o.roi, o.marge,
                                 o.prix_achat_max, o.verdict, o.vendabilite, o.motif, o.bsr, o.nb_vendeurs,
-                                o.amazon_vend, o.analyse_le) for o in ops])
+                                o.amazon_vend, o.analyse_le, None if o.prevision is None else json.dumps(o.prevision)) for o in ops])
 
     def opportunites(self, compte_id: str) -> list:
         from .opportunites import Opportunite
         rows = self._executer(compte_id, f"SELECT {self._COLS_OP} FROM amz.opportunites")
-        return [Opportunite(*[float(x) if isinstance(x, Decimal) else x for x in r]) for r in rows]
+        return [Opportunite(*[float(x) if isinstance(x, Decimal) else x for x in r[:-1]], prevision=r[-1]) for r in rows]
 
     # -------------------------------------------------------------- historique et suivi de marché [RM-AMZ-086 à 090]
     def familles_suivies(self, compte_id: str) -> list[str]:

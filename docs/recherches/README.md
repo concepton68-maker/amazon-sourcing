@@ -12,4 +12,6 @@ NON VÉRIFIÉ). Toute nouvelle étude est ajoutée ici et dans `docs/ETAT-COURAN
 | 14/11/2026 | `2026-11-14-frais-fba-europe.md` | Grille FBA Europe 2/11/2026 : stockage, carburant 2 %, gabarits, faible stock, retours, dimensions catalogue |
 | 14/11/2026 | `2026-11-14-fournisseurs-api-approfondi.md` | 24 fournisseurs toutes familles, API et conditions ; Qogita : API acheteurs à demander |
 | 14/11/2026 | `2026-11-14-audit-coherence-concurrence.md` | Audit de cohérence face à 14 outils, sur les 8 étapes du parcours vendeur : niveau, écarts classés, exclusivités, 5 priorités |
+| 14/11/2026 | `2026-11-14-envoi-fba-api-inbound.md` | Envoi FBA par l'API Inbound 2024-03-20 : déroulé, frais, étiquettes, points incertains (transporteur partenaire en France) |
+| 14/11/2026 | `2026-11-14-messagerie-microsoft.md` | Envoi de courriels depuis la boîte Microsoft (Mail.Send seul) : connexion, limites, pièce jointe sous 3 Mo |
 | — | `notes/` | Notes sourcées détaillées (conformité, API financière, remboursements, stock…) |

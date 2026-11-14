@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { FiltreMultiple } from "./Filtre";
 import { Bon, Colonnes, Fichier, FournisseurBilan, Place, Reference, actionBon, ajouterLigneBon, ajouterReferences,
   analyserTarif, creerBon, creerFournisseur, deposerTarif, enregistrerTarif, lireAnnuaire, listerBons,
-  listerFournisseurs, listerPlaces, modifierFournisseur, recevoirBon, retirerLigneBon } from "./api";
+  listerFournisseurs, listerPlaces, modifierFournisseur, recevoirBon, retirerLigneBon, documentBon, modifierQuantiteBon } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
 const n = (v: number | null) => (v === null ? null : String(v));
@@ -40,8 +40,13 @@ function DetailBon({ b, maj, voirLot }: { b: Bon; maj: (b: Bon) => void; voirLot
           <tbody>
             {b.lignes.map((l) => (
               <tr key={l.id}>
-                <td><div className="produit">{l.designation ?? l.asin}</div><div className="meta">{l.asin} · {l.marketplace}</div></td>
-                <td className="num">{l.quantite}</td><td className="num">{monnaie(n(l.prix_unitaire), d)}</td>
+                <td><div className="produit">{l.designation ?? l.asin}</div><div className="meta">{l.code ? `${t("bon.ref")} ${l.code} · ` : ""}{l.asin} · {l.marketplace}{l.unites_lot > 1 ? ` · ${t("rent.lot", { n: l.unites_lot })}` : ""}</div></td>
+                <td className="num">{b.statut === "BROUILLON"
+                  ? <input aria-label={`${t("bon.quantite")} ${l.asin}`} className="etroit-num" type="number" min={1} max={100000}
+                      defaultValue={l.quantite} key={`${l.id}-${l.quantite}`}
+                      onBlur={(e) => { const q = Number(e.target.value); if (q !== l.quantite) faire(modifierQuantiteBon(b.id, l.id, q)); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+                  : l.quantite}</td><td className="num">{monnaie(n(l.prix_unitaire), d)}</td>
                 <td className="num">{monnaie(n(l.montant), d)}</td><td className="num">{pourcent(n(l.roi_prevu))}</td>
                 {b.statut === "ENVOYE" && <td className="num"><input aria-label={`${t("bon.recue")} ${l.asin}`} className="etroit-num"
                   type="number" min={0} max={l.quantite} value={recues[l.id] ?? ""} onChange={(e) => setRecues({ ...recues, [l.id]: e.target.value })} /></td>}
@@ -65,7 +70,10 @@ function DetailBon({ b, maj, voirLot }: { b: Bon; maj: (b: Bon) => void; voirLot
       )}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
       <div className="actions">
-        {b.statut === "BROUILLON" && <button type="button" className="principal" onClick={() => faire(actionBon(b.id, "envoyer"))}>{t("bon.envoyer")}</button>}
+        {b.lignes.length > 0 && <a className="bouton-lien" href={documentBon(b.id, "pdf")}>{t("bon.pdf")}</a>}
+        {b.lignes.length > 0 && <a className="bouton-lien" href={documentBon(b.id, "xlsx")}>{t("bon.excel")}</a>}
+        {b.statut === "BROUILLON" && <button type="button" className="principal" onClick={() => faire(actionBon(b.id, "envoyer"))}
+          title={t("bon.marquer_info")}>{t("bon.marquer_envoye")}</button>}
         {b.statut === "ENVOYE" && <button type="button" className="principal"
           onClick={() => faire(recevoirBon(b.id, Object.fromEntries(Object.entries(recues).map(([k, v]) => [k, Number(v || 0)]))))}>{t("bon.recevoir")}</button>}
         {(b.statut === "BROUILLON" || b.statut === "ENVOYE") && <button type="button" className="secondaire" onClick={() => faire(actionBon(b.id, "annuler"))}>{t("bon.annuler")}</button>}

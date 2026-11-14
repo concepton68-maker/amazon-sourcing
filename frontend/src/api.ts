@@ -105,6 +105,7 @@ export interface Params {
   port_fournisseur: number; placement: number; duree_stock_mois: number; carburant_taux: number; carburant_actif: number;
   reference_carburant?: { taux: number; depuis: string };
   delai_fournisseur: number; delai_reception: number; marge_securite: number; seuil_rupture: number; seuil_surstock: number;
+  societe: Partial<Record<"raison_sociale" | "adresse" | "adresse_livraison" | "tva_intra" | "courriel" | "telephone", string>>;
 }
 export const lireParametres = () => lire<Params>("/api/parametres");
 export async function ecrireParametres(p: Partial<Params>): Promise<Params> {
@@ -160,6 +161,7 @@ export const analyserTarif = (id: string) => requete<{ traitement_id: string }>(
 export interface LigneBonApi {
   id: string; asin: string; marketplace: string; designation: string | null; quantite: number; prix_unitaire: number;
   montant: number; roi_prevu: number | null; quantite_recue: number | null; lot_id: string | null;
+  code: string | null; unites_lot: number;
 }
 export interface Bon {
   id: string; reference: string; statut: string; fournisseur: { id: string; nom: string; devise: string } | null;
@@ -175,6 +177,12 @@ export const ajouterLigneBon = (id: string, asin: string, marketplace: string, q
 export const actionBon = (id: string, action: "envoyer" | "annuler") => envoyer<Bon>(`/api/bons/${id}/${action}`, {});
 export const recevoirBon = (id: string, quantites: Record<string, number>) =>
   envoyer<Bon & { lots_crees: string[] }>(`/api/bons/${id}/recevoir`, { quantites });
+export const modifierQuantiteBon = (id: string, ligne: string, quantite: number) =>
+  requete<Bon>("PATCH", `/api/bons/${id}/lignes/${ligne}`, { quantite });
+export interface ChoixPlan { origine: string; marketplace: string; code: string; asin: string; quantite?: number }
+export interface ResultatPlan { ajoutees: number; deja: number; bons: string[]; refus: { asin: string; code: string; motif: string }[] }
+export const ajouterAuPlan = (lignes: ChoixPlan[]) => envoyer<ResultatPlan>("/api/plan-achat", { lignes });
+export const documentBon = (id: string, format: "pdf" | "xlsx") => `/api/bons/${id}/document.${format}`;
 export const bonDepuisStock = (fournisseur: string) => envoyer<Bon>("/api/bons/depuis-stock", { fournisseur });
 export async function retirerLigneBon(id: string, ligne: string): Promise<Bon> {
   const r = await fetch(`/api/bons/${id}/lignes/${ligne}`, { method: "DELETE", headers: ENTETE, credentials: "same-origin" });
