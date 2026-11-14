@@ -183,6 +183,9 @@ def analyser_asin(
         alertes.append(m("A_AMAZON_EN_STOCK", pct=hist.amazon_en_stock_pct90))
     if prix and hist and hist.prix_buybox_moy90 and prix > hist.prix_buybox_moy90 * (1 + seuils.ecart_prix_max):
         alertes.append(m("A_PIC_PRIX", prix=prix, moyenne=hist.prix_buybox_moy90, seuil=seuils.ecart_prix_max))
+    est_parent = getattr(cat, "classification", None) == "VARIATION_PARENT"   # [RM-AMZ-082]
+    if est_parent:
+        alertes.append(m("A_ASIN_PARENT", n=getattr(cat, "nb_variantes", None)))
     if cat.nb_unites_lot and cat.nb_unites_lot > 1:
         alertes.append(m("A_LOT_MULTIPLE", n=cat.nb_unites_lot))
     if hist and hist.prix_buybox_min90 and hist.prix_buybox_max90 and hist.prix_buybox_min90 > 0:

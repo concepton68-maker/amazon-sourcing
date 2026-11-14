@@ -25,6 +25,7 @@ def m(code: str, **params) -> Message:
 
 # Textes français pour la ligne de commande. Pourcentages en fraction (0.3 = 30 %).
 FR: dict[str, str] = {
+    "A_ASIN_PARENT": "Produit parent ({n} variantes) : analysez la variante précise (taille, couleur)",
     # conformité [RM-AMZ-061 à 066]
     "C_LUCID_FORMAT": "Le n° LUCID attendu par Amazon a 13 chiffres",
     "C_FABRICANT_INCOMPLET": "Fabricant : nom, adresse postale et adresse électronique à compléter",

@@ -197,4 +197,4 @@ de la politique de protection des données d'Amazon ; le texte de la politique e
 
 | N° | Règle | Source | Statut | Blocage | Test | État |
 |---|---|---|---|---|---|---|
-| RM-AMZ-082 | **Produit parent** : si le catalogue classe l'ASIN `VARIATION_PARENT` (« a parent catalog item that groups child items »), l'analyse le dit (`A_ASIN_PARENT`, avec le nombre de variantes) et ne conclut jamais « Acheter » : les offres et les prix sont portés par chaque variante (taille, couleur). | Modèle officiel Catalog Items 2022-04-01 (`itemClassification`, `relationships`) lu le 14/11/2026 | lu | avertissement | `test_asin_parent` | à coder |
+| RM-AMZ-082 | **Produit parent** : si le catalogue classe l'ASIN `VARIATION_PARENT` (« a parent catalog item that groups child items »), l'analyse le dit (`A_ASIN_PARENT`, avec le nombre de variantes) et ne conclut jamais « Acheter » : les offres et les prix sont portés par chaque variante (taille, couleur). | Modèle officiel Catalog Items 2022-04-01 (`itemClassification`, `relationships`) lu le 14/11/2026 | lu | avertissement | `test_asin_parent` | codé |
