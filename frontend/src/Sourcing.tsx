@@ -18,6 +18,14 @@ export function SourcingVue({ analyser }: { analyser: (code: string, prix: numbe
   const [tid, setTid] = useState<string | null>(null);
   const [suivi, setSuivi] = useState<Suivi | null>(null);
   const [filtre, setFiltre] = useState("TOUS");
+  // [RM-AMZ-031] rôle choisi dans l'en-tête de la colonne ; une colonne = un rôle au plus
+  const roleDe = (i: number) => ROLES.find((r) => colonnes[r] === i) ?? null;
+  const choisir = (i: number, role: string) => {
+    const c: Colonnes = { ...colonnes };
+    for (const r of ROLES) if (c[r] === i) c[r] = null;
+    if (role) c[role] = i;
+    setColonnes(c);
+  };
   const [erreur, setErreur] = useState<string | null>(null);
 
   const [params, setParams] = useState<Params | null>(null);
@@ -76,20 +84,24 @@ export function SourcingVue({ analyser }: { analyser: (code: string, prix: numbe
 
       {fichier && (
         <form className="carte" onSubmit={lancer}>
-          <h3>{t("sourcing.colonnes")}</h3>
-          <div className="formulaire nu">
-            {ROLES.map((r) => (
-              <label key={r}>{t(`role.${r}`)}
-                <select value={colonnes[r] ?? ""} onChange={(e) => setColonnes({ ...colonnes, [r]: e.target.value === "" ? null : Number(e.target.value) })}>
-                  <option value="">{t("sourcing.aucune")}</option>
-                  {fichier.entetes.map((h, i) => <option key={i} value={i}>{h || `#${i + 1}`}</option>)}
-                </select></label>
-            ))}
+          <div className="etat-colonnes">
+            {["code", "prix"].map((r) => (
+              <span key={r} className={colonnes[r] != null ? "ok" : "manque"}>{colonnes[r] != null ? "✓" : "✗"} {t(`role.${r}`)}</span>))}
           </div>
           <div className="defile">
-            <table aria-label={t("sourcing.apercu")}>
-              <thead><tr>{fichier.entetes.map((h, i) => <th key={i} scope="col">{h}</th>)}</tr></thead>
-              <tbody>{fichier.apercu.map((l, k) => <tr key={k}>{l.map((c, i) => <td key={i}>{c}</td>)}</tr>)}</tbody>
+            <table className="tab-roles" aria-label={t("sourcing.apercu")}>
+              <thead><tr>{fichier.entetes.map((h, i) => {
+                const role = roleDe(i);
+                return (
+                  <th key={i} scope="col" className={role ? "pris" : "ignore"}>
+                    <select aria-label={`${t("sourcing.colonnes")} ${h || `#${i + 1}`}`} value={role ?? ""} onChange={(e) => choisir(i, e.target.value)}>
+                      <option value="">{t("sourcing.ignorer")}</option>
+                      {ROLES.map((r) => <option key={r} value={r}>{t(`role.${r}`)}</option>)}
+                    </select>
+                    <span className="nom">« {h || `#${i + 1}`} »</span>
+                  </th>);
+              })}</tr></thead>
+              <tbody>{fichier.apercu.map((l, k) => <tr key={k}>{l.map((c, i) => <td key={i} className={roleDe(i) ? undefined : "ignore"}>{c}</td>)}</tr>)}</tbody>
             </table>
           </div>
           <div className="formulaire nu">
