@@ -99,13 +99,13 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
 
 <script type="application/json" id="donnees">
 {
-  "maj": "14/11/2026, 16 h 00 (Paris)",
+  "maj": "14/11/2026, 16 h 20 (Paris)",
   "strates": [
     {"id": "s0", "nom": "Avant le chantier (estimé)", "date": "14/11 matin"},
     {"id": "s1", "nom": "Chantier concurrence 1 à 4 (PR #45 à #48)", "date": "14/11"},
     {"id": "s2", "nom": "Plan d'achat, bon PDF (PR #49)", "date": "14/11"},
     {"id": "s3", "nom": "Bon envoyé depuis la messagerie (PR #53)", "date": "14/11"},
-    {"id": "s4", "nom": "Analyse de tous les catalogues, avancement en direct (PR #57, #58)", "date": "14/11"}
+    {"id": "s4", "nom": "Analyse de tous les catalogues, avancement en direct, bouton Arrêter (PR #57 à #59)", "date": "14/11"}
   ],
   "domaines": [
     {"nom": "Éligibilité", "notes": {"s0": 7, "s1": 8.5}, "eux": 8, "qui": "Seller Assistant (outil tiers) ; Boxem (outil tiers, États-Unis seulement)",
@@ -127,7 +127,7 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
     {"nom": "Après-vente", "notes": {"s0": 6.5, "s1": 7}, "eux": 8, "qui": "sellerboard, Helium 10",
      "fait": "Profit réel, FIFO, réassort, remboursements, conformité, alerte sous plancher.", "manque": "Alertes temps réel ; demande d'avis automatique."},
     {"nom": "Autonomie et temps réel", "notes": {"s0": 8, "s4": 8.5}, "eux": 6, "qui": "sellerboard, Seller Assistant (outils tiers)",
-     "fait": "Travaux de nuit relançables avec avancement réel, résultats au fil de l'eau.", "manque": "Objectifs, journal du pilote, plan d'achat proposé chaque matin, notifications Amazon."},
+     "fait": "Travaux de nuit relançables avec avancement en direct (étape, durée, dernière nouvelle), bouton Arrêter, mise à jour du site qui attend, résultats au fil de l'eau.", "manque": "Objectifs, journal du pilote, plan d'achat proposé chaque matin, notifications Amazon."},
     {"nom": "Confiance et conformité", "notes": {"s0": 9}, "eux": 5, "qui": "Outils adossés à Keepa ou à des bases aspirées",
      "fait": "Données du compte seulement, sans aspiration ni revente, valeurs sourcées.", "manque": "Serveur en Europe avant le premier client."}
   ],

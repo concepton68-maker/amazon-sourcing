@@ -104,7 +104,8 @@ def candidats(depot, compte_id: str, mp_code: str, maintenant: datetime) -> list
 
 def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
              progression: Callable[..., None] = lambda f, t, phase="": None,
-             attendre: Callable[[float], None] = time.sleep, maintenant: Optional[datetime] = None) -> dict:
+             attendre: Callable[[float], None] = time.sleep, maintenant: Optional[datetime] = None,
+             arret: Callable[[], bool] = lambda: False) -> dict:
     """[RM-AMZ-111] Amazon d'abord : codes par paquets, correspondances analysées, rangées par fournisseur."""
     from .traitement import _ligne, opportunite
     maintenant = maintenant or datetime.now(timezone.utc)
@@ -112,7 +113,11 @@ def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
     idx = index_catalogues(depot, compte_id)
     paquet_src = next((s for s in fx.catalogue if hasattr(s, "catalogue_par_paquet")), None)
     trouves: list[tuple] = []                       # (asin, fournisseur, ligne)
+    arrete = False
     for i in range(0, len(asins), PAQUET):
+        if arret():                                                   # [RM-AMZ-136]
+            arrete = True
+            break
         progression(i, len(asins), "CODES")
         morceau = asins[i:i + PAQUET]
         try:
@@ -130,6 +135,9 @@ def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
     for fid in {f.id for lst in idx.values() for f, _ in lst}:          # l'ancienne correspondance est retirée
         depot.vider_opportunites(compte_id, f"CORRESPONDANCE:{fid}", mp.code)
     for k, (a, f, l) in enumerate(analysables):                      # [RM-AMZ-114] rangés au fil de l'eau
+        if arret():
+            arrete = True
+            break
         progression(k, len(analysables), "ANALYSE")
         r = _ligne(LigneFournisseur(l.numero, l.code, l.prix_unitaire, l.designation, l.colisage, l.minimum), mp, a,
                    fx, regime, seuils, False, _parametres_fournisseur(parametres, f))
@@ -140,6 +148,7 @@ def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
     progression(len(analysables), len(analysables), "ANALYSE")
     return {"le": maintenant.isoformat(), "candidats": len(asins), "correspondances": len(trouves),
             "catalogues_cherches": len({f.id for lst in idx.values() for f, _ in lst}),         # [RM-AMZ-132]
+            "arretee": arrete,
             "fournisseurs": len(par_f), "catalogues": len({f.id for _, f, _ in trouves})}
 
 
@@ -149,6 +158,7 @@ class Correspondances:
     def __init__(self, en_fond: bool = True):
         self.en_cours: dict[str, tuple] = {}
         self.bilans: dict[str, dict] = {}
+        self.arrets: set[str] = set()
         self.en_fond = en_fond
         self._verrou = threading.Lock()
 
@@ -160,8 +170,10 @@ class Correspondances:
 
         def travail():
             try:
+                self.arrets.discard(compte_id)
                 self.bilans[compte_id] = executer(compte_id, mp, fx, depot, parametres, regime,
-                                                  lambda f, t, phase="": self.en_cours.__setitem__(compte_id, (f, t, phase)), attendre)
+                                                  lambda f, t, phase="": self.en_cours.__setitem__(compte_id, (f, t, phase)), attendre,
+                                                  arret=lambda: compte_id in self.arrets)
             except Exception as e:
                 self.bilans[compte_id] = {"erreur": f"{type(e).__name__}: {str(e)[:200]}"}
             finally:
@@ -170,4 +182,11 @@ class Correspondances:
             threading.Thread(target=travail, daemon=True).start()
         else:
             travail()
+        return True
+
+    def arreter(self, compte_id: str) -> bool:
+        """[RM-AMZ-136]"""
+        if compte_id not in self.en_cours:
+            return False
+        self.arrets.add(compte_id)
         return True

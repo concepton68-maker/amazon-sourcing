@@ -226,3 +226,24 @@ class TestSynchroManuelle(unittest.TestCase):
         SN.executer_compte(c, Faux(), "EU", d, NUIT, attendre=lambda s: None, taches={"STOCK"},
                            suivi=lambda t, r: etapes.append((t, r is None)))
         self.assertEqual(etapes, [("STOCK", True), ("STOCK", False)])
+
+
+class TestArret(unittest.TestCase):
+    def test_arret_travaux_manuels(self):
+        """[RM-AMZ-136] Arrêt demandé : les tâches suivantes sont « arrêtée » ; une attente de rapport s'interrompt."""
+        d, c = construire()
+        demande = {"v": False}
+        res = []
+
+        def suivi(t, r):
+            if r is not None:
+                res.append(r)
+                if t == "VENTES":
+                    demande["v"] = True
+        SN.executer_compte(c, Faux(), "EU", d, NUIT, attendre=lambda s: None, taches={"VENTES", "STOCK", "REMBOURSEMENTS"},
+                           suivi=suivi, arret=lambda: demande["v"])
+        self.assertEqual([(r.tache, r.message) for r in res][1:], [("STOCK", "arrêtée"), ("REMBOURSEMENTS", "arrêtée")])
+        # pendant l'attente d'un rapport
+        r = SN.executer_compte(c, Faux(), "EU", d, NUIT, attendre=lambda s: None, taches={"REMBOURSEMENTS"},
+                               arret=iter([False, True, True, True, True]).__next__)
+        self.assertEqual(r[0].message, "arrêtée")

@@ -50,7 +50,9 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 
 | (lot remboursements-rapides) | Remboursements seulement sur les places actives (avant : 3 rapports × chaque pays ouvert, des heures), avancement en direct (« FR · rapport 2 sur 3 · Amazon prépare le rapport (4 min) », depuis, dernière nouvelle, lien « voir »), mise à jour automatique reportée tant qu'un travail tourne (3 h au plus) | RM-AMZ-133 à 135 | — |
 
-Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 135) · décisions `docs/decisions/registre.md`
+| (lot arreter) | Bouton « Arrêter » (travaux lancés à la main, analyses de catalogues, recherche chez les fournisseurs), à la prochaine étape sûre, déjà obtenu gardé ; pas de pause (arrêter puis relancer suffit) | RM-AMZ-136 | — |
+
+Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 136) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 033).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)

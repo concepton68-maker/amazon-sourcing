@@ -71,6 +71,7 @@ class Traitement:
     appariements_memoire: int = 0
     origine: Optional[tuple[str, str]] = None     # (clé, nom) pour la liste des produits rentables [RM-AMZ-105]
     debut: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    arret: bool = False                           # [RM-AMZ-136] demandé : pris en compte entre deux produits
 
     def tries(self) -> list[ResultatLigne]:
         """[RM-AMZ-035] Verdict puis ROI décroissant ; introuvables et erreurs à la fin."""
@@ -181,6 +182,9 @@ def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs,
             depot.ajouter_opportunites(t.compte_id, t.origine[0], mp.code, [opportunite(t.origine, mp.code, r)])
     try:
         for l in prep.lignes:
+            if t.arret:
+                t.statut = "ARRETE"
+                break
             try:
                 asins = _asins(t.compte_id, mp, l.code, f, depot, t, maintenant)
             except ErreurFournisseur:
@@ -196,7 +200,8 @@ def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs,
                 t.resultats.append(_ligne(l, mp, asin, f, regime, seuils, achat_ttc, parametres))
                 ranger(t.resultats[-1])
             t.faits += 1
-        t.statut = "TERMINE"
+        if t.statut == "EN_COURS":
+            t.statut = "TERMINE"
         if t.origine and not direct and hasattr(depot, "enregistrer_opportunites"):   # [RM-AMZ-105]
             depot.enregistrer_opportunites(t.compte_id, t.origine[0], t.origine[1], mp.code,
                                            [opportunite(t.origine, mp.code, r) for r in t.resultats
@@ -233,6 +238,13 @@ class Traitements:
             travail()
         except Exception:
             pass  # le statut ERREUR est déjà posé sur le traitement
+
+    def arreter(self, compte_id: str) -> int:
+        """[RM-AMZ-136]"""
+        en = self.en_cours(compte_id)
+        for t in en:
+            t.arret = True
+        return len(en)
 
     def en_cours(self, compte_id: str) -> list[Traitement]:
         return [t for t in self._t.values() if t.compte_id == compte_id and t.statut == "EN_COURS"]

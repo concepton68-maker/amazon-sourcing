@@ -902,5 +902,9 @@
   "erreur.AUCUN_CATALOGUE": "Aucun catalogue chargé.",
   "manuel.voir": "voir",
   "manuel.depuis": "depuis {d}",
-  "manuel.vu": "dernière nouvelle il y a {d}"
+  "manuel.vu": "dernière nouvelle il y a {d}",
+  "arret.bouton": "Arrêter",
+  "arret.en_cours": "Arrêt demandé…",
+  "arret.tache": "arrêtée",
+  "arret.info": "S'arrête à la prochaine étape sûre ; ce qui est déjà obtenu reste enregistré."
 }

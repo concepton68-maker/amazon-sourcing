@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Connexions, EtapeTest, EtatMessagerie, deconnecterMessagerie, demarrerMessagerie, lireMessagerie, EtatManuel, TacheSynchro, lancerSynchroManuelle, lireJournalSynchro, lireSynchroManuelle, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
+import { arreterTravaux, Connexions, EtapeTest, EtatMessagerie, deconnecterMessagerie, demarrerMessagerie, lireMessagerie, EtatManuel, TacheSynchro, lancerSynchroManuelle, lireJournalSynchro, lireSynchroManuelle, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
 import { dateCourte, t } from "./i18n";
 
 // Où trouver chaque code chez Amazon (adresses données par Sam et par la documentation Amazon)
@@ -89,6 +89,7 @@ function TravauxManuels({ fini }: { fini: () => void }) {
   const statut = (x: string) => {
     if (!etat || !etat.taches.includes(x)) return null;
     const r = etat.terminees.find((y) => y.tache === x);
+    if (r && r.message === "arrêtée") return <span className="meta">— {t("arret.tache")}</span>;
     if (r) return <span className={r.ok ? "positif" : "negatif"}>{r.ok ? "✓" : "✗"} {r.message}
       {r.ok && DESTINATION[x] && <> · <a href={DESTINATION[x]}>{t("manuel.voir")}</a></>}</span>;
     if (etat.courante !== x) return <span className="meta">{etat.en_cours ? t("manuel.attente") : ""}</span>;
@@ -102,7 +103,9 @@ function TravauxManuels({ fini }: { fini: () => void }) {
     <section className="carte" aria-label={t("manuel.titre")}>
       <div className="entete-vue"><h3>{t("manuel.titre")}</h3>
         <button type="button" className="principal" disabled={etat?.en_cours || choix.length === 0} onClick={lancer}>
-          {etat?.en_cours ? t("manuel.en_cours_n", { f: etat.terminees.length, t: etat.taches.length }) : t("manuel.lancer", { n: choix.length })}</button></div>
+          {etat?.en_cours ? t("manuel.en_cours_n", { f: etat.terminees.length, t: etat.taches.length }) : t("manuel.lancer", { n: choix.length })}</button>
+        {etat?.en_cours && <button type="button" className="secondaire" disabled={!!etat.arret} onClick={() => arreterTravaux().then(lire)}
+          title={t("arret.info")}>{etat.arret ? t("arret.en_cours") : t("arret.bouton")}</button>}</div>
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
       <table className="table-compacte"><tbody>
         <tr className="cliquable" onClick={(e) => { if (!(e.target as HTMLElement).closest("input")) setChoix(choix.length === taches.length ? [] : taches); }}>
