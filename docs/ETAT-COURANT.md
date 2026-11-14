@@ -56,8 +56,10 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 
 | (lot double-clic) | Produits rentables : clic sur la ligne = cocher, double-clic = analyser (le titre n'est plus un lien) | — | — |
 
-Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 139) · décisions `docs/decisions/registre.md`
-(D-AMZ-001 à 034).
+| (lot donnees) | Écran « Données » (produits analysés, marché, relevés jour par jour, autorisations, catalogues : recherche, filtres par colonne, tri, colonnes, export, clic/double-clic, ajout au plan) ; « Relever maintenant » dans Marché avec arrêt | RM-AMZ-140, 141 | 1.22 |
+
+Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 141) · décisions `docs/decisions/registre.md`
+(D-AMZ-001 à 035).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)
 
@@ -77,6 +79,7 @@ Index : `docs/recherches/README.md`.
   - affichage dense et professionnel, sans grosses pastilles ni phrases d'explication inutiles (infobulle ⓘ) ;
   - réglages rangés par rubriques logiques ;
   - pluriels corrects.
+- **Le manuel d'abord** (D-AMZ-035) : tout ce qui est automatique se lance, s'arrête et se consulte aussi à la main ; chaque donnée se trie, se cherche, se filtre, s'exporte, s'importe.
 - **Résultats en temps réel** : tout ce qui est long tourne en arrière-plan, de façon autonome (nuit + à la
   demande), les résultats tombent au fil de l'eau et sont exploitables tout de suite ; avancement réel visible.
 - **Réglages pilotés par l'utilisateur, toujours rappelés quand ils sont actifs** (ex. supplément carburant :

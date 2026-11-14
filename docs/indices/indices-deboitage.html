@@ -99,25 +99,26 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
 
 <script type="application/json" id="donnees">
 {
-  "maj": "14/11/2026, 17 h 00 (Paris)",
+  "maj": "14/11/2026, 17 h 30 (Paris)",
   "strates": [
     {"id": "s0", "nom": "Avant le chantier (estimé)", "date": "14/11 matin"},
     {"id": "s1", "nom": "Chantier concurrence 1 à 4 (PR #45 à #48)", "date": "14/11"},
     {"id": "s2", "nom": "Plan d'achat, bon PDF (PR #49)", "date": "14/11"},
     {"id": "s3", "nom": "Bon envoyé depuis la messagerie (PR #53)", "date": "14/11"},
     {"id": "s4", "nom": "Analyse de tous les catalogues, avancement en direct, bouton Arrêter (PR #57 à #59)", "date": "14/11"},
-    {"id": "s5", "nom": "Envoi FBA par l'API, partie 1 (PR #60)", "date": "14/11"}
+    {"id": "s5", "nom": "Envoi FBA par l'API, partie 1 (PR #60)", "date": "14/11"},
+    {"id": "s6", "nom": "Écran Données, relever maintenant (PR #62)", "date": "14/11"}
   ],
   "domaines": [
     {"nom": "Éligibilité", "notes": {"s0": 7, "s1": 8.5}, "eux": 8, "qui": "Seller Assistant (outil tiers) ; Boxem (outil tiers, États-Unis seulement)",
      "fait": "Sondage de nuit avec alerte « débloqué », vérification en masse, lien « Demander l'autorisation ».", "manque": "Aucun automatisme d'approbation (pas d'API chez Amazon)."},
-    {"nom": "Trouver des produits", "notes": {"s0": 4, "s4": 4.5}, "eux": 9, "qui": "SmartScout, Helium 10, Keepa",
+    {"nom": "Trouver des produits", "notes": {"s0": 4, "s4": 4.5, "s6": 5}, "eux": 9, "qui": "SmartScout, Helium 10, Keepa",
      "fait": "Suivi de marché, produits rentables, exploration de nuit, analyse de tous les catalogues en un geste.", "manque": "Recherche par marque et par vitrine ; pas de Keepa (choix)."},
     {"nom": "Fournisseurs", "notes": {"s0": 8}, "eux": 7, "qui": "Seller Assistant, Tactical Arbitrage (outils tiers)",
      "fait": "Annuaire UE sourcé, catalogues, « Où l'acheter », correspondance de nuit.", "manque": "Aucun fournisseur branché par API."},
     {"nom": "Coût complet et profit", "notes": {"s0": 8, "s1": 9}, "eux": 7, "qui": "SellerAmp, BuyBotPro",
      "fait": "Stockage au barème UE, carburant, placement, port, TVA, prix max, comparaison entre pays.", "manque": "Carburant à vérifier sur un vrai relevé."},
-    {"nom": "Demande, historique, Buy Box", "notes": {"s0": 3, "s1": 4}, "eux": 9, "qui": "Keepa, SmartScout",
+    {"nom": "Demande, historique, Buy Box", "notes": {"s0": 3, "s1": 4, "s6": 4.5}, "eux": 9, "qui": "Keepa, SmartScout",
      "fait": "Relevés de nuit : baisses de BSR, stabilité du prix, présence d'Amazon, détenteur de la Buy Box.", "manque": "Historique ancien impossible sans Keepa ; il se construit nuit après nuit."},
     {"nom": "Acheter", "notes": {"s0": 6, "s2": 7, "s3": 8}, "eux": 7, "qui": "Seller Assistant (outil tiers : bon PDF/XLSX)",
      "fait": "Plan d'achat (un bon par fournisseur), bon PDF et Excel, envoi depuis la messagerie avec traces, prévu/réel par lot.", "manque": "Paiement intégré ; API fournisseurs ; envoi par messagerie pas encore essayé sur le vrai compte."},
@@ -140,6 +141,7 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
     {"quoi": "Premier fournisseur branché par API (Qogita)", "effet": "Fournisseurs 8 → 9"}
   ],
   "historique": [
+    {"strate": "s6", "quoi": "Trouver 4,5 → 5 et Demande 4 → 4,5 : écran Données (recherche, filtres, tri, export sur tout ce qui est collecté), relevé de marché à la demande."},
     {"strate": "s5", "quoi": "Envoi chez Amazon 0 → 2 : brouillon, plan Amazon, emballage, cartons, annulation (partie 1, non essayée sur le vrai compte)."},
     {"strate": "s4", "quoi": "Trouver 4 → 4,5 et Autonomie 8 → 8,5 : analyse de tous les catalogues en un geste, avancement en direct des travaux (rapport n sur 3, dernière nouvelle), mise à jour du site qui attend la fin d'un travail."},
     {"strate": "s3", "quoi": "Acheter 7 → 8 : bon envoyé depuis la messagerie Microsoft, traces, jamais de renvoi incertain (PR #53)."},

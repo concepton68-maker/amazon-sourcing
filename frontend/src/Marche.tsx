@@ -3,6 +3,28 @@ import { HistoriqueProduit, LigneMarche, Marche, Tendance, choisirFamilles, hist
   suivreProduit } from "./api";
 import { monnaie, pourcent, t } from "./i18n";
 import { FiltreMultiple } from "./Filtre";
+import { EtatManuel, arreterTravaux, lancerSynchroManuelle, lireSynchroManuelle } from "./api";
+
+// [RM-AMZ-141] relever maintenant (Buy Box, prix, classement, offres), avec avancement et arrêt
+function ReleverMaintenant({ fini }: { fini: () => void }) {
+  const [etat, setEtat] = useState<EtatManuel | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const lireEtat = () => lireSynchroManuelle().then((x) => setEtat((avant) => { if (avant?.en_cours && x.etat && !x.etat.en_cours) fini(); return x.etat; })).catch(() => undefined);
+  useEffect(() => { lireEtat(); }, []);
+  useEffect(() => { if (!etat?.en_cours) return; const i = setTimeout(lireEtat, 2000); return () => clearTimeout(i); }, [etat]);
+  const enCours = !!etat?.en_cours;
+  const releve = etat?.terminees.find((x) => x.tache === "HISTORIQUE");
+  return (
+    <div className="releve-maintenant">
+      {enCours ? <>
+          <span className="en-cours"><span className="point-pulse" aria-hidden="true" /> {etat?.courante ? (etat.detail ?? t(`synchro.${etat.courante}`)) : t("manuel.attente")}</span>
+          <button type="button" className="secondaire" disabled={!!etat?.arret} onClick={() => arreterTravaux().then(lireEtat)}>{etat?.arret ? t("arret.en_cours") : t("arret.bouton")}</button></>
+        : <button type="button" className="principal" onClick={() => { setErreur(null); lancerSynchroManuelle(["HISTORIQUE"]).then(lireEtat).catch((x) => setErreur((x as Error).message)); }}>{t("sm.relever")}</button>}
+      {!enCours && releve && <span className="meta">{releve.ok ? "✓" : "✗"} {releve.message}</span>}
+      {erreur && <span role="alert" className="alerte">{t(`erreur.${erreur}`)}</span>}
+    </div>
+  );
+}
 
 // Suivi de marché [RM-AMZ-086 à 090] : familles choisies, liste suivie, historique relevé chaque nuit.
 const nb = (v: number | null | undefined) => (v === null || v === undefined ? "—" : v.toLocaleString("fr-FR"));
@@ -114,6 +136,7 @@ export function MarcheVue({ analyser }: { analyser: (code: string) => void }) {
       <div className="entete-vue">
         <h1>{t("sm.titre")}</h1>
         <span className="meta">{t("sm.prochain")}</span>
+        <ReleverMaintenant fini={lire} />
       </div>
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
       <div className="barre-filtres">
