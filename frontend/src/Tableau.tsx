@@ -65,10 +65,11 @@ export function TableauVue() {
           {tb.serie.length ? <Courbe serie={tb.serie} devise={d} /> : <p className="meta">{t("tb.aucune_vente")}</p>}</section>
         <section className="carte"><h3>{t("tb.a_faire")}</h3>
           <ul className="taches">
-            {af.recommander > 0 && <Tache ton="r" icone="!" titre={t("tb.recommander", { n: af.recommander })} lien="#stock" />}
-            {af.remboursements > 0 && <Tache ton="a" icone="€" titre={t("tb.remboursements", { n: af.remboursements })}
+            {af.carburant ? <Tache ton="a" icone="⛽" titre={t("tb.carburant", { taux: p(af.carburant) })} lien="#parametres/frais" /> : null}
+            {af.recommander > 0 && <Tache ton="r" icone="!" titre={t(af.recommander === 1 ? "tb.recommander_1" : "tb.recommander", { n: af.recommander })} lien="#stock" />}
+            {af.remboursements > 0 && <Tache ton="a" icone="€" titre={t(af.remboursements === 1 ? "tb.remboursements_1" : "tb.remboursements", { n: af.remboursements })}
               detail={Object.entries(af.valeur_remboursements).map(([dv, v]) => m(v, dv)).join(" · ")} lien="#remboursements" />}
-            {af.conformite > 0 && <Tache ton="b" icone="⚑" titre={t("tb.conformite", { n: af.conformite })} lien="#conformite" />}
+            {af.conformite > 0 && <Tache ton="b" icone="⚑" titre={t(af.conformite === 1 ? "tb.conformite_1" : "tb.conformite", { n: af.conformite })} lien="#conformite" />}
             {af.synchro === null ? <Tache ton="n" icone="…" titre={t("tb.synchro_jamais")} lien="#parametres" />
               : af.synchro.echecs.length ? <Tache ton="r" icone="×" titre={t("tb.synchro_echec")}
                 detail={af.synchro.echecs.map((x) => t(`synchro.${x}`)).join(", ")} lien="#parametres" />

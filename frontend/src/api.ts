@@ -102,11 +102,12 @@ export const deconnecter = () =>
 export interface Params {
   roi_min: number; profit_min: number; ventes_mois_min: number; part_ventes_min: number; ecart_prix_max: number;
   envoi: number; preparation: number; stockage: number; retours: number; tva: Record<string, string>; versions: number;
-  port_fournisseur: number; placement: number; duree_stock_mois: number; carburant_inclus: number;
+  port_fournisseur: number; placement: number; duree_stock_mois: number; carburant_taux: number; carburant_actif: number;
+  reference_carburant?: { taux: number; depuis: string };
   delai_fournisseur: number; delai_reception: number; marge_securite: number; seuil_rupture: number; seuil_surstock: number;
 }
 export const lireParametres = () => lire<Params>("/api/parametres");
-export async function ecrireParametres(p: Omit<Params, "versions">): Promise<Params> {
+export async function ecrireParametres(p: Partial<Params>): Promise<Params> {
   const r = await fetch("/api/parametres", { method: "PUT", credentials: "same-origin",
     headers: { "content-type": "application/json", ...ENTETE }, body: JSON.stringify(p) });
   if (r.status === 401) throw new NonConnecte("NON_CONNECTE");
@@ -277,7 +278,7 @@ export const historiqueProduit = (asin: string, marketplace: string) =>
 export interface ChiffresDevise { ventes: number; profit: number; stock: number; variation_ventes: number | null; roi: number | null }
 export interface Tableau { devise: string | null; par_devise: Record<string, ChiffresDevise>;
   serie: { jour: string; profit: number }[]; ventes_non_rattachees: number; unites_sans_cout: number;
-  a_faire: { recommander: number; remboursements: number; valeur_remboursements: Record<string, number>; conformite: number;
+  a_faire: { carburant: number | null; recommander: number; remboursements: number; valeur_remboursements: Record<string, number>; conformite: number;
     synchro: { le: string; echecs: string[] } | null };
   mouvements: { asin: string; titre: string | null; variation: number; prix: number | null; bsr: number | null }[] }
 export const lireTableau = () => lire<Tableau>("/api/tableau");

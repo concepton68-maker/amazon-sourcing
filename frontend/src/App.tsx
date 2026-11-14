@@ -146,7 +146,7 @@ function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: bo
 type Vue = "tableau" | "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "conformite" | "vendable" | "marche" | "parametres";
 const vueDepuisAdresse = (): Vue => {
   const h = window.location.hash;
-  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : h === "#vendable" ? "vendable" : h === "#marche" ? "marche" : h === "#analyse" ? "analyse" : "tableau";
+  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h.startsWith("#parametres") ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : h === "#vendable" ? "vendable" : h === "#marche" ? "marche" : h === "#analyse" ? "analyse" : "tableau";
 };
 
 export function App() {

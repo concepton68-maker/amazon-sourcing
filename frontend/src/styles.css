@@ -387,3 +387,13 @@ a.produit { color: var(--encre); text-decoration: none; } a.produit:hover { colo
 .barre-actions .meta { margin: 0 auto 0 0; }
 .barre-actions button.secondaire, .barre-actions .bouton-lien { min-height: 36px; font-size: 13.5px; }
 .case-reglage input { width: 18px; height: 18px; min-height: 0; accent-color: var(--accent); }
+/* Paramètres en rubriques */
+.reglages { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
+.sous-menu { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 16px; }
+.sous-menu a { padding: 9px 12px; border-radius: 9px; color: var(--doux); text-decoration: none; font-weight: 600; font-size: 14px; }
+.sous-menu a:hover { background: #e9edf3; color: var(--encre); }
+.sous-menu a[aria-current="page"] { background: #fff; color: var(--accent); box-shadow: 0 1px 2px rgba(15, 23, 36, .1); }
+.reglages-corps { min-width: 0; max-width: 760px; }
+.reglages-corps h2 { font: 800 18px var(--titre); }
+.reglages-corps .ligne-reglage { display: grid; grid-template-columns: minmax(0, 1fr) 200px; align-items: center; gap: 16px; }
+@media (max-width: 900px) { .reglages { grid-template-columns: 1fr; } .sous-menu { position: static; flex-direction: row; overflow-x: auto; } }

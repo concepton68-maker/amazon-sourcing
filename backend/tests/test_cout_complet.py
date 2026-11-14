@@ -87,17 +87,42 @@ class TestCoutComplet(unittest.TestCase):
         self.assertIn("HYP_STOCKAGE_SAISI", {x.code for x in a.rentabilite.hypotheses})
 
     def test_supplement_carburant(self):
-        """[RM-AMZ-097] 2 % des frais FBA dès le 2/11/2026 sur les 10 sites ; retiré si « déjà inclus » ; hors champ : rien."""
+        """[RM-AMZ-097] Valeur officielle de référence : 2 % dès le 2/11/2026 sur les 10 sites ; appliqué au taux réglé."""
         self.assertEqual(FF.taux_carburant("FR", date(2026, 11, 2)), 0.02)
         self.assertIsNone(FF.taux_carburant("FR", date(2026, 11, 1)))
         self.assertIsNone(FF.taux_carburant("US", NOV))
-        a = analyse(Faux(fba=4.0))
+        a = analyse(Faux(fba=4.0), carburant_taux=0.02)
         self.assertEqual(a.rentabilite.detail["carburant"], 0.08)
         self.assertIn("HYP_CARBURANT", {x.code for x in a.rentabilite.hypotheses})
-        b = analyse(Faux(fba=4.0), carburant_inclus=True)
+        b = analyse(Faux(fba=4.0))                                              # inactif : rien, et rien n'est dit
         self.assertEqual(b.rentabilite.detail["carburant"], 0.0)
-        self.assertIn("HYP_CARBURANT_INCLUS", {x.code for x in b.rentabilite.hypotheses})
+        self.assertNotIn("HYP_CARBURANT", {x.code for x in b.rentabilite.hypotheses})
         self.assertAlmostEqual(b.rentabilite.profit_net - a.rentabilite.profit_net, 0.08, places=2)
+        c = analyse(Faux(fba=4.0), carburant_taux=0.035)                        # hausse ponctuelle réglée par le vendeur
+        self.assertEqual(c.rentabilite.detail["carburant"], 0.14)
+
+    def test_reglage_carburant(self):
+        """[RM-AMZ-097] Taux + actif ; décocher garde le taux ; ancien réglage « inclus » relu ; bornes."""
+        from sourcing.parametres import ParametreInvalide, valider
+        p = valider({})
+        self.assertEqual((p.carburant_taux, p.carburant_actif, p.options_cout()["carburant_taux"]), (0.02, 1, 0.02))
+        p = valider({"carburant_taux": 0.03, "carburant_actif": 0})
+        self.assertEqual((p.carburant_taux, p.options_cout()["carburant_taux"]), (0.03, None))
+        self.assertEqual(valider({"carburant_inclus": 1}).carburant_actif, 0)
+        with self.assertRaises(ParametreInvalide):
+            valider({"carburant_taux": 0.5})
+
+    def test_rappel_carburant(self):
+        """[RM-AMZ-097] Actif : rappelé sur le tableau de bord ; référence officielle exposée avec les paramètres."""
+        from fastapi.testclient import TestClient
+        from sourcing.api import creer_app
+        from sourcing.demo_donnees import construire
+        d, c = construire()
+        cl = TestClient(creer_app(d, c, servir_interface=False))
+        self.assertEqual(cl.get("/api/tableau").json()["a_faire"]["carburant"], 0.02)
+        self.assertEqual(cl.get("/api/parametres").json()["reference_carburant"], {"taux": 0.02, "depuis": "2026-11-02"})
+        cl.put("/api/parametres", json={"carburant_actif": 0})
+        self.assertIsNone(cl.get("/api/tableau").json()["a_faire"]["carburant"])
 
     def test_frais_non_inclus_signales(self):
         """[RM-AMZ-099] Faible stock, retours au-delà du seuil, stock ancien : toujours signalés en zone euro."""

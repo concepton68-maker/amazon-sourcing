@@ -96,7 +96,7 @@ def analyser_asin(
     prix_vente_force: Optional[float] = None,
     taux_tva_vente: Optional[float] = None,
     duree_stock_mois: Optional[float] = None,
-    carburant_inclus: bool = False,
+    carburant_taux: Optional[float] = None,
     jour: Optional[date] = None,
 ) -> AnalyseProduit:
     nv: list[Message] = []
@@ -148,14 +148,12 @@ def analyser_asin(
             hyp_cout.append(m("HYP_STOCKAGE_SAISI"))
         if mp.code in FF.PLACES_EURO_M3:
             hyp_cout.append(m("HYP_FRAIS_NON_INCLUS"))
-    taux_carb = FF.taux_carburant(mp.code, jour)
-
-    def avec_carburant(fr: FraisAmazon) -> FraisAmazon:          # [RM-AMZ-097]
-        if taux_carb and not carburant_inclus and fr.fba:
-            return replace(fr, carburant=round(fr.fba * taux_carb, 4))
+    def avec_carburant(fr: FraisAmazon) -> FraisAmazon:          # [RM-AMZ-097] réglage du vendeur
+        if carburant_taux and fr.fba:
+            return replace(fr, carburant=round(fr.fba * carburant_taux, 4))
         return fr
-    if taux_carb:
-        hyp_cout.append(m("HYP_CARBURANT_INCLUS" if carburant_inclus else "HYP_CARBURANT", taux=taux_carb))
+    if carburant_taux:
+        hyp_cout.append(m("HYP_CARBURANT", taux=carburant_taux))
     if prix:
         if f.frais:
             frais = _essayer(lambda: f.frais.frais(mp, asin, prix), nv, "FRAIS")
