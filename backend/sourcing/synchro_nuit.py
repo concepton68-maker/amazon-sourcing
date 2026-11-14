@@ -16,7 +16,7 @@ from .remboursements import synchroniser_remboursements
 from .stock import synchroniser_stock
 from .sync import synchroniser
 
-TACHES = ("VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION", "HISTORIQUE", "CORRESPONDANCE")
+TACHES = ("VENTES", "STOCK", "REMBOURSEMENTS", "PRIX", "EXPLORATION", "HISTORIQUE", "CORRESPONDANCE")
 
 
 @dataclass(frozen=True)
@@ -97,6 +97,23 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
 
     tache("REMBOURSEMENTS", lambda: "; ".join(
         f"{m.code} {len(synchroniser_remboursements(compte_id, m, client, depot, maintenant.date()))} cas" for m in places))
+    def prix():                                                           # [RM-AMZ-124]
+        from . import repricer as RP
+        from .analyse import Fournisseurs
+        from .parametres import valider
+        from .stock import calculer as calculer_stock
+        p = valider(depot.parametres(compte_id) or {})
+        jour_photo, photos = depot.photo_stock(compte_id)
+        if not photos:
+            depot.enregistrer_alertes_prix(compte_id, [])
+            return "aucun stock"
+        lignes = calculer_stock(photos, depot.ventes(compte_id), depot.lots(compte_id), jour_photo or maintenant.date(),
+                                p.delai_fournisseur, p.delai_reception, p.marge_securite, p.seuil_rupture, p.seuil_surstock)
+        al = RP.alertes(lignes, Fournisseurs([client], client, client, client, None), p, **kw)
+        depot.enregistrer_alertes_prix(compte_id, al)
+        return f"{len(al)} SKU sous le prix plancher"
+
+    tache("PRIX", prix)
     tache("EXPLORATION", exploration)
 
     def historique():                                                     # [RM-AMZ-090]

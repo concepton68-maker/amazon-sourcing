@@ -226,6 +226,35 @@ class ClientSPAPI:
         return parser_restrictions(data)
 
 
+    # ------------------------------------------------------------------ offres du vendeur et Automate Pricing [RM-AMZ-123, 124]
+    def lire_offre(self, mp: Marketplace, sku: str) -> dict:
+        """Type de produit et offre (prix actuel, minimum, maximum, règle) d'un SKU du vendeur."""
+        from urllib.parse import quote
+        data = self._appel(mp, "GET", f"/listings/2021-08-01/items/{self.seller_id}/{quote(sku, safe='')}",
+                           params={"marketplaceIds": mp.marketplace_id, "includedData": "summaries,attributes"})
+        return parser_offre_vendeur(mp, data)
+
+    def regles_prix(self, mp: Marketplace, type_produit: str) -> list[dict]:
+        """Règles de prix du vendeur : enum / enumNames de « automated_pricing_merchandising_rule_plan »."""
+        d = self._appel(mp, "GET", f"/definitions/2020-09-01/productTypes/{type_produit}",
+                        params={"sellerId": self.seller_id, "marketplaceIds": mp.marketplace_id,
+                                "productTypeVersion": "LATEST", "requirements": "LISTING",
+                                "requirementsEnforced": "ENFORCED"})
+        url = ((d.get("schema") or {}).get("link") or {}).get("resource")
+        if not url:
+            return []
+        r = self.session.get(url, timeout=60)
+        if r.status_code != 200:
+            raise ErreurFournisseur(f"Schéma du type de produit : {r.status_code}")
+        return regles_depuis_schema(r.json())
+
+    def remplacer_offre(self, mp: Marketplace, sku: str, type_produit: str, offre: dict) -> dict:
+        from urllib.parse import quote
+        return self._appel(mp, "PATCH", f"/listings/2021-08-01/items/{self.seller_id}/{quote(sku, safe='')}",
+                           params={"marketplaceIds": mp.marketplace_id},
+                           json={"productType": type_produit,
+                                 "patches": [{"op": "replace", "path": "/attributes/purchasable_offer", "value": [offre]}]})
+
     # ------------------------------------------------------------------ finances
     def page_transactions(self, mp: Marketplace, posted_after=None, posted_before=None,
                           next_token: Optional[str] = None, commande: Optional[str] = None) -> dict:
@@ -539,3 +568,50 @@ def parser_restrictions(data: dict) -> InfosRestrictions:
                     res.liens.append({"titre": l.get("title") or None, "url": url})
     return res
 
+
+
+def _valeur(attr) -> Optional[float]:
+    try:
+        return float(attr[0]["schedule"][0]["value_with_tax"])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+
+
+def parser_offre_vendeur(mp: Marketplace, data: dict) -> dict:
+    """[RM-AMZ-123] Offre du vendeur pour la place : type de produit, prix, minimum, maximum, règle, offre brute."""
+    type_produit = next((x.get("productType") for x in data.get("summaries", []) or []
+                         if x.get("marketplaceId") in (None, mp.marketplace_id)), None)
+    offre = next((o for o in (data.get("attributes") or {}).get("purchasable_offer", []) or []
+                  if o.get("marketplace_id") in (None, mp.marketplace_id)), None)
+    regle = None
+    if offre:
+        plan = offre.get("automated_pricing_merchandising_rule_plan") or []
+        regle = ((plan[0] if plan else {}).get("merchandising_rule") or {}).get("rule_id")
+    return {"type_produit": type_produit, "offre": offre,
+            "prix": _valeur(offre.get("our_price")) if offre else None,
+            "minimum": _valeur(offre.get("minimum_seller_allowed_price")) if offre else None,
+            "maximum": _valeur(offre.get("maximum_seller_allowed_price")) if offre else None, "regle": regle}
+
+
+def regles_depuis_schema(schema) -> list[dict]:
+    """Cherche « automated_pricing_merchandising_rule_plan » puis le champ « rule_id » (enum, enumNames)."""
+    def chercher(x, cle):
+        if isinstance(x, dict):
+            if cle in x:
+                return x[cle]
+            for v in x.values():
+                r = chercher(v, cle)
+                if r is not None:
+                    return r
+        elif isinstance(x, list):
+            for v in x:
+                r = chercher(v, cle)
+                if r is not None:
+                    return r
+        return None
+    plan = chercher(schema, "automated_pricing_merchandising_rule_plan")
+    rid = chercher(plan, "rule_id") if plan is not None else None
+    if not isinstance(rid, dict) or not rid.get("enum"):
+        return []
+    noms = rid.get("enumNames") or rid["enum"]
+    return [{"id": i, "nom": n} for i, n in zip(rid["enum"], noms)]

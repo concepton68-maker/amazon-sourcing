@@ -11,7 +11,7 @@ Mis à jour le 14/11/2026, 12 h 20 (heure de Paris). **À mettre à jour dans la
 - Amazon : connexion SP-API du compte de Sam opérationnelle (développeur privé, région EU, jeton de marchand saisi
   sur le site). Compte vendeur neuf : la plupart des rayons demandent une approbation ; Vêtements est le plus ouvert
   (13/20 au sondage du 14/11).
-- Nuit (UTC) : 02:15 sauvegarde · 02:45 purge · 03:15 tâches de nuit dans l'ordre : ventes, stock, remboursements,
+- Nuit (UTC) : 02:15 sauvegarde · 02:45 purge · 03:15 tâches de nuit dans l'ordre : ventes, stock, remboursements, contrôle des prix (plancher),
   sondage des rayons (chaque nuit), historique de marché, correspondance fournisseurs. Elles peuvent aussi être
   lancées à la main (Paramètres › Connexions et synchronisation).
 - **À vérifier le 15/11 au matin** : la première nuit complète sur le vrai compte (sondage, historique,
@@ -38,9 +38,10 @@ Mis à jour le 14/11/2026, 12 h 20 (heure de Paris). **À mettre à jour dans la
 | #43, #44 | Traçabilité (ce fichier), audit de cohérence face à la concurrence | — | — |
 | #45 | Chantier concurrence 1/5 : comparaison entre pays européens dans l'analyse | RM-AMZ-117 | 1.15 |
 | #46 | Chantier concurrence 2/5 : détenteur de la Buy Box relevé, demande et Buy Box dans l'analyse | RM-AMZ-118, 119 | 1.16 |
-| (lot eligibilite) | Chantier concurrence 3/5 : vérification d'autorisation en masse, lien « Demander l'autorisation » d'Amazon | RM-AMZ-120, 121 | 1.17 |
+| #47 | Chantier concurrence 3/5 : vérification d'autorisation en masse, lien « Demander l'autorisation » d'Amazon | RM-AMZ-120, 121 | 1.17 |
+| (lot prix-plancher) | Chantier concurrence 4/5 : prix plancher (analyse), repricer gratuit d'Amazon depuis Stock (validation obligatoire), tâche de nuit PRIX et alerte sous plancher | RM-AMZ-122 à 124 | — (pas d'offre en ligne pour l'essayer) |
 
-Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 121) · décisions `docs/decisions/registre.md`
+Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 124) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 029).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)
@@ -80,7 +81,7 @@ puis suit commande, réception, envoi à Amazon et encaissement. Courriels depui
 
 ## 6. En attente
 
-- **Chantier « réponse à la concurrence » lancé par Sam le 14/11** (ordre) : 1 multi-pays (fait), 2 demande et Buy Box tirées de nos relevés (fait), 3 éligibilité en masse + lien de demande d'autorisation (fait), 4 prix plancher + repricer gratuit d'Amazon + alerte, 5 bon de commande envoyé au fournisseur puis envoi FBA par l'API.
+- **Chantier « réponse à la concurrence » lancé par Sam le 14/11** (ordre) : 1 multi-pays (fait), 2 demande et Buy Box tirées de nos relevés (fait), 3 éligibilité en masse + lien de demande d'autorisation (fait), 4 prix plancher + repricer gratuit d'Amazon + alerte (fait, non essayé sur une vraie offre), 5 bon de commande envoyé au fournisseur puis envoi FBA par l'API.
 - (Ancien) choix parmi les 7 pistes d'efficacité proposées le 14/11 : ajustement automatique des
   prix, arbitrage entre pays européens, assistant de demande d'autorisation, négociation fournisseur, alertes de
   risque sur le stock, plan de trésorerie, saisonnalité.

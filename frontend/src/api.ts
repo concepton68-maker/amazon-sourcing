@@ -41,7 +41,7 @@ export interface Analyse {
   offres: null | { nb_fba: number | null; nb_fbm: number | null; amazon_vend: boolean | null; buybox_amazon: boolean | null };
   historique: null | { prix_moy90: number | null; prix_min90: number | null; prix_max90: number | null;
     ventes_mois: number | null; chutes_bsr_30j: number | null; bsr_moy90: number | null; amazon_en_stock: number | null };
-  ventes_pour_vous: number | null; autorise: boolean | null; liens_autorisation?: { titre: string | null; url: string }[];
+  ventes_pour_vous: number | null; autorise: boolean | null; prix_plancher?: number | null; liens_autorisation?: { titre: string | null; url: string }[];
   raisons: Msg[]; alertes: Msg[]; non_verifie: Msg[];
 }
 export interface DemandeAnalyse {
@@ -304,7 +304,7 @@ export const historiqueProduit = (asin: string, marketplace: string) =>
 export interface ChiffresDevise { ventes: number; profit: number; stock: number; variation_ventes: number | null; roi: number | null }
 export interface Tableau { devise: string | null; par_devise: Record<string, ChiffresDevise>;
   serie: { jour: string; profit: number }[]; ventes_non_rattachees: number; unites_sans_cout: number;
-  a_faire: { carburant: number | null; deblocages: null | { rayons: string[]; produits: number; le: string }; recommander: number; remboursements: number; valeur_remboursements: Record<string, number>; conformite: number;
+  a_faire: { carburant: number | null; sous_plancher?: { marketplace: string; sku: string; asin: string | null; prix: number; plancher: number }[]; deblocages: null | { rayons: string[]; produits: number; le: string }; recommander: number; remboursements: number; valeur_remboursements: Record<string, number>; conformite: number;
     synchro: { le: string; echecs: string[] } | null };
   mouvements: { asin: string; titre: string | null; variation: number; prix: number | null; bsr: number | null }[] }
 export const lireTableau = () => lire<Tableau>("/api/tableau");
@@ -354,3 +354,12 @@ export interface EtatEligibilite { en_cours: boolean; marketplace: string; total
 export const lireEligibilite = () => lire<{ etat: EtatEligibilite | null }>("/api/eligibilite");
 export const lancerEligibilite = (codes: string, marketplace: string) =>
   requete<{ lancee: boolean; codes: number }>("POST", "/api/eligibilite", { codes, marketplace });
+
+// Prix plancher et repricer d'Amazon [RM-AMZ-122 à 124]
+export interface PropositionRepricer { sku: string; asin?: string; marketplace: string; devise: string; erreur?: string;
+  type_produit?: string; prix?: number | null; plancher?: number | null; minimum?: number | null; maximum?: number | null;
+  regles?: { id: string; nom: string }[]; regle?: string | null; actuel?: { minimum: number | null; maximum: number | null; regle: string | null } }
+export const preparerRepricer = (lignes: { sku: string; asin: string | null; marketplace: string; cout_unitaire: number | null }[]) =>
+  envoyer<{ lignes: PropositionRepricer[] }>("/api/repricer/preparer", { lignes });
+export const envoyerRepricer = (lignes: { sku: string; marketplace: string; minimum: number; maximum: number; regle: string }[]) =>
+  envoyer<{ resultats: { sku: string; statut: string; probleme?: string; problemes?: string[] }[] }>("/api/repricer/envoyer", { lignes });

@@ -231,6 +231,13 @@ class ContratDepot:
         self.assertEqual(r, [("FICHIER:x.csv", "B01", 3.0), ("FOURNISSEUR:f", "B03", 2.0)])
         self.assertEqual(self.d.opportunites(B), [])
 
+    def test_alertes_prix_depot(self):
+        """[RM-AMZ-124] Alertes remplacées à chaque contrôle ; propres au compte."""
+        self.d.enregistrer_alertes_prix(A, [{"marketplace": "FR", "sku": "S1", "asin": "B01", "prix": 10.0, "plancher": 12.5}])
+        self.d.enregistrer_alertes_prix(A, [{"marketplace": "FR", "sku": "S2", "asin": "B02", "prix": 9.0, "plancher": 11.0}])
+        self.assertEqual([(x["sku"], x["plancher"]) for x in self.d.alertes_prix(A)], [("S2", 11.0)])
+        self.assertEqual(self.d.alertes_prix(B), [])
+
     # ------------------------------------------------------------ historique [RM-AMZ-086 à 090]
     def test_releve_remplace_meme_jour(self):
         """[RM-AMZ-087] Une ligne par produit, place et jour : le second relevé du jour remplace le premier."""

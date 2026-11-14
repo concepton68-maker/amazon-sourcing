@@ -1,10 +1,49 @@
 import { useEffect, useState } from "react";
-import { Stock, bonDepuisStock, lireStock } from "./api";
+import { PropositionRepricer, Stock, bonDepuisStock, envoyerRepricer, lireStock, preparerRepricer } from "./api";
 import { dateCourte, message, monnaie, t } from "./i18n";
+
+// [RM-AMZ-123] proposition puis envoi après validation
+function Repricer({ props, fermer }: { props: PropositionRepricer[]; fermer: () => void }) {
+  const [lignes, setLignes] = useState(props);
+  const [res, setRes] = useState<{ sku: string; statut: string; probleme?: string; problemes?: string[] }[] | null>(null);
+  const [envoi, setEnvoi] = useState(false);
+  const maj = (i: number, k: keyof PropositionRepricer, v: string) => setLignes(lignes.map((l, j) => (j === i ? { ...l, [k]: k === "regle" ? v : Number(v.replace(",", ".")) } : l)));
+  const valides = lignes.filter((l) => !l.erreur && l.minimum && l.maximum && l.regle);
+  const envoyer = () => { setEnvoi(true); envoyerRepricer(valides.map((l) => ({ sku: l.sku, marketplace: l.marketplace, minimum: l.minimum!, maximum: l.maximum!, regle: l.regle! })))
+    .then((r) => setRes(r.resultats)).finally(() => setEnvoi(false)); };
+  return (
+    <section className="carte">
+      <div className="entete-vue"><h3>{t("repricer.titre")}</h3><button type="button" className="lien" onClick={fermer}>{t("fermer")}</button></div>
+      <p className="meta">{t("repricer.info")}</p>
+      <div className="defile"><table className="table-compacte">
+        <thead><tr><th scope="col">SKU</th><th scope="col" className="num">{t("repricer.prix")}</th><th scope="col" className="num">{t("plancher.libelle")}</th>
+          <th scope="col">{t("repricer.minimum")}</th><th scope="col">{t("repricer.maximum")}</th><th scope="col">{t("repricer.regle")}</th><th scope="col" /></tr></thead>
+        <tbody>{lignes.map((l, i) => l.erreur ? <tr key={l.sku}><td>{l.sku}</td><td colSpan={6} className="meta">{l.erreur}</td></tr> : (
+          <tr key={l.sku}>
+            <td>{l.sku}<div className="meta">{l.asin} · {l.marketplace}</div></td>
+            <td className="num">{l.prix == null ? "—" : monnaie(String(l.prix), l.devise)}</td>
+            <td className="num">{l.plancher == null ? "—" : monnaie(String(l.plancher), l.devise)}</td>
+            <td><input className="mini-saisie" inputMode="decimal" value={l.minimum ?? ""} onChange={(e) => maj(i, "minimum", e.target.value)} />
+              {l.plancher != null && l.minimum != null && l.minimum < l.plancher && <div className="negatif">{t("repricer.sous_plancher")}</div>}</td>
+            <td><input className="mini-saisie" inputMode="decimal" value={l.maximum ?? ""} onChange={(e) => maj(i, "maximum", e.target.value)} /></td>
+            <td><select value={l.regle ?? ""} onChange={(e) => maj(i, "regle", e.target.value)}>
+              {(l.regles ?? []).map((r) => <option key={r.id} value={r.id}>{r.nom}</option>)}</select></td>
+            <td>{res?.find((x) => x.sku === l.sku)?.statut}</td>
+          </tr>))}</tbody>
+      </table></div>
+      <div className="actions"><button type="button" className="principal" disabled={envoi || valides.length === 0 || !!res} onClick={envoyer}>
+        {t("repricer.envoyer", { n: valides.length })}</button></div>
+      {res && <ul className="msgs">{res.map((x) => <li key={x.sku}>{x.sku} : {x.statut}{x.probleme ? ` · ${x.probleme}` : ""}{(x.problemes ?? []).length ? ` · ${x.problemes!.join(" | ")}` : ""}</li>)}</ul>}
+    </section>
+  );
+}
 
 export function StockVue({ ouvrirBon }: { ouvrirBon: (id: string) => void }) {
   const [s, setS] = useState<Stock | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [choix, setChoix] = useState<string[]>([]);
+  const [props, setProps] = useState<PropositionRepricer[] | null>(null);
+  const [prep, setPrep] = useState(false);
   useEffect(() => { lireStock().then(setS).catch((e) => setErreur(e.message)); }, []);
   if (erreur) return <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>;
   if (!s) return <p>{t("chargement")}</p>;
@@ -20,11 +59,18 @@ export function StockVue({ ouvrirBon }: { ouvrirBon: (id: string) => void }) {
           <span className={`kpi-v ${s.compteurs.ruptures ? "negatif" : ""}`}>{s.compteurs.ruptures}</span></div>
         <div className="kpi"><span className="kpi-l">{t("stock.surstocks")}</span><span className="kpi-v">{s.compteurs.surstocks}</span></div>
       </div>
+      {props && <Repricer props={props} fermer={() => setProps(null)} />}
       <section className="carte" aria-labelledby="t-stock">
-        <h3 id="t-stock">{t("stock.par_produit")}</h3>
+        <div className="entete-vue"><h3 id="t-stock">{t("stock.par_produit")}</h3>
+          {choix.length > 0 && <button type="button" className="principal" disabled={prep} onClick={() => { setPrep(true);
+            preparerRepricer(s.lignes.filter((l) => choix.includes(`${l.marketplace}-${l.sku}`)).map((l) => ({ sku: l.sku, asin: l.asin, marketplace: l.marketplace, cout_unitaire: l.cout_unitaire })))
+              .then((r) => setProps(r.lignes)).catch((e) => setErreur(e.message)).finally(() => setPrep(false)); }}>
+            {prep ? t("chargement") : t("repricer.preparer", { n: choix.length })}</button>}</div>
         <div className="defile">
           <table>
             <thead><tr>
+              <th scope="col" className="case-suivi"><input type="checkbox" aria-label={t("annuaire.tout")} checked={s.lignes.length > 0 && choix.length === s.lignes.length}
+                onChange={(e) => setChoix(e.target.checked ? s.lignes.map((l) => `${l.marketplace}-${l.sku}`) : [])} /></th>
               <th scope="col">{t("col.produit")}</th><th scope="col">{t("col.place")}</th>
               <th scope="col" className="num">{t("col.disponible")}</th><th scope="col" className="num">{t("col.en_route")}</th>
               <th scope="col" className="num">{t("col.vendus")}</th><th scope="col" className="num">{t("col.couverture")}</th>
@@ -33,7 +79,11 @@ export function StockVue({ ouvrirBon }: { ouvrirBon: (id: string) => void }) {
             </tr></thead>
             <tbody>
               {s.lignes.map((l) => (
-                <tr key={`${l.marketplace}-${l.sku}`}>
+                <tr key={`${l.marketplace}-${l.sku}`} className={`cliquable ${choix.includes(`${l.marketplace}-${l.sku}`) ? "choisie" : ""}`}
+                  onClick={(e) => { if ((e.target as HTMLElement).closest("a, button, input")) return; const k = `${l.marketplace}-${l.sku}`;
+                    setChoix((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k])); }}>
+                  <td className="case-suivi"><input type="checkbox" aria-label={l.sku} checked={choix.includes(`${l.marketplace}-${l.sku}`)}
+                    onChange={() => { const k = `${l.marketplace}-${l.sku}`; setChoix((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k])); }} /></td>
                   <td><div className="produit">{l.designation ?? l.sku}</div><div className="meta">{l.sku}{l.asin ? ` · ${l.asin}` : ""}</div></td>
                   <td>{l.marketplace}</td>
                   <td className="num">{l.disponible}</td><td className="num">{l.en_route}</td><td className="num">{l.vendus_30j}</td>

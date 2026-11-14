@@ -103,6 +103,29 @@ class DemandeAnalyse(BaseModel):
     port_fournisseur: Optional[float] = Field(default=None, ge=0, le=1000)   # [RM-AMZ-098] remplace le défaut
 
 
+class LigneRepricer(BaseModel):
+    sku: str = Field(min_length=1, max_length=40)
+    asin: Optional[str] = None
+    marketplace: str = "FR"
+    cout_unitaire: Optional[float] = Field(default=None, gt=0)
+
+
+class DemandeRepricer(BaseModel):
+    lignes: list[LigneRepricer] = Field(min_length=1, max_length=200)
+
+
+class EnvoiRepricer(BaseModel):
+    sku: str = Field(min_length=1, max_length=40)
+    marketplace: str = "FR"
+    minimum: float = Field(gt=0)
+    maximum: float = Field(gt=0)
+    regle: str = Field(min_length=1, max_length=120)
+
+
+class DemandeEnvoiRepricer(BaseModel):
+    lignes: list[EnvoiRepricer] = Field(min_length=1, max_length=200)
+
+
 class DemandeEligibilite(BaseModel):
     codes: str = Field(max_length=200_000)
     marketplace: str = "FR"
@@ -277,6 +300,7 @@ def _analyse_json(a: AnalyseProduit, jeton: str) -> dict:
         "ventes_pour_vous": a.ventes_estimees_pour_vous,
         "autorise": None if a.restrictions is None else a.restrictions.autorise,
         "liens_autorisation": [] if a.restrictions is None else list(a.restrictions.liens),
+        "prix_plancher": a.prix_plancher,
         "raisons": msgs(a.raisons), "alertes": msgs(a.alertes), "non_verifie": msgs(a.non_verifie),
     }
 
@@ -897,6 +921,24 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         return Response(EL.export_csv(e), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": 'attachment; filename="autorisations.csv"'})
 
+    # ------------------------------------------------------------- prix plancher et repricer d'Amazon [RM-AMZ-122 à 124]
+    @app.post("/api/repricer/preparer")
+    def repricer_preparer(d: DemandeRepricer, c: str = Depends(compte)):
+        from . import repricer as RP
+        fx = sources(c)
+        if RP.client_offres(fx) is None:
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        return {"lignes": RP.preparer([x.model_dump() for x in d.lignes], fx, params(c))}
+
+    @app.post("/api/repricer/envoyer")
+    def repricer_envoyer(d: DemandeEnvoiRepricer, c: str = Depends(compte)):
+        """Seulement sur validation explicite du vendeur (bouton « Envoyer à Amazon »)."""
+        from . import repricer as RP
+        fx = sources(c)
+        if RP.client_offres(fx) is None:
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        return {"resultats": RP.envoyer([x.model_dump() for x in d.lignes], fx)}
+
     # ------------------------------------------------------------- ce que je peux vendre [RM-AMZ-084, 085]
     @app.get("/api/exploration")
     def lire_exploration(c: str = Depends(compte)):
@@ -1032,6 +1074,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             "ventes_non_rattachees": ch["ventes_non_rattachees"], "unites_sans_cout": ch["unites_sans_cout"],
             "a_faire": {**af, "carburant": p.carburant_taux if p.carburant_actif else None,
                         "deblocages": _deblocages(depot.exploration(c)),
+                        "sous_plancher": depot.alertes_prix(c),
                         "valeur_remboursements": {k: _num(v) for k, v in af["valeur_remboursements"].items()}},
             "mouvements": [{**m, "prix": _num(m["prix"]), "titre": titres.get(m["asin"])} for m in mv],
         }
