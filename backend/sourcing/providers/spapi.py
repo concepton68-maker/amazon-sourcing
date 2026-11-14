@@ -154,6 +154,42 @@ class ClientSPAPI:
                                    "includedData": "summaries,salesRanks"})
         return [parser_catalogue(it.get("asin"), mp, it) for it in data.get("items", []) or [] if it.get("asin")]
 
+    # ------------------------------------------------------------------ historique de nuit [RM-AMZ-086, 087]
+    def rechercher_page(self, mp: Marketplace, mots: str, jeton: Optional[str] = None
+                        ) -> tuple[list[InfosCatalogue], Optional[str]]:
+        """Une page (20 au plus) d'une recherche par mots-clés ; jeton de la page suivante ou None."""
+        params = {"marketplaceIds": mp.marketplace_id, "keywords": mots, "pageSize": "20",
+                  "includedData": "summaries,salesRanks"}
+        if jeton:
+            params["pageToken"] = jeton
+        data = self._appel(mp, "GET", "/catalog/2022-04-01/items", params=params)
+        items = [parser_catalogue(it.get("asin"), mp, it) for it in data.get("items", []) or [] if it.get("asin")]
+        return items, (data.get("pagination") or {}).get("nextToken")
+
+    def catalogue_par_paquet(self, mp: Marketplace, asins: list[str]) -> dict[str, InfosCatalogue]:
+        """Fiches de 20 ASIN au plus (`searchCatalogItems` par identifiants, « maxItems »: 20)."""
+        if not asins:
+            return {}
+        data = self._appel(mp, "GET", "/catalog/2022-04-01/items", params={
+            "identifiers": ",".join(asins[:20]), "identifiersType": "ASIN", "marketplaceIds": mp.marketplace_id,
+            "includedData": "summaries,salesRanks", "pageSize": "20"})
+        return {it["asin"]: parser_catalogue(it["asin"], mp, it) for it in data.get("items", []) or [] if it.get("asin")}
+
+    def offres_par_paquet(self, mp: Marketplace, asins: list[str]) -> dict[str, InfosOffres]:
+        """Offres de 20 ASIN au plus (`getItemOffersBatch`). Un ASIN en erreur est absent du résultat."""
+        if not asins:
+            return {}
+        corps = {"requests": [{"uri": f"/products/pricing/v0/items/{a}/offers", "method": "GET",
+                               "MarketplaceId": mp.marketplace_id, "ItemCondition": "New"} for a in asins[:20]]}
+        data = self._appel(mp, "POST", "/batches/products/pricing/v0/itemOffers", json=corps)
+        out = {}
+        for r in data.get("responses", []) or []:
+            asin = (r.get("request") or {}).get("Asin")
+            code = (r.get("status") or {}).get("statusCode")
+            if asin and code == 200 and isinstance(r.get("body"), dict) and "payload" in r["body"]:
+                out[asin] = parser_offres(mp, r["body"])
+        return out
+
     # ------------------------------------------------------------------ offres
     def offres(self, mp: Marketplace, asin: str) -> InfosOffres:
         data = self._appel(

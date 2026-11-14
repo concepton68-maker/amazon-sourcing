@@ -41,6 +41,10 @@ class DepotMemoire:
         self._curseurs: dict[tuple[str, str], datetime] = {}
         self._journal: list[tuple[str, object]] = []
         self._explorations: dict[str, dict] = {}
+        self._familles: dict[str, list[str]] = {}
+        self._suivis: dict[tuple[str, str, str], datetime] = {}
+        self._releves: dict[tuple[str, str, str, date], object] = {}
+        self._produits_marche: dict[tuple[str, str, str], object] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -218,6 +222,63 @@ class DepotMemoire:
     def exploration(self, compte_id: str) -> Optional[dict]:
         return self._explorations.get(compte_id)
 
+    # -------------------------------------------------------------- historique et suivi de marché [RM-AMZ-086 à 090]
+    def familles_suivies(self, compte_id: str) -> list[str]:
+        return list(self._familles.get(compte_id, []))
+
+    def enregistrer_familles(self, compte_id: str, codes: list[str]) -> None:
+        self._familles[compte_id] = list(dict.fromkeys(codes))
+
+    def suivis(self, compte_id: str, marketplace: Optional[str] = None) -> list[str]:
+        l = sorted(((q, mp, a) for (c, mp, a), q in self._suivis.items()
+                    if c == compte_id and (marketplace is None or mp == marketplace)), reverse=True)
+        return [a for _, _, a in l]
+
+    def ajouter_suivi(self, compte_id: str, marketplace: str, asin: str) -> None:
+        self._suivis.setdefault((compte_id, marketplace, asin), datetime.now(timezone.utc))
+
+    def retirer_suivi(self, compte_id: str, marketplace: str, asin: str) -> bool:
+        return self._suivis.pop((compte_id, marketplace, asin), None) is not None
+
+    def asins_analyses(self, compte_id: str, marketplace: str, depuis: datetime) -> list[str]:
+        l = sorted(((q, asins) for (c, mp, _), (asins, q) in self._appariements.items()
+                    if c == compte_id and mp == marketplace and q >= depuis), key=lambda x: x[0], reverse=True)
+        return list(dict.fromkeys(a for _, asins in l for a in asins))
+
+    def enregistrer_releves(self, compte_id: str, releves) -> None:
+        for r in releves:
+            self._releves[(compte_id, r.marketplace, r.asin, r.jour)] = r
+
+    def releves(self, compte_id: str, marketplace: str, asins: Optional[list[str]] = None,
+                depuis: Optional[date] = None) -> list:
+        ens = None if asins is None else set(asins)
+        return sorted((r for (c, mp, a, j), r in self._releves.items()
+                       if c == compte_id and mp == marketplace and (ens is None or a in ens)
+                       and (depuis is None or j >= depuis)), key=lambda r: (r.asin, r.jour))
+
+    def purger_releves(self, compte_id: str, avant: date) -> int:
+        vieux = [k for k in self._releves if k[0] == compte_id and k[3] < avant]
+        for k in vieux:
+            del self._releves[k]
+        return len(vieux)
+
+    def enregistrer_produits_marche(self, compte_id: str, produits) -> None:
+        for p in produits:
+            k = (compte_id, p.marketplace, p.asin)
+            old = self._produits_marche.get(k)
+            if old is not None:   # on garde ce qui est connu quand le nouveau relevé ne le donne pas
+                from dataclasses import replace
+                p = replace(p, titre=p.titre or old.titre, marque=p.marque or old.marque,
+                            famille=p.famille or old.famille)
+            self._produits_marche[k] = p
+
+    def produits_marche(self, compte_id: str, marketplace: str, asins: Optional[list[str]] = None,
+                        famille: Optional[str] = None) -> list:
+        ens = None if asins is None else set(asins)
+        return [p for (c, mp, a), p in self._produits_marche.items()
+                if c == compte_id and mp == marketplace and (ens is None or a in ens)
+                and (famille is None or p.famille == famille)]
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -248,5 +309,9 @@ class DepotMemoire:
             self._curseurs = {k: v for k, v in self._curseurs.items() if k[0] != c}
             self._journal = [x for x in self._journal if x[0] != c]
             self._explorations.pop(c, None)
+            self._familles.pop(c, None)
+            self._suivis = {k: v for k, v in self._suivis.items() if k[0] != c}
+            self._releves = {k: v for k, v in self._releves.items() if k[0] != c}
+            self._produits_marche = {k: v for k, v in self._produits_marche.items() if k[0] != c}
             del self._revocations[c]
         return purges

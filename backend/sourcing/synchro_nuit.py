@@ -1,6 +1,7 @@
 """Synchronisation de nuit — [RM-AMZ-080].
 
-Pour chaque compte ayant une connexion SP-API : ventes et frais, photo du stock, remboursements. Tâches indépendantes,
+Pour chaque compte ayant une connexion SP-API : ventes et frais, photo du stock, remboursements, sondage des rayons,
+historique de marché [RM-AMZ-090]. Tâches indépendantes,
 journalisées ; le curseur des ventes n'avance qu'en cas de réussite. Aucun secret dans le journal.
 """
 from __future__ import annotations
@@ -14,7 +15,7 @@ from .remboursements import synchroniser_remboursements
 from .stock import synchroniser_stock
 from .sync import synchroniser
 
-TACHES = ("VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION")
+TACHES = ("VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION", "HISTORIQUE")
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,12 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
     tache("REMBOURSEMENTS", lambda: "; ".join(
         f"{m.code} {len(synchroniser_remboursements(compte_id, m, client, depot, maintenant.date()))} cas" for m in places))
     tache("EXPLORATION", exploration)
+
+    def historique():                                                     # [RM-AMZ-090]
+        from . import historique as H
+        return H.executer(compte_id, client, places, depot, maintenant, **kw)
+
+    tache("HISTORIQUE", historique)
     return res
 
 

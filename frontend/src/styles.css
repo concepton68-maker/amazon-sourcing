@@ -240,3 +240,20 @@ a.info:hover, a.info:focus-visible { color: var(--accent); }
 .barre-part { width: 140px; height: 8px; border-radius: 4px; background: #eef0f3; overflow: hidden; }
 .barre-part > div { height: 100%; background: var(--positif); }
 tr.sous-ligne td { background: var(--fond); }
+/* Suivi de marché [RM-AMZ-086 à 090] */
+.courbe { width: 100%; height: 160px; display: block; }
+.familles summary { cursor: pointer; font-weight: 600; min-height: 32px; }
+.puces { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.puce { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--bord); background: #fff; font-size: 14px; cursor: pointer; }
+.puce.active { border-color: var(--accent); background: var(--accent-doux); color: var(--accent); font-weight: 600; }
+.puce input { accent-color: var(--accent); }
+tr.choisie td { background: var(--accent-doux); }
+.detail-marche .detail-tete { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+abbr[title] { text-decoration: none; cursor: help; }
+.courbe-bloc { margin: 8px 0 12px; }
+.legende { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 6px; }
+.trait { display: inline-block; width: 18px; height: 0; margin-right: 6px; vertical-align: middle; }
+.trait.plein { border-top: 2.5px solid var(--accent); }
+.trait.pointille { border-top: 1.5px dashed var(--doux); }
+.familles[open] { padding-bottom: 16px; }
+.familles:not([open]) { padding-top: 12px; padding-bottom: 12px; }

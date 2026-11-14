@@ -247,3 +247,26 @@ export interface Exploration { en_cours: boolean; progression: [number, number] 
   resultat: { place: string; le: string; rayons: RayonSonde[] } | null }
 export const lireExploration = () => lire<Exploration>("/api/exploration");
 export const lancerExploration = () => requete<{ lancee: boolean }>("POST", "/api/exploration", {});
+
+// Historique et suivi de marché [RM-AMZ-086 à 090]
+export interface Tendance { jours: number; releves: number; court: boolean; prix_dernier: number | null; prix_moyen: number | null;
+  prix_min: number | null; prix_max: number | null; prix_variation: number | null; bsr_moyen: number | null;
+  bsr_dernier: number | null; jours_baisse_bsr: number | null; part_amazon_vend: number | null;
+  part_buybox_amazon: number | null; vendeurs_moyen: number | null }
+export interface LigneMarche { asin: string; titre: string | null; marque: string | null; famille: string | null;
+  dernier: string | null; prix: number | null; bsr: number | null; vendeurs: number | null; amazon_vend: boolean | null;
+  tendance: Tendance }
+export interface Marche { groupe: string; marketplace: string; familles: { code: string; suivie: boolean }[];
+  suivis: number; produits: LigneMarche[] }
+export interface HistoriqueProduit { asin: string; marketplace: string; titre: string | null; suivi: boolean;
+  releves: { jour: string; prix: number | null; bsr: number | null; vendeurs: number | null; amazon_vend: boolean | null;
+    buybox_amazon: boolean | null }[];
+  tendances: Record<string, Tendance> }
+export const lireMarche = (groupe: string) => lire<Marche>(`/api/marche?groupe=${encodeURIComponent(groupe)}`);
+export const choisirFamilles = (familles: string[]) => requete<{ familles: string[] }>("PUT", "/api/marche/familles", { familles });
+export const suivreProduit = (asin: string, marketplace: string) =>
+  requete<{ suivi: boolean }>("POST", "/api/marche/suivi", { asin, marketplace });
+export const neplusSuivre = (asin: string, marketplace: string) =>
+  requete<{ suivi: boolean }>("DELETE", `/api/marche/suivi/${encodeURIComponent(marketplace)}/${encodeURIComponent(asin)}`);
+export const historiqueProduit = (asin: string, marketplace: string) =>
+  lire<HistoriqueProduit>(`/api/marche/produit/${encodeURIComponent(marketplace)}/${encodeURIComponent(asin)}`);
