@@ -15,4 +15,5 @@ NON VÉRIFIÉ). Toute nouvelle étude est ajoutée ici et dans `docs/ETAT-COURAN
 | 14/11/2026 | `2026-11-14-envoi-fba-api-inbound.md` | Envoi FBA par l'API Inbound 2024-03-20 : déroulé, frais, étiquettes, points incertains (transporteur partenaire en France) |
 | 14/11/2026 | `2026-11-14-messagerie-microsoft.md` | Envoi de courriels depuis la boîte Microsoft (Mail.Send seul) : connexion, limites, pièce jointe sous 3 Mo |
 | 14/11/2026 | `2026-11-14-nom-syllig-pilot.md` | Nom « Syllig Pilot » : domaines libres (RDAP), marques non vérifiées, noms proches (SellingPilot, ChannelPilot) |
+| 14/11/2026 | `2026-11-14-passerelle-amazon-sp-api.md` | Fonctions de Seller Central et de l'application Amazon Seller ↔ API SP-API, notifications, scan web, règles d'automatisation, fonctions sans API |
 | — | `notes/` | Notes sourcées détaillées (conformité, API financière, remboursements, stock…) |
