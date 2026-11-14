@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Analyse, Params, Place, analyser, creerLot, lireParametres, listerPlaces } from "./api";
+import { Analyse, Params, Place, analyser, creerLot, lireParametres, listerPlaces, suivreProduit } from "./api";
 import { Msg, message, monnaie, pourcent, t } from "./i18n";
 
 const REGIMES = ["assujetti", "non_assujetti"];
@@ -42,6 +42,13 @@ function CreerLot({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
   );
 }
 
+// [RM-AMZ-090] ajouter le produit à la liste relevée chaque nuit
+function Suivre({ asin, marketplace }: { asin: string; marketplace: string }) {
+  const [fait, setFait] = useState(false);
+  return <button type="button" className="lien" disabled={fait}
+    onClick={() => suivreProduit(asin, marketplace).then(() => setFait(true))}>{fait ? `✓ ${t("sm.suivi")}` : `+ ${t("sm.suivre")}`}</button>;
+}
+
 function Resultat({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
   const r = a.rentabilite, h = a.historique, o = a.offres, d = a.devise;
   const oui = (v: boolean | null | undefined) => (v === null || v === undefined ? "—" : v ? t("oui") : t("non"));
@@ -52,6 +59,7 @@ function Resultat({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
           <span className={`verdict ${a.verdict}`}>{t(`verdict.${a.verdict}`)}</span>
           <h2 id="titre-produit">{a.titre ?? a.asin}</h2>
           <p className="meta">{[a.asin, a.marque, a.categorie, a.bsr ? `BSR ${a.bsr}` : null].filter(Boolean).join(" · ")}</p>
+          <Suivre asin={a.asin} marketplace={a.marketplace} />
         </div>
         <CreerLot a={a} cree={cree} />
       </header>

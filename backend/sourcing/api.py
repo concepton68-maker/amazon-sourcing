@@ -11,7 +11,7 @@ import os
 import pathlib
 import uuid
 from collections import OrderedDict
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -24,6 +24,7 @@ from . import achats as A
 from . import conformite as CF
 from . import connexions as CX
 from . import exploration as EX
+from . import historique as H
 from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
@@ -197,6 +198,15 @@ def _enreg_json(e: "CF.Enregistrement") -> dict:
     return {"cle": e.cle, "pays": e.pays, "filiere": e.filiere, "numero": e.numero, "intitule": e.intitule,
             "mandataire": e.mandataire, "texte": CF.texte_numero(e.pays, e.filiere),
             "avertissements": [x.to_dict() for x in CF.avertissements_enregistrement(e)]}
+
+
+class DemandeFamilles(BaseModel):
+    familles: list[str] = Field(max_length=len(EX.RAYONS))
+
+
+class DemandeSuiviProduit(BaseModel):
+    asin: str = Field(pattern=r"^[A-Za-z0-9]{10}$")
+    marketplace: str = "FR"
 
 
 class DemandeLot(BaseModel):
@@ -678,6 +688,80 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(409, "EXPLORATION_EN_COURS")
         return {"lancee": True}
 
+    # ------------------------------------------------------------- historique et suivi de marché [RM-AMZ-086 à 090]
+    def _place(code: str):
+        try:
+            return get_marketplace(code)
+        except ValueError:
+            raise HTTPException(422, "PLACE_INCONNUE") from None
+
+    def _ligne_marche(p, rel: list, jour) -> dict:
+        t = H.tendances(rel, jour, 30)
+        d = rel[-1] if rel else None
+        return {"asin": p.asin, "titre": p.titre, "marque": p.marque, "famille": p.famille,
+                "dernier": d.jour.isoformat() if d else None,
+                "prix": _num(d.prix_buybox) if d else None, "bsr": d.bsr if d else None,
+                "vendeurs": ((d.nb_fba or 0) + (d.nb_fbm or 0)) if d and (d.nb_fba is not None or d.nb_fbm is not None) else None,
+                "amazon_vend": d.amazon_vend if d else None,
+                "tendance": {k: _num(v) if isinstance(v, Decimal) else v for k, v in t.items()}}
+
+    @app.get("/api/marche")
+    def marche(groupe: str = "SUIVI", marketplace: str = "FR", c: str = Depends(compte)):
+        mp = _place(marketplace)
+        jour = H.jour_paris(datetime.now(timezone.utc))
+        if groupe == "SUIVI":
+            asins = depot.suivis(c, mp.code)
+        elif groupe == "ANALYSE":
+            asins = depot.asins_analyses(c, mp.code, datetime.now(timezone.utc) - timedelta(days=H.JOURS_ANALYSES))
+        elif groupe in H.FAMILLES:
+            asins = [p.asin for p in depot.produits_marche(c, mp.code, famille=groupe)]
+        else:
+            raise HTTPException(422, "GROUPE_INCONNU")
+        asins = asins[:H.MAX_FAMILLE]
+        fiches = {p.asin: p for p in depot.produits_marche(c, mp.code, asins=asins)} if asins else {}
+        rel: dict[str, list] = {}
+        for r in depot.releves(c, mp.code, asins, jour - timedelta(days=30)) if asins else []:
+            rel.setdefault(r.asin, []).append(r)
+        lignes = [_ligne_marche(fiches.get(a) or H.ProduitMarche(mp.code, a), rel.get(a, []), jour) for a in asins]
+        lignes.sort(key=lambda x: (x["bsr"] is None, x["bsr"] or 0))
+        return {"groupe": groupe, "marketplace": mp.code, "familles": [
+                    {"code": f, "suivie": f in depot.familles_suivies(c)} for f in H.FAMILLES],
+                "suivis": len(depot.suivis(c, mp.code)), "produits": lignes}
+
+    @app.put("/api/marche/familles")
+    def familles(d: DemandeFamilles, c: str = Depends(compte)):
+        inconnues = [f for f in d.familles if f not in H.FAMILLES]
+        if inconnues:
+            raise HTTPException(422, "FAMILLE_INCONNUE")
+        depot.enregistrer_familles(c, d.familles)
+        return {"familles": depot.familles_suivies(c)}
+
+    @app.post("/api/marche/suivi", status_code=201)
+    def suivre(d: DemandeSuiviProduit, c: str = Depends(compte)):
+        mp = _place(d.marketplace)
+        depot.ajouter_suivi(c, mp.code, d.asin.upper())
+        return {"asin": d.asin.upper(), "marketplace": mp.code, "suivi": True}
+
+    @app.delete("/api/marche/suivi/{marketplace}/{asin}")
+    def ne_plus_suivre(marketplace: str, asin: str, c: str = Depends(compte)):
+        if not depot.retirer_suivi(c, _place(marketplace).code, asin.upper()):
+            raise HTTPException(404, "SUIVI_INTROUVABLE")
+        return {"asin": asin.upper(), "suivi": False}
+
+    @app.get("/api/marche/produit/{marketplace}/{asin}")
+    def historique_produit(marketplace: str, asin: str, c: str = Depends(compte)):
+        mp, asin = _place(marketplace), asin.upper()
+        jour = H.jour_paris(datetime.now(timezone.utc))
+        rel = depot.releves(c, mp.code, [asin], jour - timedelta(days=90))
+        fiche = next(iter(depot.produits_marche(c, mp.code, asins=[asin])), None)
+        return {"asin": asin, "marketplace": mp.code, "titre": fiche.titre if fiche else None,
+                "suivi": asin in depot.suivis(c, mp.code),
+                "releves": [{"jour": r.jour.isoformat(), "prix": _num(r.prix_buybox), "bsr": r.bsr,
+                             "vendeurs": None if r.nb_fba is None and r.nb_fbm is None else (r.nb_fba or 0) + (r.nb_fbm or 0),
+                             "amazon_vend": r.amazon_vend, "buybox_amazon": r.buybox_amazon} for r in rel],
+                "tendances": {str(n): {k: _num(v) if isinstance(v, Decimal) else v
+                                       for k, v in H.tendances(rel, jour, n).items()} for n in (7, 30)}}
+
     # ------------------------------------------------------------- conformité [RM-AMZ-060 à 067]
     @app.get("/api/conformite")
     def conformite(c: str = Depends(compte)):
@@ -794,6 +878,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(502, "SOURCE_INDISPONIBLE") from None
         if not asins:
             raise HTTPException(404, "PRODUIT_INTROUVABLE")
+        depot.memoriser_appariement(c, mp.code, d.code.strip().upper(), asins)   # relevé de nuit [RM-AMZ-086]
         couts = p.couts(d.prix_achat, d.achat_ttc, d.taux_tva)
         sortie = []
         for asin in asins:
@@ -909,9 +994,11 @@ def app_depuis_environnement() -> FastAPI:
     """D-AMZ-019 : `dev` = démonstration sans connexion ; `prod` = Postgres + connexion obligatoire."""
     mode = os.environ.get("AMZ_MODE")
     if mode == "dev":
-        from .demo_donnees import construire
+        from .demo_donnees import construire, historique_demo
+        from .historique import jour_paris
         from .providers.demo import FournisseurDemo
         depot, c = construire()
+        historique_demo(depot, c, jour_paris(datetime.now(timezone.utc)))
         d = FournisseurDemo()
         return creer_app(depot, c, demo=True, fournisseurs=Fournisseurs([d], d, d, d, d))
     if mode == "prod":

@@ -90,6 +90,18 @@ class DepotPostgres:
             except psycopg.errors.InsufficientPrivilege as e:  # politique de cloisonnement violée
                 raise AccesRefuse("donnée d'un autre compte") from e
 
+    def _executer_lignes(self, compte_id: str, sql: str, lignes: list, lire: bool = False):
+        """Plusieurs exécutions dans une seule transaction ; `lire` : renvoie les lignes de la dernière."""
+        with connexion(self.source) as conn, conn.transaction():
+            conn.execute("SELECT set_config('app.compte_id', %s, true)", (str(_uuid(compte_id)),))
+            try:
+                cur = None
+                for params in lignes:
+                    cur = conn.execute(sql, params)
+                return cur.fetchall() if lire and cur is not None else None
+            except psycopg.errors.InsufficientPrivilege as e:
+                raise AccesRefuse("donnée d'un autre compte") from e
+
     # -------------------------------------------------------------- comptes
     def creer_compte(self, compte_id: str, nom: str) -> None:
         self._executer(compte_id, "INSERT INTO amz.comptes (id, nom) VALUES (%s, %s)", (str(_uuid(compte_id)), nom))
@@ -387,6 +399,79 @@ class DepotPostgres:
     def exploration(self, compte_id: str) -> Optional[dict]:
         r = self._executer(compte_id, "SELECT resultat FROM amz.explorations")
         return dict(r[0][0]) if r else None
+
+    # -------------------------------------------------------------- historique et suivi de marché [RM-AMZ-086 à 090]
+    def familles_suivies(self, compte_id: str) -> list[str]:
+        return [r[0] for r in self._executer(compte_id, "SELECT famille FROM amz.familles_suivies ORDER BY famille")]
+
+    def enregistrer_familles(self, compte_id: str, codes: list[str]) -> None:
+        c = _uuid(compte_id)
+        with connexion(self.source) as conn, conn.transaction():
+            conn.execute("SELECT set_config('app.compte_id', %s, true)", (str(c),))
+            conn.execute("DELETE FROM amz.familles_suivies")
+            for f in dict.fromkeys(codes):
+                conn.execute("INSERT INTO amz.familles_suivies (compte_id, famille) VALUES (%s, %s)", (c, f))
+
+    def suivis(self, compte_id: str, marketplace: Optional[str] = None) -> list[str]:
+        return [r[0] for r in self._executer(
+            compte_id, "SELECT asin FROM amz.suivis WHERE (%s::text IS NULL OR marketplace = %s) "
+                       "ORDER BY ajoute_le DESC, asin DESC", (marketplace, marketplace))]
+
+    def ajouter_suivi(self, compte_id: str, marketplace: str, asin: str) -> None:
+        self._executer(compte_id, "INSERT INTO amz.suivis (compte_id, marketplace, asin) VALUES (%s, %s, %s) "
+                                  "ON CONFLICT DO NOTHING", (_uuid(compte_id), marketplace, asin))
+
+    def retirer_suivi(self, compte_id: str, marketplace: str, asin: str) -> bool:
+        r = self._executer_lignes(compte_id, "DELETE FROM amz.suivis WHERE marketplace = %s AND asin = %s RETURNING 1",
+                                  [(marketplace, asin)], lire=True)
+        return bool(r)
+
+    def asins_analyses(self, compte_id: str, marketplace: str, depuis: datetime) -> list[str]:
+        rows = self._executer(compte_id, "SELECT asins FROM amz.appariements WHERE marketplace = %s AND vu_le >= %s "
+                                         "ORDER BY vu_le DESC", (marketplace, depuis))
+        return list(dict.fromkeys(a for (asins,) in rows for a in asins))
+
+    def enregistrer_releves(self, compte_id: str, releves) -> None:
+        c = _uuid(compte_id)
+        self._executer_lignes(compte_id, """INSERT INTO amz.releves (compte_id, marketplace, asin, jour, prix_buybox,
+            nb_fba, nb_fbm, amazon_vend, buybox_amazon, prix_bas_fba, bsr, categorie)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (compte_id, marketplace, asin, jour) DO UPDATE SET
+            prix_buybox = EXCLUDED.prix_buybox, nb_fba = EXCLUDED.nb_fba, nb_fbm = EXCLUDED.nb_fbm,
+            amazon_vend = EXCLUDED.amazon_vend, buybox_amazon = EXCLUDED.buybox_amazon,
+            prix_bas_fba = EXCLUDED.prix_bas_fba, bsr = EXCLUDED.bsr, categorie = EXCLUDED.categorie""",
+            [(c, r.marketplace, r.asin, r.jour, r.prix_buybox, r.nb_fba, r.nb_fbm, r.amazon_vend, r.buybox_amazon,
+              r.prix_bas_fba, r.bsr, r.categorie) for r in releves])
+
+    def releves(self, compte_id: str, marketplace: str, asins: Optional[list[str]] = None,
+                depuis: Optional[date] = None) -> list:
+        from .historique import Releve
+        rows = self._executer(compte_id, """SELECT marketplace, asin, jour, prix_buybox, nb_fba, nb_fbm, amazon_vend,
+            buybox_amazon, prix_bas_fba, bsr, categorie FROM amz.releves WHERE marketplace = %s
+            AND (%s::text[] IS NULL OR asin = ANY(%s::text[])) AND (%s::date IS NULL OR jour >= %s)
+            ORDER BY asin, jour""", (marketplace, asins, asins, depuis, depuis))
+        return [Releve(*r) for r in rows]
+
+    def purger_releves(self, compte_id: str, avant: date) -> int:
+        r = self._executer_lignes(compte_id, "WITH d AS (DELETE FROM amz.releves WHERE jour < %s RETURNING 1) "
+                                             "SELECT count(*) FROM d", [(avant,)], lire=True)
+        return int(r[0][0]) if r else 0
+
+    def enregistrer_produits_marche(self, compte_id: str, produits) -> None:
+        c = _uuid(compte_id)
+        self._executer_lignes(compte_id, """INSERT INTO amz.produits_marche (compte_id, marketplace, asin, titre, marque,
+            famille) VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (compte_id, marketplace, asin) DO UPDATE SET
+            titre = coalesce(EXCLUDED.titre, amz.produits_marche.titre),
+            marque = coalesce(EXCLUDED.marque, amz.produits_marche.marque),
+            famille = coalesce(EXCLUDED.famille, amz.produits_marche.famille), maj = now()""",
+            [(c, p.marketplace, p.asin, p.titre, p.marque, p.famille) for p in produits])
+
+    def produits_marche(self, compte_id: str, marketplace: str, asins: Optional[list[str]] = None,
+                        famille: Optional[str] = None) -> list:
+        from .historique import ProduitMarche
+        rows = self._executer(compte_id, """SELECT marketplace, asin, titre, marque, famille FROM amz.produits_marche
+            WHERE marketplace = %s AND (%s::text[] IS NULL OR asin = ANY(%s::text[]))
+            AND (%s::text IS NULL OR famille = %s)""", (marketplace, asins, asins, famille, famille))
+        return [ProduitMarche(*r) for r in rows]
 
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:

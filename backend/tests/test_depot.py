@@ -193,6 +193,61 @@ class ContratDepot:
         self.assertEqual(self.d.exploration(A)["le"], "2026-11-15")
         self.assertIsNone(self.d.exploration(B))
 
+    # ------------------------------------------------------------ historique [RM-AMZ-086 à 090]
+    def test_releve_remplace_meme_jour(self):
+        """[RM-AMZ-087] Une ligne par produit, place et jour : le second relevé du jour remplace le premier."""
+        from decimal import Decimal
+        from sourcing.historique import Releve
+        j = date(2026, 11, 14)
+        self.d.enregistrer_releves(A, [Releve("FR", "B0AAAAAAAA", j, Decimal("10.0000"), 2, 1, False, False, None, 900, "Cuisine")])
+        self.d.enregistrer_releves(A, [Releve("FR", "B0AAAAAAAA", j, Decimal("11.5000"), 3, 0, True, None, None, 800, None)])
+        r = self.d.releves(A, "FR")
+        self.assertEqual(len(r), 1)
+        self.assertEqual((r[0].prix_buybox, r[0].nb_fba, r[0].amazon_vend, r[0].buybox_amazon, r[0].bsr),
+                         (Decimal("11.5"), 3, True, None, 800))
+
+    def test_historique_par_compte(self):
+        """[RM-AMZ-088] Relevés, suivis, familles et fiches d'un compte invisibles des autres ; effacés avec le compte."""
+        from datetime import datetime, timedelta, timezone
+        from sourcing.historique import ProduitMarche, Releve
+        j = date(2026, 11, 14)
+        self.d.enregistrer_releves(A, [Releve("FR", "B0AAAAAAAA", j, bsr=5)])
+        self.d.enregistrer_produits_marche(A, [ProduitMarche("FR", "B0AAAAAAAA", "Titre", None, "CUISINE")])
+        self.d.enregistrer_produits_marche(A, [ProduitMarche("FR", "B0AAAAAAAA", None, "Marque", None)])
+        self.d.ajouter_suivi(A, "FR", "B0AAAAAAAA")
+        self.d.ajouter_suivi(A, "FR", "B0AAAAAAAA")                 # sans doublon
+        self.d.enregistrer_familles(A, ["CUISINE", "JARDIN", "CUISINE"])
+        self.d.memoriser_appariement(A, "FR", "3700000000017", ["B0CCCCCCCC"])
+        self.assertEqual(self.d.asins_analyses(A, "FR", datetime.now(timezone.utc) - timedelta(days=1)), ["B0CCCCCCCC"])
+        self.assertEqual(self.d.asins_analyses(A, "FR", datetime.now(timezone.utc) + timedelta(days=1)), [])
+        p = self.d.produits_marche(A, "FR", famille="CUISINE")
+        self.assertEqual([(x.titre, x.marque, x.famille) for x in p], [("Titre", "Marque", "CUISINE")])  # complété, pas écrasé
+        self.assertEqual(self.d.suivis(A, "FR"), ["B0AAAAAAAA"])
+        self.assertEqual(sorted(self.d.familles_suivies(A)), ["CUISINE", "JARDIN"])
+        for lire in (lambda: self.d.releves(B, "FR"), lambda: self.d.suivis(B), lambda: self.d.familles_suivies(B),
+                     lambda: self.d.produits_marche(B, "FR")):
+            self.assertEqual(lire(), [])
+        self.assertTrue(self.d.retirer_suivi(A, "FR", "B0AAAAAAAA"))
+        self.assertFalse(self.d.retirer_suivi(A, "FR", "B0AAAAAAAA"))
+        self.d.revoquer(A, date(2026, 11, 1))
+        self.purger(date(2026, 12, 15))
+        self.assertEqual(self.d.releves(A, "FR"), [])
+        self.assertEqual(self.d.produits_marche(A, "FR"), [])
+
+    def test_purge_historique_3_ans(self):
+        """[RM-AMZ-088] Les relevés de plus de 3 ans sont effacés, les autres gardés."""
+        from sourcing.historique import Releve, limite_conservation
+        j = date(2026, 11, 14)
+        self.assertEqual(limite_conservation(j), date(2023, 11, 14))
+        self.assertEqual(limite_conservation(date(2028, 2, 29)), date(2025, 2, 28))
+        self.d.enregistrer_releves(A, [Releve("FR", "B0AAAAAAAA", date(2023, 11, 13)),
+                                       Releve("FR", "B0AAAAAAAA", date(2023, 11, 14)),
+                                       Releve("FR", "B0AAAAAAAA", j)])
+        self.d.enregistrer_releves(B, [Releve("FR", "B0AAAAAAAA", date(2020, 1, 1))])
+        self.assertEqual(self.d.purger_releves(A, limite_conservation(j)), 1)
+        self.assertEqual([r.jour for r in self.d.releves(A, "FR")], [date(2023, 11, 14), j])
+        self.assertEqual(len(self.d.releves(B, "FR")), 1)                    # l'autre compte n'est pas touché
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):

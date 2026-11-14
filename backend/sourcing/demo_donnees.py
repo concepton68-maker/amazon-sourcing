@@ -125,3 +125,24 @@ def construire() -> tuple[DepotMemoire, str]:
         PhotoStock("FR", "BOUGIE-VIEILLE", "B0DEMO0099", "Bougie parfumée", 37, 0),
     ])
     return d, c
+
+
+def historique_demo(d, c: str, jour: date) -> None:
+    """Historique FICTIF de 40 jours pour l'écran « Marché » en démonstration [RM-AMZ-089]."""
+    import math
+
+    from .historique import ProduitMarche, Releve
+    produits = [("B0DEMO0001", "Gourde inox 750 ml (démo)", None, 24.9, 4200, True),
+                ("B0DEMO0011", "Boîte hermétique verre (démo)", "CUISINE", 14.5, 2100, True),
+                ("B0DEMO0012", "Moulin à épices (démo)", "CUISINE", 19.9, 8800, False),
+                ("B0DEMO0013", "Planche bambou (démo)", "CUISINE", 12.9, 15500, False)]
+    d.enregistrer_familles(c, ["CUISINE"])
+    d.enregistrer_produits_marche(c, [ProduitMarche("FR", a, ti, "MarqueDemo", f) for a, ti, f, *_ in produits])
+    for k, (a, _, f, prix, bsr, suivi) in enumerate(produits):
+        if suivi:
+            d.ajouter_suivi(c, "FR", a)
+        d.enregistrer_releves(c, [Releve(
+            "FR", a, date.fromordinal(jour.toordinal() - n),
+            Decimal(str(round(prix * (1 + 0.06 * math.sin((n + k) / 5) - 0.002 * n * (k - 1)), 2))),
+            3 + (n + k) % 3, k % 2, k == 2 and n % 3 == 0, k == 2 and n % 6 == 0, None,
+            int(bsr * (1 + 0.25 * math.sin((n * (k + 2)) / 3))), "Cuisine") for n in range(40)])

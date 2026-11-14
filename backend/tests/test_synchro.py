@@ -53,11 +53,12 @@ class TestSynchro(unittest.TestCase):
         self.assertEqual([m.code for m in SN.places_du_vendeur(Faux(), "EU")], ["DE", "FR"])
         res = SN.executer([(C, {"region": "EU"})], d, NUIT, fabrique=lambda v: Faux(), attendre=lambda s: None)[C]
         self.assertEqual([(r.tache, r.ok) for r in res],
-                         [("VENTES", True), ("STOCK", True), ("REMBOURSEMENTS", True), ("EXPLORATION", True)])
+                         [("VENTES", True), ("STOCK", True), ("REMBOURSEMENTS", True), ("EXPLORATION", True),
+                          ("HISTORIQUE", True)])
         self.assertEqual(len(d.ventes(C)), 1)
         self.assertIsNotNone(d.curseur_synchro(C, "VENTES"))
-        self.assertEqual(len(d.journal_synchro(C)), 4)
-        self.assertEqual(set(d.etat_synchros()), {"VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION"})
+        self.assertEqual(len(d.journal_synchro(C)), 5)
+        self.assertEqual(set(d.etat_synchros()), {"VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION", "HISTORIQUE"})
         self.assertIsNotNone(d.exploration(C))                                 # sondage refait (aucun la veille)
 
     def test_synchro_echec_isole(self):
@@ -94,9 +95,10 @@ class TestSynchro(unittest.TestCase):
         for r in SN.executer_compte(c, Faux(panne="STOCK"), "EU", d, NUIT, attendre=lambda s: None):
             d.journaliser_synchro(c, r)
         j = TestClient(creer_app(d, c, servir_interface=False)).get("/api/synchro/journal").json()
-        self.assertEqual([(x["tache"], x["ok"]) for x in j][:4],
-                         [("EXPLORATION", True), ("REMBOURSEMENTS", True), ("STOCK", False), ("VENTES", True)])
-        self.assertIn("403", j[2]["message"])
+        self.assertEqual([(x["tache"], x["ok"]) for x in j][:5],
+                         [("HISTORIQUE", True), ("EXPLORATION", True), ("REMBOURSEMENTS", True), ("STOCK", False),
+                          ("VENTES", True)])
+        self.assertIn("403", j[3]["message"])
 
     def test_rapport_annule_vide(self):
         """Rapport CANCELLED (aucune donnée selon le modèle d'Amazon) : vide, pas une erreur ; FATAL : erreur."""
@@ -137,10 +139,12 @@ class TestSynchro(unittest.TestCase):
                                  autocommit=True) as app:
                 dp = DepotPostgres(app)
                 self.assertIsNotNone(dp.curseur_synchro(C, "VENTES"))
-                self.assertEqual([r.tache for r in dp.journal_synchro(C)], ["VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION"])
+                self.assertEqual([r.tache for r in dp.journal_synchro(C)], ["VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION",
+                                                                              "HISTORIQUE"])
                 self.assertEqual(dp.journal_synchro("00000000-0000-4000-8000-0000000000c2"), [])
                 self.assertEqual({t: ok for t, (f, ok) in dp.etat_synchros().items()},
-                                 {"VENTES": True, "STOCK": True, "REMBOURSEMENTS": True, "EXPLORATION": True})
+                                 {"VENTES": True, "STOCK": True, "REMBOURSEMENTS": True, "EXPLORATION": True,
+                                  "HISTORIQUE": True})
         finally:
             with psycopg.connect(PG + " dbname=postgres", autocommit=True) as adm:
                 adm.execute(f"DROP DATABASE IF EXISTS {nom} WITH (FORCE)")
