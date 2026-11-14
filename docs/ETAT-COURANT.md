@@ -14,6 +14,7 @@ Mis à jour le 14/11/2026, 13 h 05 (heure de Paris). **À mettre à jour dans la
 - Nuit (UTC) : 02:15 sauvegarde · 02:45 purge · 03:15 tâches de nuit dans l'ordre : ventes, stock, remboursements, contrôle des prix (plancher),
   sondage des rayons (chaque nuit), historique de marché, correspondance fournisseurs. Elles peuvent aussi être
   lancées à la main (Paramètres › Connexions et synchronisation).
+- **Remboursements lancés à la main le 14/11 à 12 h 24** : coupés à 12 h 25 par la mise à jour automatique (fusion de la PR #47), donc sans résultat ; à relancer. Amélioration à faire : la mise à jour automatique doit attendre la fin d'un travail en cours.
 - **À vérifier le 15/11 au matin** : la première nuit complète sur le vrai compte (sondage, historique,
   correspondance) ; et les remboursements, qui ont échoué la nuit du 14/11 avant la correction « CANCELLED = vide ».
 
@@ -39,7 +40,7 @@ Mis à jour le 14/11/2026, 13 h 05 (heure de Paris). **À mettre à jour dans la
 | #45 | Chantier concurrence 1/5 : comparaison entre pays européens dans l'analyse | RM-AMZ-117 | 1.15 |
 | #46 | Chantier concurrence 2/5 : détenteur de la Buy Box relevé, demande et Buy Box dans l'analyse | RM-AMZ-118, 119 | 1.16 |
 | #47 | Chantier concurrence 3/5 : vérification d'autorisation en masse, lien « Demander l'autorisation » d'Amazon | RM-AMZ-120, 121 | 1.17 |
-| (lot prix-plancher) | Chantier concurrence 4/5 : prix plancher (analyse), repricer gratuit d'Amazon depuis Stock (validation obligatoire), tâche de nuit PRIX et alerte sous plancher | RM-AMZ-122 à 124 | — (pas d'offre en ligne pour l'essayer) |
+| #48 | Chantier concurrence 4/5 : prix plancher (analyse), repricer gratuit d'Amazon depuis Stock (validation obligatoire), tâche de nuit PRIX et alerte sous plancher | RM-AMZ-122 à 124 | — (pas d'offre en ligne pour l'essayer) |
 
 Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 124) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 030).
