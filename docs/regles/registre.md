@@ -283,3 +283,9 @@ Source : modèles officiels SP-API lus le 14/11/2026 — Catalog Items 2022-04-0
 | N° | Règle | Source | Statut | Blocage | Test | État |
 |---|---|---|---|---|---|---|
 | RM-AMZ-115 | **Lancement manuel des travaux de nuit** : depuis Paramètres › Connexions et synchronisation, toutes les tâches ou seulement celles choisies, avec la connexion Amazon du compte ; une seule exécution manuelle à la fois par compte ; même ordre et mêmes règles que la nuit. **Avancement réel** : tâche en cours, tâches terminées avec leur résultat (réussite ou échec et message), au fil de l'eau ; chaque tâche est inscrite au journal dès qu'elle se termine, marquée « manuel ». Sans connexion Amazon : refus clair. | Demande de Sam du 14/11/2026 | métier | — | `test_synchro_manuelle`, `test_synchro_manuelle_choix` | codé |
+
+## Lot 30 : résultats en temps réel
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-116 | **Résultats en temps réel** : toute analyse (catalogue d'un fournisseur, fichier du sourcing, correspondance, travaux lancés à la main ou de nuit) range **chaque produit dès qu'il est analysé** dans la liste des produits rentables ; les résultats précédents de la même origine sont retirés au début de la nouvelle analyse (RM-AMZ-105). Tant qu'une activité tourne, la liste se met à jour seule et les produits arrivés depuis l'ouverture de la page portent un repère « Nouveau » ; une bannière dit ce qui tourne. | Demande de Sam du 14/11/2026 | métier | — | `test_temps_reel_traitement`, `test_activite` | à coder |
