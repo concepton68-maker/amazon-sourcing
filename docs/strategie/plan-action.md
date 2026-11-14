@@ -1,6 +1,6 @@
 # Plan de stratégie — Syllig Vente
 
-Version 1 du 14/11/2026, **à valider par Sam**. Aucun code n'est écrit avant cette validation.
+Version 2 du 14/11/2026. Données de marché validées par Sam (§ 4.4 bis) ; reste **à valider** : le plan entier et l'ordre des lots. Aucun code n'est écrit avant cette validation.
 Sources : `docs/recherches/2026-11-11-donnees-et-outils-verifies.md`, `2026-11-14-benchmark-fonctions.md`,
 `2026-11-14-sources-fournisseurs.md`. Tout chiffre non sourcé est marqué « à vérifier ».
 
@@ -118,6 +118,14 @@ Sans assez d'historique, la ligne est marquée « estimation fragile ».
 
 **Point faible** : l'historique commence le jour du premier relevé. Il faut environ 30 jours pour une tendance utile.
 
+### 4.4 bis Suivi de marché par familles (validé par Sam le 14/11/2026, D-AMZ-028)
+
+- Le vendeur choisit ses **familles de produits** (familles officielles d'Amazon).
+- Chaque nuit, l'outil relève dans chacune les produits les mieux classés (quelques milliers par famille), par l'API du compte, sous les plafonds de débit.
+- Il en tire un suivi de marché propre au compte : prix, rotation, concurrence, présence d'Amazon, nouveaux entrants.
+- En complément, l'Explorateur d'opportunités produits d'Amazon (gratuit, dans Seller Central) donne les tendances de recherche. Il se consulte à la main : il n'est pas dans l'API.
+- **Pas « tout Amazon »** : pas d'aspiration, pas de mise en commun entre comptes.
+
 **Règle** : l'historique de chaque compte sert à ce compte seul (articles 4.4 et 4.6).
 
 ### 4.5 Ce qu'on ne fait pas
@@ -126,6 +134,7 @@ Sans assez d'historique, la ligne est marquée « estimation fragile ».
   vendeur et l'accès à l'API), ni chez les fournisseurs (Ankorstore, Made-in-China et Global Sources l'interdisent).
 - **Aucune revente de données** obtenues par l'API d'Amazon.
 - Pas de fournisseurs qui interdisent la revente sur Amazon : Faire, Ankorstore, Creoate.
+- **Branchement Keepa suspendu** : l'article 4.3 interdit d'utiliser un service extérieur qui fournit des données tirées des pages d'Amazon. Il est à soumettre à un juriste avant de le proposer aux clients.
 
 ## 5. Les fournisseurs
 
@@ -165,14 +174,14 @@ officielles demandent d'être connecté à Seller Central.
 |---|---|---|
 | 1 | **Nouveau design** (maquette validée) sur tout le site | Vitrine de l'outil, base de tous les écrans |
 | 2 | **Coût complet** (§ 4.1) et prix de vente prudent | Sans lui, la marge est fausse |
-| 3 | **Historique maison** chaque nuit (§ 4.4) | Il doit démarrer tôt : 30 jours avant d'être utile |
+| 3 | **Historique maison et suivi de marché par familles** chaque nuit (§ 4.4, 4.4 bis) | Il doit démarrer tôt : 30 jours avant d'être utile |
 | 4 | **Liste d'opportunités** : filtres et classement (§ 4.2, 4.3), recherche par famille officielle | Le cœur de l'outil |
 | 5 | **Fournisseurs** : mémorisation des colonnes, port, puis branchement Qogita | Alimenter le moteur |
 | 6 | **Simulation** « business virtuel » (étape 5) | Décider avec le budget |
 | 7 | **Tunnel du débutant** (§ 3) et alertes (perte de la Buy Box, retour d'Amazon) | Accompagner, puis suivre |
 | 8 | **Extension de navigateur** : notre analyse affichée sur la page Amazon consultée | Confort de type Keepa ou SellerAmp, sans aspiration |
 | 9 | **Serveur en Europe**, avant le premier client | Données des clients européens |
-| 10 | Plus tard : BigBuy, multi-clients payants, marque blanche, accès par MCP, branchement Keepa pour les clients | Croissance |
+| 10 | Plus tard : BigBuy, multi-clients payants, marque blanche, accès par MCP, collecteur à part alimenté par des API autorisées hors Amazon (fournisseurs, autres places de marché, bases de produits), Keepa après avis juridique | Croissance |
 
 ## 8. Décisions demandées à Sam
 
