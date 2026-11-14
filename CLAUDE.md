@@ -1,5 +1,7 @@
 # amazon-sourcing — à lire au démarrage de chaque session
 
+> **À chaque reprise (et après toute perte de contexte) : lire EN PREMIER [`docs/ETAT-COURANT.md`](docs/ETAT-COURANT.md)** — état du site, livraisons, études, consignes permanentes de Sam, tâches en attente. Le mettre à jour dans chaque livraison (D-AMZ-029).
+
 Outil de sourcing et de gestion pour vendeurs Amazon. Usage personnel d'abord, architecture multi-comptes (D-AMZ-001).
 Façon de travailler : celle de Syllig (`concepton68-maker/syllig-suite`, `BONNES-MANIERES.md`), en particulier :
 
@@ -31,4 +33,4 @@ Postgres local de test (conteneur cloud) : données dans `/var/lib/postgresql/am
 ## Repères
 
 - Règles : `docs/regles/registre.md` · Décisions : `docs/decisions/registre.md` · Maquette : `docs/maquettes/README.md`
-- Études : `docs/recherches/`
+- Études : `docs/recherches/` (index `docs/recherches/README.md`) · État : `docs/ETAT-COURANT.md`
