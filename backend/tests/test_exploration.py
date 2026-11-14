@@ -65,3 +65,33 @@ class TestExploration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDeblocages(unittest.TestCase):
+    def ray(self, code, statut, autorises, approbation=0, produits=()):
+        return {"code": code, "statut": statut, "autorises": autorises, "approbation": approbation,
+                "produits": [{"asin": a, "statut": s} for a, s in produits]}
+
+    def test_deblocages(self):
+        """[RM-AMZ-113] Statut qui s'ouvre ou autorisés en plus ; inconnu jamais compté ; produits nouvellement autorisés."""
+        ancien = {"place": "FR", "le": "2026-11-13", "rayons": [
+            self.ray("SPORT", "FERME", 0, 14, [("B1", "APPROBATION")]), self.ray("JOUETS", "PARTIEL", 2),
+            self.ray("AUTO", "PARTIEL", 3), self.ray("BEBE", "INCONNU", 0), self.ray("CUISINE", "OUVERT", 18)]}
+        nouveau = {"place": "FR", "le": "2026-11-14", "rayons": [
+            self.ray("SPORT", "PARTIEL", 1, 13, [("B1", "AUTORISE")]), self.ray("JOUETS", "PARTIEL", 5),
+            self.ray("AUTO", "PARTIEL", 2), self.ray("BEBE", "OUVERT", 20), self.ray("CUISINE", "OUVERT", 18)]}
+        n = EX.comparer(ancien, nouveau)
+        self.assertEqual((n["rayons"], n["produits"], n["depuis"]), (["SPORT", "JOUETS"], ["B1"], "2026-11-13"))
+        self.assertEqual(EX.comparer(None, nouveau)["rayons"], [])                 # premier sondage : rien de « nouveau »
+        self.assertEqual(EX.comparer({**ancien, "place": "DE"}, nouveau)["rayons"], [])
+
+    def test_deblocages_vus(self):
+        """[RM-AMZ-113] Annoncés sur le tableau de bord jusqu'à « vu »."""
+        d, c = construire()
+        cl = TestClient(creer_app(d, c, servir_interface=False))
+        EX.enregistrer(d, c, {"place": "FR", "le": "2026-11-13", "rayons": [self.ray("SPORT", "FERME", 0, 14)]})
+        self.assertIsNone(cl.get("/api/tableau").json()["a_faire"]["deblocages"])
+        EX.enregistrer(d, c, {"place": "FR", "le": "2026-11-14", "rayons": [self.ray("SPORT", "PARTIEL", 2, 12)]})
+        self.assertEqual(cl.get("/api/tableau").json()["a_faire"]["deblocages"]["rayons"], ["SPORT"])
+        self.assertTrue(cl.post("/api/exploration/vu").json()["vu"])
+        self.assertIsNone(cl.get("/api/tableau").json()["a_faire"]["deblocages"])

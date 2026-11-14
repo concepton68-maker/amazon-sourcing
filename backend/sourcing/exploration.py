@@ -94,6 +94,40 @@ def en_json(rayons: list[Rayon], place: str, le: datetime) -> dict:
          "erreur": r.erreur, "produits": [asdict(p) for p in r.produits]} for r in rayons]}
 
 
+# [RM-AMZ-113] déblocages : ordre d'ouverture des statuts affichés
+_RANG = {"FERME": 0, "APPROBATION": 0, "PARTIEL": 1, "OUVERT": 2}
+
+
+def _statut_affiche(r: dict) -> str:
+    return "APPROBATION" if r.get("statut") == FERME and r.get("approbation", 0) > 0 else r.get("statut", INCONNU)
+
+
+def comparer(ancien: Optional[dict], nouveau: dict) -> dict:
+    """Rayons débloqués et produits nouvellement autorisés par rapport au sondage précédent."""
+    if not ancien or ancien.get("place") != nouveau.get("place"):
+        return {"rayons": [], "produits": [], "depuis": None}
+    avant = {r["code"]: r for r in ancien.get("rayons", [])}
+    rayons, produits = [], []
+    for r in nouveau.get("rayons", []):
+        a = avant.get(r["code"])
+        if a is None or r.get("statut") == INCONNU or a.get("statut") == INCONNU:
+            continue
+        if _RANG.get(_statut_affiche(r), -1) > _RANG.get(_statut_affiche(a), -1) or r.get("autorises", 0) > a.get("autorises", 0):
+            rayons.append(r["code"])
+        deja = {p["asin"] for p in a.get("produits", []) if p.get("statut") == AUTORISE}
+        produits += [p["asin"] for p in r.get("produits", []) if p.get("statut") == AUTORISE and p["asin"] not in deja
+                     and any(x["asin"] == p["asin"] for x in a.get("produits", []))]
+    return {"rayons": rayons, "produits": list(dict.fromkeys(produits)), "depuis": ancien.get("le")}
+
+
+def enregistrer(depot, compte_id: str, nouveau: dict) -> dict:
+    """Range le sondage avec ses nouveautés, à voir [RM-AMZ-113]."""
+    nouv = comparer(depot.exploration(compte_id), nouveau)
+    resultat = {**nouveau, "nouveautes": {**nouv, "vu": not (nouv["rayons"] or nouv["produits"])}}
+    depot.enregistrer_exploration(compte_id, resultat)
+    return resultat
+
+
 class Explorations:
     """[RM-AMZ-085] Une exploration à la fois par compte, en arrière-plan ; le résultat est rangé dans le dépôt."""
 
@@ -111,7 +145,7 @@ class Explorations:
         def travail():
             try:
                 res = sonder(mp, fournisseurs, lambda f, t: self.en_cours.__setitem__(compte_id, (f, t)), attendre)
-                depot.enregistrer_exploration(compte_id, en_json(res, mp.code, datetime.now(timezone.utc)))
+                enregistrer(depot, compte_id, en_json(res, mp.code, datetime.now(timezone.utc)))
             finally:
                 self.en_cours.pop(compte_id, None)
         if self.en_fond:

@@ -64,7 +64,11 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
   }, [tri, ordre, niveaux, roi, profit, marge, origine, verdict, sansAmazon, rafraichir]);
   const lireCorr = () => lireCorrespondance().then((x) => { setCorr((avant) => { if (avant?.en_cours && !x.en_cours) setRafraichir((n) => n + 1); return x; }); }).catch(() => undefined);
   useEffect(() => { lireCorr(); }, []);
-  useEffect(() => { if (!corr?.en_cours) return; const id = setTimeout(lireCorr, 2000); return () => clearTimeout(id); }, [corr]);
+  useEffect(() => {                                                       // [RM-AMZ-114] résultats au fil de l'eau
+    if (!corr?.en_cours) return;
+    const id = setTimeout(() => { lireCorr(); if (corr.phase === "ANALYSE") setRafraichir((n) => n + 1); }, 3000);
+    return () => clearTimeout(id);
+  }, [corr]);
   const chercher = () => { setErreur(null); lancerCorrespondance().then(lireCorr).catch((x) => setErreur((x as Error).message)); };
   const trier = (c: string) => { if (c === tri) setOrdre(ordre === "desc" ? "asc" : "desc"); else { setTri(c); setOrdre("desc"); } };
   const e = (c: string, num = true) => <Entete cle={c} tri={tri} ordre={ordre} trier={trier} num={num} />;
@@ -74,7 +78,7 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
         <div className="actions">
           {l && <span className="meta">{t("rent.nombre", { n: l.nombre, total: l.total })}</span>}
           <button type="button" className="principal" disabled={corr?.en_cours} onClick={chercher} title={t("corr.info")}>
-            {corr?.en_cours ? t("corr.en_cours", { f: corr.progression?.[0] ?? 0, t: corr.progression?.[1] ?? 0 }) : t("corr.lancer")}</button>
+            {corr?.en_cours ? t(corr.phase === "ANALYSE" ? "corr.analyse" : "corr.en_cours", { f: corr.progression?.[0] ?? 0, t: corr.progression?.[1] ?? 0 }) : t("corr.lancer")}</button>
         </div></div>
       {corr?.bilan && !corr.en_cours && <p className="meta">{corr.bilan.erreur ? t("corr.erreur")
         : t("corr.bilan", { c: corr.bilan.candidats ?? 0, n: corr.bilan.correspondances ?? 0, f: corr.bilan.fournisseurs ?? 0 })}</p>}

@@ -15,7 +15,7 @@ from .remboursements import synchroniser_remboursements
 from .stock import synchroniser_stock
 from .sync import synchroniser
 
-TACHES = ("VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION", "HISTORIQUE")
+TACHES = ("VENTES", "STOCK", "REMBOURSEMENTS", "EXPLORATION", "HISTORIQUE", "CORRESPONDANCE")
 
 
 @dataclass(frozen=True)
@@ -68,20 +68,16 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
 
     tache("VENTES", ventes)
     tache("STOCK", lambda: f"{synchroniser_stock(compte_id, places, client, depot, maintenant.date(), **kw)} lignes")
-    def exploration():                                                    # [RM-AMZ-085] plus de 7 jours
-        from datetime import timedelta
-
+    def exploration():                                                    # [RM-AMZ-085] chaque nuit
         from .analyse import Fournisseurs
-        from .exploration import en_json, sonder
-        der = depot.exploration(compte_id)
-        if der and datetime.fromisoformat(der["le"]) > maintenant - timedelta(days=7):
-            return "à jour"
+        from .exploration import en_json, enregistrer, sonder
         fr = next((m for m in places if m.code == "FR"), None)
         if fr is None:
             return "amazon.fr non ouvert : non sondé"
         f = Fournisseurs([client], client, client, client, None)
-        depot.enregistrer_exploration(compte_id, en_json(sonder(fr, f, **kw), "FR", maintenant))
-        return "sondage refait"
+        r = enregistrer(depot, compte_id, en_json(sonder(fr, f, **kw), "FR", maintenant))
+        n = r["nouveautes"]
+        return f"sondage refait ; {len(n['rayons'])} rayons débloqués, {len(n['produits'])} produits autorisés en plus"
 
     tache("REMBOURSEMENTS", lambda: "; ".join(
         f"{m.code} {len(synchroniser_remboursements(compte_id, m, client, depot, maintenant.date()))} cas" for m in places))
@@ -92,6 +88,20 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
         return H.executer(compte_id, client, places, depot, maintenant, **kw)
 
     tache("HISTORIQUE", historique)
+
+    def correspondance():                                                 # [RM-AMZ-114]
+        from . import correspondance as CO
+        from .analyse import Fournisseurs
+        from .parametres import valider
+        fr = next((m for m in places if m.code == "FR"), None)
+        if fr is None:
+            return "amazon.fr non ouvert"
+        p = valider(depot.parametres(compte_id) or {})
+        b = CO.executer(compte_id, fr, Fournisseurs([client], client, client, client, None), depot, p,
+                        p.regime(fr.code), maintenant=maintenant, **kw)
+        return f"{b['candidats']} produits comparés, {b['correspondances']} trouvés"
+
+    tache("CORRESPONDANCE", correspondance)
     return res
 
 

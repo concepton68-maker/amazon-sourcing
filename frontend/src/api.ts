@@ -271,8 +271,10 @@ export interface ProduitSonde { asin: string; titre: string | null; bsr: number 
 export interface RayonSonde { code: string; statut: string; testes: number; autorises: number; approbation: number; interdits: number;
   inconnus: number; erreur: string | null; produits: ProduitSonde[] }
 export interface Exploration { en_cours: boolean; progression: [number, number] | null;
-  resultat: { place: string; le: string; rayons: RayonSonde[] } | null }
+  resultat: { place: string; le: string; rayons: RayonSonde[];
+    nouveautes?: { rayons: string[]; produits: string[]; depuis: string | null; vu: boolean } } | null }
 export const lireExploration = () => lire<Exploration>("/api/exploration");
+export const explorationVue = () => requete<{ vu: boolean }>("POST", "/api/exploration/vu", {});
 export const lancerExploration = () => requete<{ lancee: boolean }>("POST", "/api/exploration", {});
 
 // Historique et suivi de marché [RM-AMZ-086 à 090]
@@ -302,7 +304,7 @@ export const historiqueProduit = (asin: string, marketplace: string) =>
 export interface ChiffresDevise { ventes: number; profit: number; stock: number; variation_ventes: number | null; roi: number | null }
 export interface Tableau { devise: string | null; par_devise: Record<string, ChiffresDevise>;
   serie: { jour: string; profit: number }[]; ventes_non_rattachees: number; unites_sans_cout: number;
-  a_faire: { carburant: number | null; recommander: number; remboursements: number; valeur_remboursements: Record<string, number>; conformite: number;
+  a_faire: { carburant: number | null; deblocages: null | { rayons: string[]; produits: number; le: string }; recommander: number; remboursements: number; valeur_remboursements: Record<string, number>; conformite: number;
     synchro: { le: string; echecs: string[] } | null };
   mouvements: { asin: string; titre: string | null; variation: number; prix: number | null; bsr: number | null }[] }
 export const lireTableau = () => lire<Tableau>("/api/tableau");
@@ -325,7 +327,7 @@ export interface OffreAchat { fournisseur_id: string; fournisseur: string; reven
   roi?: number | null; marge?: number | null; verdict?: string; vendabilite?: string; remarques?: Msg[] }
 export const ouAcheter = (asin: string, marketplace: string) =>
   lire<{ asin: string; codes: string[]; offres: OffreAchat[] }>(`/api/produits/${encodeURIComponent(marketplace)}/${encodeURIComponent(asin)}/ou-acheter`);
-export interface EtatCorrespondance { en_cours: boolean; progression: [number, number] | null;
+export interface EtatCorrespondance { en_cours: boolean; progression: [number, number] | null; phase: string | null;
   bilan: null | { le?: string; candidats?: number; correspondances?: number; fournisseurs?: number; erreur?: string } }
 export const lireCorrespondance = () => lire<EtatCorrespondance>("/api/correspondance");
 export const lancerCorrespondance = () => requete<{ lancee: boolean }>("POST", "/api/correspondance", {});

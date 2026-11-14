@@ -79,6 +79,57 @@ class TestCorrespondance(unittest.TestCase):
         CO.executer(c, FR, Fournisseurs([demo], demo, demo, demo, demo), d, None, "assujetti", attendre=lambda s: None)
         self.assertEqual(len([o for o in d.opportunites(c) if o.origine == f"CORRESPONDANCE:{fid}"]), 2)  # remplacée
 
+    def test_correspondance_progressive(self):
+        """[RM-AMZ-114] Chaque correspondance est rangée aussitôt ; lancée seule après l'enregistrement d'un catalogue."""
+        d, c, demo, cl = client()
+        d.ajouter_suivi(c, "FR", "B0DEMO0001")
+        d.ajouter_suivi(c, "FR", "B0DEMO0002")
+        vus = []
+        fid = fournisseur(cl, "Grossiste E", "EAN;Prix HT\n3700000000017;8,00\n3700000000024;9,00\n")
+        self.assertEqual(len([o for o in d.opportunites(c) if o.origine == f"CORRESPONDANCE:{fid}"]), 2)  # lancée seule
+        enreg = d.enregistrer_opportunites
+        d.enregistrer_opportunites = lambda *a: (vus.append(len(a[4])), enreg(*a))[1]
+        etapes = []
+        CO.executer(c, FR, Fournisseurs([demo], demo, demo, demo, demo), d, None, "assujetti",
+                    progression=lambda f, t, phase="": etapes.append((phase, f, t)), attendre=lambda s: None)
+        self.assertEqual(vus, [1, 2])                                          # 1 rangé, puis 2
+        self.assertIn(("ANALYSE", 2, 2), etapes)
+
+    def test_synchro_correspondance(self):
+        """[RM-AMZ-114] Tâche de nuit « CORRESPONDANCE » journalisée."""
+        from datetime import datetime, timezone
+        from sourcing import synchro_nuit as SN
+        d, c, demo, cl = client()
+        fournisseur(cl, "Grossiste N", "EAN;Prix HT\n3700000000017;8,00\n")
+        d.ajouter_suivi(c, "FR", "B0DEMO0001")
+
+        class Client(FournisseurDemo):
+            def participations(self, mp):
+                return [FR.marketplace_id]
+
+            def page_transactions(self, *a):
+                return {"payload": {"transactions": []}}
+
+            def page_inventaire(self, *a):
+                return {"payload": {"inventorySummaries": []}}
+
+            def rapport(self, *a, **k):
+                return ""
+
+            def envois_fermes(self, *a):
+                return []
+
+            def rechercher_page(self, mp, mots, jeton=None):
+                return [], None
+
+            def offres_par_paquet(self, mp, asins):
+                return {}
+        res = SN.executer_compte(c, Client(), "EU", d, datetime(2026, 11, 14, 3, 15, tzinfo=timezone.utc),
+                                 attendre=lambda s: None)
+        r = [x for x in res if x.tache == "CORRESPONDANCE"][0]
+        self.assertTrue(r.ok, r.message)
+        self.assertIn("1 trouvés", r.message)
+
     def test_correspondance_api(self):
         """[RM-AMZ-112] Lancement, bilan relu ; sans source : refus."""
         d, c, demo, cl = client()
