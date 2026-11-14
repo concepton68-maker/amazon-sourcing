@@ -377,6 +377,22 @@ class DepotPostgres:
         self._executer(compte_id, "DELETE FROM amz.connexions WHERE source = %s", (source,))
         return avant
 
+    # -------------------------------------------------------------- envois de bons [RM-AMZ-131]
+    def ajouter_envoi_bon(self, compte_id: str, t) -> None:
+        try:
+            self._executer(compte_id, """INSERT INTO amz.envois_bon (compte_id, bon_id, generation, destinataire, objet,
+                empreinte, taille, etat, cause, expediteur, le) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (_uuid(compte_id), _uuid(t.bon_id), t.generation, t.a, t.objet, t.empreinte, t.taille, t.etat, t.cause,
+                 t.expediteur, t.le))
+        except psycopg.errors.UniqueViolation:
+            raise ValueError("GENERATION_EXISTE") from None
+
+    def envois_bon(self, compte_id: str, bon_id: str) -> list:
+        from .messagerie import Tentative
+        return [Tentative(str(b), g, a, o, e.strip(), ta, et, ca, le, ex) for b, g, a, o, e, ta, et, ca, ex, le in self._executer(
+            compte_id, "SELECT bon_id, generation, destinataire, objet, empreinte, taille, etat, cause, expediteur, le "
+                       "FROM amz.envois_bon WHERE bon_id = %s ORDER BY generation", (_uuid(bon_id),))]
+
     # -------------------------------------------------------------- synchronisation de nuit [RM-AMZ-080]
     def curseur_synchro(self, compte_id: str, tache: str) -> Optional[datetime]:
         r = self._executer(compte_id, "SELECT curseur FROM amz.synchro_curseurs WHERE tache = %s", (tache,))

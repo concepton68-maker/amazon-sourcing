@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Connexions, EtapeTest, EtatManuel, TacheSynchro, lancerSynchroManuelle, lireJournalSynchro, lireSynchroManuelle, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
+import { Connexions, EtapeTest, EtatMessagerie, deconnecterMessagerie, demarrerMessagerie, lireMessagerie, EtatManuel, TacheSynchro, lancerSynchroManuelle, lireJournalSynchro, lireSynchroManuelle, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
 import { dateCourte, t } from "./i18n";
 
 // Où trouver chaque code chez Amazon (adresses données par Sam et par la documentation Amazon)
@@ -34,7 +34,7 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
             ? <label key={c} className="ligne-reglage">{t("connexion.champ.region")}
                 <select value={v.region} onChange={(e) => setV({ ...v, region: e.target.value })}>
                   {regions.map((r) => <option key={r} value={r}>{t(`connexion.region.${r}`)}</option>)}</select></label>
-            : <label key={c} className="ligne-reglage"><span>{t(`connexion.champ.${c}`)}
+            : <label key={c} className="ligne-reglage"><span>{t(s.source === "MICROSOFT" ? `connexion.ms.${c}` : `connexion.champ.${c}`)}
                 {s.source === "SPAPI" && OU_TROUVER[c] && <a className="info" href={OU_TROUVER[c]} target="_blank" rel="noreferrer"
                   title={t("connexion.ou_trouver")} aria-label={`${t("connexion.ou_trouver")} : ${t(`connexion.champ.${c}`)}`}>i</a>}</span>
                 <input type={c === "seller_id" ? "text" : "password"} autoComplete="new-password" spellCheck={false} maxLength={2000}
@@ -123,6 +123,40 @@ function JournalSynchro({ version }: { version: number }) {
   );
 }
 
+// Ma messagerie [RM-AMZ-129] : l'adresse de retour à déclarer chez Microsoft, puis la connexion de la boîte.
+function Messagerie() {
+  const [m, setM] = useState<EtatMessagerie | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [copie, setCopie] = useState(false);
+  const retour = new URLSearchParams(window.location.search);
+  const resultat = retour.get("messagerie");
+  useEffect(() => { lireMessagerie().then(setM).catch((x) => setErreur((x as Error).message)); }, []);
+  if (!m) return null;
+  const copier = () => navigator.clipboard?.writeText(m.adresse_retour).then(() => setCopie(true)).catch(() => undefined);
+  const connecter = () => demarrerMessagerie().then((r) => { window.location.href = r.url; }).catch((x) => setErreur((x as Error).message));
+  return (
+    <div className="carte">
+      <h3>{t("messagerie.titre")}</h3>
+      {resultat === "ok" && <p role="status" className="succes">{t("messagerie.connectee_ok")}</p>}
+      {resultat === "erreur" && <p role="alert" className="alerte">{t(`messagerie.cause.${retour.get("cause") ?? "inconnue"}`)}</p>}
+      <div className="ligne-reglage"><span>{t("messagerie.adresse_retour")}</span>
+        <span className="code-copie"><code>{m.adresse_retour}</code>
+          <button type="button" className="lien" onClick={copier}>{copie ? t("messagerie.copiee") : t("messagerie.copier")}</button></span></div>
+      {!m.configuree ? <p className="meta">{t("messagerie.non_configuree")}</p>
+        : m.connexion ? <>
+            <div className="ligne-reglage"><span>{t("messagerie.boite")}</span><strong>{m.connexion.adresse}</strong></div>
+            {m.connexion.etat === "A_RECONNECTER" && <p role="alert" className="alerte">{t("messagerie.a_reconnecter")}</p>}
+            <div className="formulaire nu">
+              {m.connexion.etat === "A_RECONNECTER" && <button type="button" className="principal" onClick={connecter}>{t("messagerie.reconnecter")}</button>}
+              <button type="button" className="lien" onClick={() => deconnecterMessagerie().then(() => lireMessagerie().then(setM))}>{t("messagerie.deconnecter")}</button>
+            </div></>
+        : <div className="formulaire nu"><button type="button" className="principal" onClick={connecter}>{t("messagerie.connecter")}</button></div>}
+      <p className="meta">{t("messagerie.droit")}</p>
+      {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
+    </div>
+  );
+}
+
 export function ConnexionsVue() {
   const [c, setC] = useState<Connexions | null>(null);
   const [version, setVersion] = useState(0);
@@ -137,7 +171,8 @@ export function ConnexionsVue() {
       {!c.chiffrement && <p role="alert" className="alerte">{t("erreur.CHIFFREMENT_NON_CONFIGURE")}</p>}
       <TravauxManuels fini={() => setVersion((v) => v + 1)} />
       <JournalSynchro version={version} />
-      <div className="grille trois">{c.sources.map((s) => <Source key={s.source + (s.enregistree_le ?? "")} s={s} regions={c.regions} maj={maj} />)}</div>
+      <div className="grille trois">{c.sources.map((s) => <Source key={s.source + (s.enregistree_le ?? "")} s={s} regions={c.regions} maj={maj} />)}
+        <Messagerie key={c.sources.find((s) => s.source === "MICROSOFT")?.enregistree_le ?? "m"} /></div>
     </section>
   );
 }

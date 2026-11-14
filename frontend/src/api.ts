@@ -183,6 +183,20 @@ export interface ChoixPlan { origine: string; marketplace: string; code: string;
 export interface ResultatPlan { ajoutees: number; deja: number; bons: string[]; refus: { asin: string; code: string; motif: string }[] }
 export const ajouterAuPlan = (lignes: ChoixPlan[]) => envoyer<ResultatPlan>("/api/plan-achat", { lignes });
 export const documentBon = (id: string, format: "pdf" | "xlsx") => `/api/bons/${id}/document.${format}`;
+// Messagerie Microsoft [RM-AMZ-129 à 131]
+export interface EtatMessagerie { configuree: boolean; adresse_retour: string;
+  connexion: null | { adresse: string; nom: string | null; etat: "CONNECTEE" | "A_RECONNECTER"; connecte_le: string } }
+export const lireMessagerie = () => lire<EtatMessagerie>("/api/messagerie");
+export const demarrerMessagerie = () => envoyer<{ url: string }>("/api/messagerie/microsoft/demarrer", {});
+export const deconnecterMessagerie = () => requete<{ retiree: boolean }>("DELETE", "/api/messagerie");
+export interface ApercuEnvoi { a: string; objet: string; texte: string; piece: { nom: string; taille: number };
+  expediteur: string; repondre_a: string | null; envois: number }
+export interface TentativeEnvoi { generation: number; a: string; objet: string; taille: number; etat: "ENVOYE" | "ECHEC" | "INCERTAIN";
+  cause: string | null; le: string; expediteur: string | null }
+export const apercuEnvoi = (id: string) => envoyer<ApercuEnvoi>(`/api/bons/${id}/envoi-messagerie/apercu`, {});
+export const envoyerParMessagerie = (id: string, apres: number) =>
+  envoyer<{ rejoue: boolean; tentative: TentativeEnvoi | null; bon: Bon }>(`/api/bons/${id}/envoi-messagerie`, { apres });
+export const lireEnvois = (id: string) => lire<TentativeEnvoi[]>(`/api/bons/${id}/envois-messagerie`);
 export const bonDepuisStock = (fournisseur: string) => envoyer<Bon>("/api/bons/depuis-stock", { fournisseur });
 export async function retirerLigneBon(id: string, ligne: string): Promise<Bon> {
   const r = await fetch(`/api/bons/${id}/lignes/${ligne}`, { method: "DELETE", headers: ENTETE, credentials: "same-origin" });

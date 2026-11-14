@@ -14,7 +14,9 @@ from typing import Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-SOURCES = {"SPAPI": ("client_id", "client_secret", "refresh_token", "region", "seller_id"), "KEEPA": ("cle",)}
+SOURCES = {"SPAPI": ("client_id", "client_secret", "refresh_token", "region", "seller_id"), "KEEPA": ("cle",),
+           "MICROSOFT": ("client_id", "client_secret")}       # application Microsoft [RM-AMZ-129]
+INTERNES = ("MESSAGERIE",)       # jeton de la boîte connectée : écrit par le serveur seul, jamais saisi ni rendu
 FACULTATIFS = {"SPAPI": ("seller_id",)}
 REGIONS = ("EU", "NA", "FE")
 MAX = 2000

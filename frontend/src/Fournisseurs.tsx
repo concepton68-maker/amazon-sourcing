@@ -2,11 +2,53 @@ import { FormEvent, useEffect, useState } from "react";
 import { FiltreMultiple } from "./Filtre";
 import { Bon, Colonnes, Fichier, FournisseurBilan, Place, Reference, actionBon, ajouterLigneBon, ajouterReferences,
   analyserTarif, creerBon, creerFournisseur, deposerTarif, enregistrerTarif, lireAnnuaire, listerBons,
-  listerFournisseurs, listerPlaces, modifierFournisseur, recevoirBon, retirerLigneBon, documentBon, modifierQuantiteBon } from "./api";
+  listerFournisseurs, listerPlaces, modifierFournisseur, recevoirBon, retirerLigneBon, documentBon, modifierQuantiteBon, ApercuEnvoi, TentativeEnvoi, apercuEnvoi, envoyerParMessagerie, lireEnvois } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
 const n = (v: number | null) => (v === null ? null : String(v));
 const STATUTS = ["TOUS", "BROUILLON", "ENVOYE", "RECU", "ANNULE"];
+
+// Envoi par la messagerie [RM-AMZ-130, 131] : aperçu, envoi voulu, suivi des tentatives.
+function EnvoiMessagerie({ b, maj }: { b: Bon; maj: (b: Bon) => void }) {
+  const [apercu, setApercu] = useState<ApercuEnvoi | null>(null);
+  const [envois, setEnvois] = useState<TentativeEnvoi[]>([]);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [enCours, setEnCours] = useState(false);
+  useEffect(() => { setApercu(null); setErreur(null); lireEnvois(b.id).then(setEnvois).catch(() => undefined); }, [b.id]);
+  const ouvrir = () => { setErreur(null); apercuEnvoi(b.id).then(setApercu).catch((x) => setErreur((x as Error).message)); };
+  const envoyer = () => {
+    setEnCours(true); setErreur(null);
+    envoyerParMessagerie(b.id, envois.length).then((r) => { maj(r.bon); setApercu(null); return lireEnvois(b.id).then(setEnvois); })
+      .catch((x) => setErreur((x as Error).message)).finally(() => setEnCours(false));
+  };
+  const dernier = envois[envois.length - 1];
+  return (
+    <div className="envoi-messagerie">
+      {!apercu && <button type="button" className="secondaire" onClick={ouvrir}>
+        {dernier ? t("envoi.renvoyer") : t("envoi.ouvrir")}</button>}
+      {apercu && <div className="apercu-envoi" role="region" aria-label={t("envoi.apercu")}>
+        <dl className="faits">
+          <div><dt>{t("envoi.de")}</dt><dd>{apercu.expediteur}</dd></div>
+          <div><dt>{t("envoi.a")}</dt><dd>{apercu.a}</dd></div>
+          {apercu.repondre_a && <div><dt>{t("envoi.repondre_a")}</dt><dd>{apercu.repondre_a}</dd></div>}
+          <div><dt>{t("envoi.objet")}</dt><dd>{apercu.objet}</dd></div>
+          <div><dt>{t("envoi.piece")}</dt><dd>{apercu.piece.nom} · {Math.ceil(apercu.piece.taille / 1024)} Ko</dd></div>
+        </dl>
+        <pre className="texte-envoi">{apercu.texte}</pre>
+        <div className="formulaire nu">
+          <button type="button" className="principal" disabled={enCours} onClick={envoyer}>{enCours ? t("envoi.en_cours") : t("envoi.envoyer")}</button>
+          <button type="button" className="lien" onClick={() => setApercu(null)}>{t("bon.annuler")}</button>
+        </div>
+      </div>}
+      {envois.length > 0 && <ul className="liste-envois">{envois.map((x) => (
+        <li key={x.generation} className={x.etat}>
+          <strong>{t(`envoi.etat.${x.etat}`)}</strong> · {dateCourte(x.le)} {new Date(x.le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · {x.a}
+          {x.cause && <span className="meta"> · {t(`envoi.cause.${x.cause}`) === `envoi.cause.${x.cause}` ? x.cause : t(`envoi.cause.${x.cause}`)}</span>}
+        </li>))}</ul>}
+      {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
+    </div>
+  );
+}
 
 function DetailBon({ b, maj, voirLot }: { b: Bon; maj: (b: Bon) => void; voirLot: (id: string) => void }) {
   const [places, setPlaces] = useState<Place[]>([]);
@@ -69,6 +111,7 @@ function DetailBon({ b, maj, voirLot }: { b: Bon; maj: (b: Bon) => void; voirLot
         </form>
       )}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
+      {(b.statut === "BROUILLON" || b.statut === "ENVOYE") && b.lignes.length > 0 && <EnvoiMessagerie b={b} maj={maj} />}
       <div className="actions">
         {b.lignes.length > 0 && <a className="bouton-lien" href={documentBon(b.id, "pdf")}>{t("bon.pdf")}</a>}
         {b.lignes.length > 0 && <a className="bouton-lien" href={documentBon(b.id, "xlsx")}>{t("bon.excel")}</a>}
