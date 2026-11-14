@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Exploration, RayonSonde, lancerExploration, lireExploration } from "./api";
 import { t } from "./i18n";
 
+const affiche = (r: RayonSonde) => (r.statut === "FERME" && r.approbation > 0 ? "APPROBATION" : r.statut);
+
 // Ce que je peux vendre [RM-AMZ-084, 085] : sondage des rayons, produits autorisés d'abord.
 function Rayon({ r, analyser }: { r: RayonSonde; analyser: (code: string) => void }) {
   const [ouvert, setOuvert] = useState(false);
@@ -11,7 +13,7 @@ function Rayon({ r, analyser }: { r: RayonSonde; analyser: (code: string) => voi
     <>
       <tr>
         <td><strong>{t(`rayon.${r.code}`)}</strong></td>
-        <td><span className={`statut-rayon ${r.statut}`}>{t(`rayon.statut.${r.statut}`)}</span></td>
+        <td><span className={`statut-rayon ${affiche(r)}`}>{t(`rayon.statut.${affiche(r)}`)}</span></td>
         <td><div className="barre-part" title={`${r.autorises}/${r.testes}`}><div style={{ width: `${part * 100}%` }} /></div></td>
         <td className="num">{r.autorises} / {r.testes}</td>
         <td className="num">{r.approbation}</td>
@@ -54,16 +56,16 @@ export function VendableVue({ analyser }: { analyser: (code: string) => void }) 
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
       {res && (
         <div className="kpis">
-          {["OUVERT", "PARTIEL", "FERME"].map((s) => (
+          {["OUVERT", "PARTIEL", "APPROBATION", "FERME"].map((s) => (
             <div key={s} className="kpi"><span className="kpi-l">{t(`rayon.statut.${s}`)}</span>
-              <span className="kpi-v">{res.rayons.filter((r) => r.statut === s).length}</span></div>))}
+              <span className="kpi-v">{res.rayons.filter((r) => affiche(r) === s).length}</span></div>))}
           <div className="kpi"><span className="kpi-l">{t("vendable.produits_autorises")}</span>
             <span className="kpi-v">{res.rayons.reduce((n, r) => n + r.autorises, 0)}</span></div>
         </div>)}
       <section className="carte" aria-label={t("vendable.titre")}>
         {!res ? <p className="meta">{e?.en_cours ? t("vendable.patience") : t("vendable.jamais")}</p> : (
           <div className="defile"><table>
-            <thead><tr><th scope="col">{t("vendable.rayon")}</th><th scope="col">{t("col.suivi")}</th><th scope="col">{t("vendable.part")}</th>
+            <thead><tr><th scope="col">{t("vendable.rayon")}</th><th scope="col">{t("vendable.statut")}</th><th scope="col">{t("vendable.part")}</th>
               <th scope="col" className="num">{t("vendable.autorises")}</th><th scope="col" className="num">{t("vendable.approbation")}</th>
               <th scope="col"><span className="masque">{t("vendable.voir", { n: "" })}</span></th></tr></thead>
             <tbody>{rayons.map((r) => <Rayon key={r.code} r={r} analyser={analyser} />)}</tbody>

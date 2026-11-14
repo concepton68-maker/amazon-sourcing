@@ -49,70 +49,89 @@ function Suivre({ asin, marketplace }: { asin: string; marketplace: string }) {
     onClick={() => suivreProduit(asin, marketplace).then(() => setFait(true))}>{fait ? `✓ ${t("sm.suivi")}` : `+ ${t("sm.suivre")}`}</button>;
 }
 
+function Cascade({ a }: { a: Analyse }) {
+  const r = a.rentabilite!, d = a.devise;
+  const lignes: [string, number, string][] = [[t("calc.prix_ttc"), a.prix_vente ?? 0, "plus"]];
+  if (r.tva_collectee) lignes.push([t("calc.tva"), -r.tva_collectee, "moins"]);
+  lignes.push([t("calc.frais"), -r.frais_amazon, "moins"], [t("calc.achat"), -r.cout_achat_net, "moins"]);
+  if (r.tva_frais) lignes.push([t("calc.tva_frais"), -r.tva_frais, "moins"]);
+  if (r.autres) lignes.push([t("calc.autres"), -r.autres, "moins"]);
+  const max = Math.max(...lignes.map((l) => Math.abs(l[1])), Math.abs(r.profit), 0.01);
+  return (
+    <ul className="cascade">
+      {lignes.map(([l, v, c]) => (
+        <li key={l}><span>{l}</span><span className="piste"><i className={c} style={{ width: `${(Math.abs(v) / max) * 100}%` }} /></span>
+          <span className="v">{monnaie(n(v), d, true)}</span></li>))}
+      <li className="total"><span>{t("calc.profit")}</span>
+        <span className="piste"><i className={r.profit > 0 ? "profit" : "perte"} style={{ width: `${(Math.abs(r.profit) / max) * 100}%` }} /></span>
+        <span className={`v ${r.profit > 0 ? "positif" : "negatif"}`}>{monnaie(n(r.profit), d, true)}</span></li>
+    </ul>
+  );
+}
+
+function Verifs({ a }: { a: Analyse }) {
+  const d = a.devise;
+  return (
+    <ul className="verifs">
+      <li className={a.autorise ? "ok" : a.autorise === false ? "ko" : "inconnu"}>{t("verif.autorise")} : {a.autorise === null ? "—" : a.autorise ? t("oui") : t("non")}</li>
+      {a.raisons.filter((m) => m.code !== "R_PRIX_ACHAT_MAX").map((m, k) => <li key={`r${k}`} className="info">{message(m, d)}</li>)}
+      {a.alertes.map((m, k) => <li key={`a${k}`} className="attention">{message(m, d)}</li>)}
+      {a.non_verifie.map((m, k) => <li key={`n${k}`} className="inconnu">{message(m, d)}</li>)}
+    </ul>
+  );
+}
+
 function Resultat({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
   const r = a.rentabilite, h = a.historique, o = a.offres, d = a.devise;
-  const oui = (v: boolean | null | undefined) => (v === null || v === undefined ? "—" : v ? t("oui") : t("non"));
   return (
     <section className="detail" aria-labelledby="titre-produit">
-      <header className="detail-tete">
-        <div>
-          <span className={`verdict ${a.verdict}`}>{t(`verdict.${a.verdict}`)}</span>
+      <div className="carte produit-carte">
+        <div className="produit-info">
+          <p className="meta">{[a.marque, a.categorie, a.bsr ? `BSR ${a.bsr.toLocaleString("fr-FR")}` : null, a.asin].filter(Boolean).join(" · ")}</p>
           <h2 id="titre-produit">{a.titre ?? a.asin}</h2>
-          <p className="meta">{[a.asin, a.marque, a.categorie, a.bsr ? `BSR ${a.bsr}` : null].filter(Boolean).join(" · ")}</p>
+          <div className="pills">
+            {a.autorise !== null && <span className={`pill ${a.autorise ? "v" : "r"}`}>{a.autorise ? t("pill.autorise") : t("pill.non_autorise")}</span>}
+            {o?.nb_fba !== null && o?.nb_fba !== undefined && <span className="pill b">{t("pill.vendeurs_fba", { n: o.nb_fba })}</span>}
+            {o?.amazon_vend !== null && o?.amazon_vend !== undefined && <span className={`pill ${o.amazon_vend ? "a" : "n"}`}>{o.amazon_vend ? t("pill.amazon_present") : t("pill.amazon_absent")}</span>}
+            {a.unites_lot && a.unites_lot > 1 ? <span className="pill a">{t("pill.lot", { n: a.unites_lot })}</span> : null}
+          </div>
           <Suivre asin={a.asin} marketplace={a.marketplace} />
         </div>
-        <CreerLot a={a} cree={cree} />
-      </header>
+        <div className="produit-verdict">
+          <span className={`verdict grand ${a.verdict}`}>{t(`verdict.${a.verdict}`)}</span>
+          {r && <p className="meta">{t("kpi.prix_max", { roi: pourcent(n(r.roi_cible)) })} : <strong className="chiffre">{monnaie(n(r.prix_achat_max), d)}</strong></p>}
+        </div>
+      </div>
 
       {r && (
         <div className="kpis">
           <div className="kpi"><span className="kpi-l">{t("kpi.profit")}</span>
-            <span className={`kpi-v ${r.profit > 0 ? "" : "negatif"}`}>{monnaie(n(r.profit), d)}</span>
+            <span className={`kpi-v ${r.profit > 0 ? "positif" : "negatif"}`}>{monnaie(n(r.profit), d, true)}</span>
             <span className="kpi-s">{monnaie(n(a.prix_vente), d)} · {t(`origine.${a.origine_prix}`)}</span></div>
           <div className="kpi"><span className="kpi-l">{t("kpi.roi_marge")}</span>
-            <span className="kpi-v">{pourcent(n(r.roi))}</span><span className="kpi-s">{pourcent(n(r.marge))}</span></div>
-          <div className="kpi"><span className="kpi-l">{t("kpi.prix_max", { roi: pourcent(n(r.roi_cible)) })}</span>
-            <span className="kpi-v">{monnaie(n(r.prix_achat_max), d)}</span></div>
-          {a.prudent && <div className="kpi"><span className="kpi-l">{t("kpi.prudent")}</span>
-            <span className={`kpi-v ${a.prudent.profit > 0 ? "" : "negatif"}`}>{monnaie(n(a.prudent.profit), d)}</span>
-            <span className="kpi-s">{monnaie(n(a.prudent.prix_vente), d)} · {pourcent(n(a.prudent.roi))}</span></div>}
+            <span className="kpi-v">{pourcent(n(r.roi))} · {pourcent(n(r.marge))}</span>
+            <span className="kpi-s">{t("kpi.objectif", { roi: pourcent(n(r.roi_cible)) })}</span></div>
+          {a.prudent ? <div className="kpi"><span className="kpi-l">{t("kpi.prudent")}</span>
+            <span className={`kpi-v ${a.prudent.profit > 0 ? "" : "negatif"}`}>{monnaie(n(a.prudent.profit), d, true)}</span>
+            <span className="kpi-s">{monnaie(n(a.prudent.prix_vente), d)} · {pourcent(n(a.prudent.roi))}</span></div>
+            : <div className="kpi"><span className="kpi-l">{t("marche.vendeurs")}</span>
+              <span className="kpi-v">{o?.nb_fba ?? "—"} · {o?.nb_fbm ?? "—"}</span>
+              <span className="kpi-s">{h?.ventes_mois ? `${h.ventes_mois} / mois` : t("kpi.ventes_inconnues")}</span></div>}
         </div>
       )}
 
-      <div className="grille trois">
+      <div className="grille deux">
         {r && (
           <div className="carte">
-            <h3>{t("calc.titre")}</h3>
-            <table><tbody>
-              <tr><th scope="row">{t("calc.prix_ttc")}</th><td className="num">{monnaie(n(a.prix_vente), d)}</td></tr>
-              {r.tva_collectee !== 0 && <tr><th scope="row">{t("calc.tva")}</th><td className="num">{monnaie(n(-r.tva_collectee), d)}</td></tr>}
-              <tr><th scope="row">{t("calc.achat")}</th><td className="num">{monnaie(n(-r.cout_achat_net), d)}</td></tr>
-              <tr><th scope="row">{t("calc.frais")}</th><td className="num">{monnaie(n(-r.frais_amazon), d)}</td></tr>
-              {r.tva_frais !== 0 && <tr><th scope="row">{t("calc.tva_frais")}</th><td className="num">{monnaie(n(-r.tva_frais), d)}</td></tr>}
-              {r.autres !== 0 && <tr><th scope="row">{t("calc.autres")}</th><td className="num">{monnaie(n(-r.autres), d)}</td></tr>}
-              <tr className="total"><th scope="row">{t("calc.profit")}</th><td className="num">{monnaie(n(r.profit), d)}</td></tr>
-            </tbody></table>
+            <h3>{t("calc.origine")} <span className="meta">{t("calc.par_unite")}</span></h3>
+            <Cascade a={a} />
             <Liste titre={t("hyp.titre")} msgs={r.hypotheses} devise={d} ton="discret" />
           </div>
         )}
         <div className="carte">
-          <h3>{t("marche.titre")}</h3>
-          <dl className="faits">
-            <div><dt>{t("marche.prix_moy")}</dt><dd>{monnaie(n(h?.prix_moy90), d)}</dd></div>
-            <div><dt>{t("marche.min_max")}</dt><dd>{monnaie(n(h?.prix_min90), d)} / {monnaie(n(h?.prix_max90), d)}</dd></div>
-            <div><dt>{t("marche.ventes")}</dt><dd>{h?.ventes_mois ?? "—"}</dd></div>
-            <div><dt>{t("marche.part")}</dt><dd>{a.ventes_pour_vous ?? "—"} <span className="etiquette">{t("estimation")}</span></dd></div>
-            <div><dt>{t("marche.vendeurs")}</dt><dd>{o?.nb_fba ?? "—"} · {o?.nb_fbm ?? "—"}</dd></div>
-            <div><dt>{t("marche.amazon")}</dt><dd>{oui(o?.amazon_vend)}</dd></div>
-          </dl>
-        </div>
-        <div className="carte">
           <h3>{t("verif.titre")}</h3>
-          <dl className="faits"><div><dt>{t("verif.autorise")}</dt>
-            <dd className={a.autorise === false ? "negatif" : a.autorise ? "positif" : ""}>{oui(a.autorise)}</dd></div></dl>
-          <Liste titre={t("raisons.titre")} msgs={a.raisons.filter((m) => m.code !== "R_PRIX_ACHAT_MAX")} devise={d} ton="neutre" />
-          <Liste titre={t("alertes.titre")} msgs={a.alertes} devise={d} ton="alerte" />
-          <Liste titre={t("verif.non_verifie")} msgs={a.non_verifie} devise={d} ton="discret" />
+          <Verifs a={a} />
+          <CreerLot a={a} cree={cree} />
         </div>
       </div>
     </section>
