@@ -45,6 +45,7 @@ from .stock import calculer as calculer_stock, commandes_par_fournisseur
 from .traitement import Traitements, export_csv
 
 DIST = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "dist"
+FICHIERS_RACINE = {"favicon.svg", "favicon-32.png", "apple-touch-icon.png", "logo.svg", "logo-clair.svg"}
 
 
 def _s(x: Optional[Decimal], q: str = "0.01") -> Optional[str]:
@@ -1443,6 +1444,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         def interface(chemin: str):
             if chemin.startswith("api/"):
                 raise HTTPException(404, "INTROUVABLE")
+            if chemin in FICHIERS_RACINE and (DIST / chemin).is_file():      # logo et favicons (D-AMZ-031)
+                return FileResponse(DIST / chemin)
             return FileResponse(DIST / "index.html")
     return app
 

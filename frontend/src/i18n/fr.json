@@ -1,5 +1,5 @@
 {
-  "app.nom": "Syllig Vente",
+  "app.nom": "Syllig Pilot",
   "nav.lots": "Achats & lots",
   "lots.titre": "Achats & lots",
   "lots.vide": "Aucun lot",
@@ -835,5 +835,9 @@
   "societe.courriel": "Courriel",
   "societe.telephone": "Téléphone",
   "societe.comme_adresse": "Vide : la même que l'adresse",
-  "champ.societe": "Société"
+  "champ.societe": "Société",
+  "theme.titre": "Affichage",
+  "theme.light": "Jour",
+  "theme.dark": "Nuit",
+  "theme.auto": "Auto"
 }
