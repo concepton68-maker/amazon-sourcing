@@ -141,6 +141,8 @@ export interface Reference { code: string; nom: string; pays: string; site: stri
   revente: "AUTORISEE" | "INTERDITE" | "A_VERIFIER"; source: string; verification: "LU" | "EXTRAIT" | "AUCUNE";
   connexion: string; api: boolean; acces: string; note: string; date_lecture: string; ajoute: boolean }
 export const lireAnnuaire = () => lire<Reference[]>("/api/annuaire");
+export const ajouterReferences = (codes: string[]) =>
+  requete<{ ajoutes: string[]; ignores: string[] }>("POST", "/api/annuaire/ajouter", { codes });
 export const ajouterReference = (code: string) => requete<FournisseurBilan>("POST", `/api/annuaire/${encodeURIComponent(code)}/ajouter`, {});
 export const modifierFournisseur = (id: string, champs: Partial<FournisseurBilan>) =>
   requete<FournisseurBilan>("PUT", `/api/fournisseurs/${encodeURIComponent(id)}`, champs);

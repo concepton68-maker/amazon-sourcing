@@ -102,6 +102,10 @@ class DemandeAnalyse(BaseModel):
     port_fournisseur: Optional[float] = Field(default=None, ge=0, le=1000)   # [RM-AMZ-098] remplace le défaut
 
 
+class DemandeAjoutAnnuaire(BaseModel):
+    codes: list[str] = Field(min_length=1, max_length=200)
+
+
 class DemandeCatalogue(BaseModel):
     fichier_id: str
     colonnes: dict[str, Optional[int]]
@@ -523,6 +527,22 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         except (A.ErreurAchat, ValueError) as e:
             raise _erreur_achat(e) from None
         return _fiche_json(c, f)
+
+    @app.post("/api/annuaire/ajouter", status_code=201)
+    def ajouter_plusieurs(d: DemandeAjoutAnnuaire, c: str = Depends(compte)):
+        """[RM-AMZ-101] Ajout groupé : les déjà présents sont ignorés, jamais en double."""
+        ajoutes, ignores = [], []
+        for code in dict.fromkeys(d.codes):
+            ref = AN.PAR_CODE.get(code)
+            if ref is None:
+                raise HTTPException(404, "REFERENCE_INCONNUE")
+            try:
+                f = A.depuis_reference(c, ref, depot.fournisseurs(c))
+                depot.enregistrer_fournisseur(c, f)
+                ajoutes.append(code)
+            except (A.ErreurAchat, ValueError):
+                ignores.append(code)
+        return {"ajoutes": ajoutes, "ignores": ignores}
 
     # [RM-AMZ-100] fiche
     @app.put("/api/fournisseurs/{fid}")
