@@ -270,3 +270,12 @@ export const neplusSuivre = (asin: string, marketplace: string) =>
   requete<{ suivi: boolean }>("DELETE", `/api/marche/suivi/${encodeURIComponent(marketplace)}/${encodeURIComponent(asin)}`);
 export const historiqueProduit = (asin: string, marketplace: string) =>
   lire<HistoriqueProduit>(`/api/marche/produit/${encodeURIComponent(marketplace)}/${encodeURIComponent(asin)}`);
+
+// Tableau de bord [RM-AMZ-091 à 094]
+export interface ChiffresDevise { ventes: number; profit: number; stock: number; variation_ventes: number | null; roi: number | null }
+export interface Tableau { devise: string | null; par_devise: Record<string, ChiffresDevise>;
+  serie: { jour: string; profit: number }[]; ventes_non_rattachees: number; unites_sans_cout: number;
+  a_faire: { recommander: number; remboursements: number; valeur_remboursements: Record<string, number>; conformite: number;
+    synchro: { le: string; echecs: string[] } | null };
+  mouvements: { asin: string; titre: string | null; variation: number; prix: number | null; bsr: number | null }[] }
+export const lireTableau = () => lire<Tableau>("/api/tableau");

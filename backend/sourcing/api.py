@@ -25,6 +25,7 @@ from . import conformite as CF
 from . import connexions as CX
 from . import exploration as EX
 from . import historique as H
+from . import tableau as TB
 from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
@@ -687,6 +688,33 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         if not explorations.lancer(c, get_marketplace("FR"), fx, depot):
             raise HTTPException(409, "EXPLORATION_EN_COURS")
         return {"lancee": True}
+
+    # ------------------------------------------------------------- tableau de bord [RM-AMZ-091 à 094]
+    @app.get("/api/tableau")
+    def tableau(c: str = Depends(compte)):
+        p = params(c)
+        maintenant = datetime.now(timezone.utc)
+        jour = H.jour_paris(maintenant)
+        lots, ventes = depot.lots(c), depot.ventes(c)
+        jour_photo, photos = depot.photo_stock(c)
+        stock = calculer_stock(photos, ventes, lots, jour_photo or jour, p.delai_fournisseur, p.delai_reception,
+                               p.marge_securite, p.seuil_rupture, p.seuil_surstock)
+        ch = TB.chiffres(lots, ventes, stock, jour)
+        conf = CF.verifier(lots, photos, depot.fiches(c), depot.enregistrements(c))
+        af = TB.a_faire(stock, depot.cas_remboursement(c), conf, depot.journal_synchro(c))
+        asins = list(dict.fromkeys(depot.suivis(c, "FR") + depot.asins_analyses(
+            c, "FR", maintenant - timedelta(days=H.JOURS_ANALYSES))))[:H.MAX_FAMILLE]
+        mv = TB.mouvements(depot.releves(c, "FR", asins, jour - timedelta(days=7)), jour) if asins else []
+        titres = {x.asin: x.titre for x in depot.produits_marche(c, "FR", asins=[m["asin"] for m in mv])} if mv else {}
+        return {
+            "devise": ch["devise"],
+            "par_devise": {dv: {k: (_num(v) if isinstance(v, Decimal) else v) for k, v in x.items()}
+                           for dv, x in ch["par_devise"].items()},
+            "serie": [{"jour": s["jour"], "profit": _num(s["profit"])} for s in ch["serie"]],
+            "ventes_non_rattachees": ch["ventes_non_rattachees"], "unites_sans_cout": ch["unites_sans_cout"],
+            "a_faire": {**af, "valeur_remboursements": {k: _num(v) for k, v in af["valeur_remboursements"].items()}},
+            "mouvements": [{**m, "prix": _num(m["prix"]), "titre": titres.get(m["asin"])} for m in mv],
+        }
 
     # ------------------------------------------------------------- historique et suivi de marché [RM-AMZ-086 à 090]
     def _place(code: str):

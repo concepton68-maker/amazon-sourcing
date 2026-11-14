@@ -10,6 +10,8 @@ import { RemboursementsVue } from "./Remboursements";
 import { ConformiteVue } from "./Conformite";
 import { VendableVue } from "./Vendable";
 import { MarcheVue } from "./Marche";
+import { TableauVue } from "./Tableau";
+import { lireTableau } from "./api";
 import { NonConnecte, deconnecter, moi } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
@@ -141,10 +143,10 @@ function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: bo
   );
 }
 
-type Vue = "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "conformite" | "vendable" | "marche" | "parametres";
+type Vue = "tableau" | "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "conformite" | "vendable" | "marche" | "parametres";
 const vueDepuisAdresse = (): Vue => {
   const h = window.location.hash;
-  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : h === "#vendable" ? "vendable" : h === "#marche" ? "marche" : "analyse";
+  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h === "#parametres" ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : h === "#vendable" ? "vendable" : h === "#marche" ? "marche" : h === "#analyse" ? "analyse" : "tableau";
 };
 
 export function App() {
@@ -175,28 +177,44 @@ export function App() {
   const ouvrirBon = (id: string) => { setBonInitial(id); window.location.hash = "#fournisseurs"; };
   const analyser = (code: string, prix: number) => { setAnalyseInitiale({ code, prix }); window.location.hash = "#analyse"; };
 
+  const [pastilles, setPastilles] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (etat !== "ok") return;
+    lireTableau().then((x) => setPastilles({ stock: x.a_faire.recommander, remboursements: x.a_faire.remboursements,
+      conformite: x.a_faire.conformite })).catch(() => undefined);
+  }, [etat, vue]);
+  const [recherche, setRecherche] = useState("");
+
   if (etat === "verification") return null;
   if (etat === "requise") return <Connexion connecte={verifier} />;
+  const lien = (v: Vue, icone: string) => (
+    <a href={`#${v}`} aria-current={vue === v ? "page" : undefined}>
+      <span className="icone" aria-hidden="true">{icone}</span>{t(`nav.${v}`)}
+      {pastilles[v] ? <b className="pastille-menu">{pastilles[v]}</b> : null}</a>);
   return (
-    <div className="page">
-      <header className="barre-haut">
-        <span className="marque">{t("app.nom")}</span>
-        <nav aria-label="Navigation principale">
-          <a href="#analyse" aria-current={vue === "analyse" ? "page" : undefined}>{t("nav.analyse")}</a>
-          <a href="#vendable" aria-current={vue === "vendable" ? "page" : undefined}>{t("nav.vendable")}</a>
-          <a href="#marche" aria-current={vue === "marche" ? "page" : undefined}>{t("nav.marche")}</a>
-          <a href="#sourcing" aria-current={vue === "sourcing" ? "page" : undefined}>{t("nav.sourcing")}</a>
-          <a href="#lots" aria-current={vue === "lots" ? "page" : undefined}>{t("nav.lots")}</a>
-          <a href="#stock" aria-current={vue === "stock" ? "page" : undefined}>{t("nav.stock")}</a>
-          <a href="#fournisseurs" aria-current={vue === "fournisseurs" ? "page" : undefined}>{t("nav.fournisseurs")}</a>
-          <a href="#remboursements" aria-current={vue === "remboursements" ? "page" : undefined}>{t("nav.remboursements")}</a>
-          <a href="#conformite" aria-current={vue === "conformite" ? "page" : undefined}>{t("nav.conformite")}</a>
-          <a href="#parametres" aria-current={vue === "parametres" ? "page" : undefined}>{t("nav.parametres")}</a>
-        </nav>
+    <div className="app">
+      <nav className="menu" aria-label="Navigation principale">
+        <a href="#tableau" className="logo"><i aria-hidden="true" />{t("app.nom")}</a>
+        <h6>{t("nav.groupe.trouver")}</h6>
+        {lien("tableau", "◧")}{lien("analyse", "⌕")}{lien("vendable", "✓")}{lien("marche", "↗")}{lien("sourcing", "⇪")}
+        <h6>{t("nav.groupe.gerer")}</h6>
+        {lien("lots", "▣")}{lien("stock", "◫")}{lien("fournisseurs", "☰")}{lien("remboursements", "€")}{lien("conformite", "⚑")}
+        <div className="bas">
+          {lien("parametres", "⚙")}
+          {avecConnexion && <button type="button" className="sortie" onClick={sortir}>{t("connexion.sortir")}</button>}
+        </div>
+      </nav>
+      <div className="zone">
+      <header className="haut">
         {demo && <span className="badge-demo">{t("demo")}</span>}
-        {avecConnexion && <button type="button" className="lien sortie" onClick={sortir}>{t("connexion.sortir")}</button>}
+        <form className="recherche" role="search" onSubmit={(e) => { e.preventDefault(); if (recherche.trim()) { analyser(recherche.trim(), 0); setRecherche(""); } }}>
+          <span aria-hidden="true">⌕</span>
+          <input type="search" aria-label={t("nav.recherche")} placeholder={t("nav.recherche")} value={recherche}
+            onChange={(e) => setRecherche(e.target.value)} maxLength={40} />
+        </form>
       </header>
-      {vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
+      {vue === "tableau" ? <main className="contenu-plein"><TableauVue /></main>
+        : vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
         : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue analyser={analyser} /></main>
         : vue === "parametres" ? <main className="contenu-plein"><ParametresVue /></main>
         : vue === "stock" ? <main className="contenu-plein"><StockVue ouvrirBon={ouvrirBon} /></main>
@@ -206,6 +224,7 @@ export function App() {
         : vue === "vendable" ? <main className="contenu-plein"><VendableVue analyser={(code) => analyser(code, 0)} /></main>
         : vue === "fournisseurs" ? <main className="contenu-plein"><FournisseursVue key={bonInitial ?? "f"} bonInitial={bonInitial} voirLot={lotCree} /></main>
         : <main><LotsVue key={lotInitial ?? "lots"} lotInitial={lotInitial} setDemo={setDemo} /></main>}
+      </div>
     </div>
   );
 }
