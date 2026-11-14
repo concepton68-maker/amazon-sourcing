@@ -27,6 +27,7 @@ class InfosCatalogue:
     dimensions_cm: Optional[tuple] = None   # colis (catalogue « package ») [RM-AMZ-096]
     poids_kg: Optional[float] = None
     groupe_affichage: Optional[str] = None  # websiteDisplayGroup du classement des ventes
+    codes: tuple = ()                       # EAN, UPC, GTIN, ISBN du catalogue [RM-AMZ-109]
 
 
 @dataclass

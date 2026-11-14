@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ListeRentables, ProduitRentable, lireRentables } from "./api";
+import { EtatCorrespondance, ListeRentables, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
 import { FiltreMultiple } from "./Filtre";
 import { monnaie, pourcent, t } from "./i18n";
 
@@ -43,6 +43,8 @@ function Ligne({ p, analyser }: { p: ProduitRentable; analyser: (code: string, p
 export function RentablesVue({ analyser }: { analyser: (code: string, prix: number) => void }) {
   const [l, setL] = useState<ListeRentables | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [corr, setCorr] = useState<EtatCorrespondance | null>(null);
+  const [rafraichir, setRafraichir] = useState(0);
   const [tri, setTri] = useState("profit"); const [ordre, setOrdre] = useState("desc");
   const [niveaux, setNiveaux] = useState<string[]>(NIVEAUX);
   const [roi, setRoi] = useState(""); const [profit, setProfit] = useState(""); const [marge, setMarge] = useState("");
@@ -59,13 +61,23 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
     if (sansAmazon) q.amazon_absent = "true";
     if (q.vendabilite === "AUCUN") { setL((x) => x && { ...x, nombre: 0, produits: [] }); return; }
     lireRentables(q).then(setL).catch((x) => setErreur((x as Error).message));
-  }, [tri, ordre, niveaux, roi, profit, marge, origine, verdict, sansAmazon]);
+  }, [tri, ordre, niveaux, roi, profit, marge, origine, verdict, sansAmazon, rafraichir]);
+  const lireCorr = () => lireCorrespondance().then((x) => { setCorr((avant) => { if (avant?.en_cours && !x.en_cours) setRafraichir((n) => n + 1); return x; }); }).catch(() => undefined);
+  useEffect(() => { lireCorr(); }, []);
+  useEffect(() => { if (!corr?.en_cours) return; const id = setTimeout(lireCorr, 2000); return () => clearTimeout(id); }, [corr]);
+  const chercher = () => { setErreur(null); lancerCorrespondance().then(lireCorr).catch((x) => setErreur((x as Error).message)); };
   const trier = (c: string) => { if (c === tri) setOrdre(ordre === "desc" ? "asc" : "desc"); else { setTri(c); setOrdre("desc"); } };
   const e = (c: string, num = true) => <Entete cle={c} tri={tri} ordre={ordre} trier={trier} num={num} />;
   return (
     <div className="vue">
       <div className="entete-vue"><h1>{t("rent.titre")}</h1>
-        {l && <span className="meta">{t("rent.nombre", { n: l.nombre, total: l.total })}</span>}</div>
+        <div className="actions">
+          {l && <span className="meta">{t("rent.nombre", { n: l.nombre, total: l.total })}</span>}
+          <button type="button" className="principal" disabled={corr?.en_cours} onClick={chercher} title={t("corr.info")}>
+            {corr?.en_cours ? t("corr.en_cours", { f: corr.progression?.[0] ?? 0, t: corr.progression?.[1] ?? 0 }) : t("corr.lancer")}</button>
+        </div></div>
+      {corr?.bilan && !corr.en_cours && <p className="meta">{corr.bilan.erreur ? t("corr.erreur")
+        : t("corr.bilan", { c: corr.bilan.candidats ?? 0, n: corr.bilan.correspondances ?? 0, f: corr.bilan.fournisseurs ?? 0 })}</p>}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
       <div className="barre-filtres-rent">
         <FiltreMultiple libelle={t("rent.vendabilite")} changer={setNiveaux}

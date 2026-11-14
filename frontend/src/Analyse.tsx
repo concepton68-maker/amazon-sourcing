@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Analyse, Params, Place, analyser, creerLot, lireParametres, listerPlaces, suivreProduit } from "./api";
+import { Analyse, OffreAchat, Params, Place, analyser, creerLot, lireParametres, listerPlaces, ouAcheter, suivreProduit } from "./api";
 import { Msg, message, monnaie, pourcent, t } from "./i18n";
 
 const REGIMES = ["assujetti", "non_assujetti"];
@@ -86,6 +86,38 @@ function Verifs({ a }: { a: Analyse }) {
   );
 }
 
+// [RM-AMZ-110] où l'acheter parmi vos fournisseurs
+function OuAcheter({ asin, marketplace, devise }: { asin: string; marketplace: string; devise: string }) {
+  const [offres, setOffres] = useState<OffreAchat[] | null>(null);
+  useEffect(() => { setOffres(null); ouAcheter(asin, marketplace).then((r) => setOffres(r.offres)).catch(() => setOffres([])); }, [asin, marketplace]);
+  const m = (v: number | null | undefined) => (v === null || v === undefined ? "—" : monnaie(String(v), devise));
+  return (
+    <div className="carte">
+      <h3>{t("acheter.titre")} {offres && offres.length > 0 && <span className="meta">{t(offres.length === 1 ? "acheter.nombre_1" : "acheter.nombre", { n: offres.length })}</span>}</h3>
+      {offres === null ? <p className="meta">{t("chargement")}</p> : offres.length === 0 ? (
+        <p className="meta">{t("acheter.aucun")} <a href="#fournisseurs">{t("nav.fournisseurs")}</a></p>) : (
+        <div className="defile"><table className="table-compacte">
+          <thead><tr><th scope="col">{t("acheter.fournisseur")}</th><th scope="col" className="num">{t("acheter.prix")}</th>
+            <th scope="col" className="num">{t("acheter.minimum")}</th><th scope="col" className="num">{t("acheter.delai")}</th>
+            <th scope="col" className="num">{t("rent.col.profit")}</th><th scope="col" className="num">{t("rent.col.roi")}</th>
+            <th scope="col">{t("rent.col.verdict")}</th></tr></thead>
+          <tbody>{offres.map((o) => (
+            <tr key={`${o.fournisseur_id}|${o.code}`}>
+              <td><span className="produit">{o.fournisseur}</span><div className="meta">{o.code}{o.designation ? ` · ${o.designation}` : ""}</div></td>
+              <td className="num">{m(o.prix_unitaire)}{o.unites_lot && o.unites_lot > 1 ? <div className="meta">× {o.unites_lot} = {m(o.cout_achat)}</div> : null}</td>
+              <td className="num">{o.minimum ?? "—"}</td>
+              <td className="num">{t("jours", { n: o.delai_jours })}</td>
+              {o.calcule ? <>
+                <td className={`num ${o.profit !== null && o.profit !== undefined && o.profit > 0 ? "positif" : "negatif"}`}>{m(o.profit)}</td>
+                <td className="num">{o.roi === null || o.roi === undefined ? "—" : pourcent(String(o.roi))}</td>
+                <td>{o.verdict && <span className={`verdict ${o.verdict}`}>{t(`verdict.${o.verdict}`)}</span>}</td></>
+                : <td colSpan={3} className="meta">{t("erreur.REVENTE_INTERDITE")}</td>}
+            </tr>))}</tbody>
+        </table></div>)}
+    </div>
+  );
+}
+
 function Resultat({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
   const r = a.rentabilite, h = a.historique, o = a.offres, d = a.devise;
   return (
@@ -139,6 +171,7 @@ function Resultat({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
           <CreerLot a={a} cree={cree} />
         </div>
       </div>
+      <OuAcheter asin={a.asin} marketplace={a.marketplace} devise={d} />
     </section>
   );
 }

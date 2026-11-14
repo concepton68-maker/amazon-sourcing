@@ -143,7 +143,7 @@ class ClientSPAPI:
         data = self._appel(
             mp, "GET", f"/catalog/2022-04-01/items/{asin}",
             params={"marketplaceIds": mp.marketplace_id,
-                    "includedData": "summaries,salesRanks,attributes,relationships,dimensions"},
+                    "includedData": "summaries,salesRanks,attributes,relationships,dimensions,identifiers"},
         )
         return parser_catalogue(asin, mp, data)
 
@@ -172,7 +172,7 @@ class ClientSPAPI:
             return {}
         data = self._appel(mp, "GET", "/catalog/2022-04-01/items", params={
             "identifiers": ",".join(asins[:20]), "identifiersType": "ASIN", "marketplaceIds": mp.marketplace_id,
-            "includedData": "summaries,salesRanks", "pageSize": "20"})
+            "includedData": "summaries,salesRanks,identifiers", "pageSize": "20"})
         return {it["asin"]: parser_catalogue(it["asin"], mp, it) for it in data.get("items", []) or [] if it.get("asin")}
 
     def offres_par_paquet(self, mp: Marketplace, asins: list[str]) -> dict[str, InfosOffres]:
@@ -441,6 +441,13 @@ def parser_catalogue(asin: str, mp: Marketplace, data: dict) -> InfosCatalogue:
                    for a in r.get("childAsins", []) or []}
         if enfants:
             info.nb_variantes = len(enfants)
+    for idm in data.get("identifiers", []) or []:                 # [RM-AMZ-109] codes-barres
+        if idm.get("marketplaceId") not in (None, mp.marketplace_id):
+            continue
+        info.codes = tuple(dict.fromkeys(str(x.get("identifier")) for x in idm.get("identifiers", []) or []
+                                         if x.get("identifierType") in ("EAN", "UPC", "GTIN", "ISBN")
+                                         and x.get("identifier")))
+        break
     for dm in data.get("dimensions", []) or []:                   # [RM-AMZ-096] colis
         if dm.get("marketplaceId") not in (None, mp.marketplace_id):
             continue
