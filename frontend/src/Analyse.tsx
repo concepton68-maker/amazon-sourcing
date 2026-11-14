@@ -78,7 +78,8 @@ function Verifs({ a }: { a: Analyse }) {
   const d = a.devise;
   return (
     <ul className="verifs">
-      <li className={a.autorise ? "ok" : a.autorise === false ? "ko" : "inconnu"}>{t("verif.autorise")} : {a.autorise === null ? "—" : a.autorise ? t("oui") : t("non")}</li>
+      <li className={a.autorise ? "ok" : a.autorise === false ? "ko" : "inconnu"}>{t("verif.autorise")} : {a.autorise === null ? "—" : a.autorise ? t("oui") : t("non")}
+        {(a.liens_autorisation ?? []).map((l) => <a key={l.url} className="lien-externe" href={l.url} target="_blank" rel="noreferrer">{t("elig.demander")} ↗</a>)}</li>
       {a.raisons.filter((m) => m.code !== "R_PRIX_ACHAT_MAX").map((m, k) => <li key={`r${k}`} className="info">{message(m, d)}</li>)}
       {a.alertes.map((m, k) => <li key={`a${k}`} className="attention">{message(m, d)}</li>)}
       {a.non_verifie.map((m, k) => <li key={`n${k}`} className="inconnu">{message(m, d)}</li>)}

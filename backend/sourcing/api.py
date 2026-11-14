@@ -103,6 +103,11 @@ class DemandeAnalyse(BaseModel):
     port_fournisseur: Optional[float] = Field(default=None, ge=0, le=1000)   # [RM-AMZ-098] remplace le défaut
 
 
+class DemandeEligibilite(BaseModel):
+    codes: str = Field(max_length=200_000)
+    marketplace: str = "FR"
+
+
 class DemandeSynchroManuelle(BaseModel):
     taches: list[str] = Field(max_length=20)
 
@@ -271,6 +276,7 @@ def _analyse_json(a: AnalyseProduit, jeton: str) -> dict:
             "amazon_en_stock": _r(h.amazon_en_stock_pct90)},
         "ventes_pour_vous": a.ventes_estimees_pour_vous,
         "autorise": None if a.restrictions is None else a.restrictions.autorise,
+        "liens_autorisation": [] if a.restrictions is None else list(a.restrictions.liens),
         "raisons": msgs(a.raisons), "alertes": msgs(a.alertes), "non_verifie": msgs(a.non_verifie),
     }
 
@@ -327,6 +333,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     traitements = Traitements()
     explorations = EX.Explorations(en_fond=traitement_en_fond)
     correspondances = CO.Correspondances(en_fond=traitement_en_fond)
+    from . import eligibilite as EL
+    verifications = EL.Verifications(en_fond=traitement_en_fond)
     from . import synchro_nuit as SN
     manuelles = SN.SynchrosManuelles(en_fond=traitement_en_fond)
 
@@ -862,6 +870,32 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         if not manuelles.lancer(c, client, v.get("region", "EU"), depot, set(d.taches)):
             raise HTTPException(409, "SYNCHRO_EN_COURS")
         return {"lancee": True}
+
+    # ------------------------------------------------------------- autorisations en masse [RM-AMZ-120, 121]
+    @app.post("/api/eligibilite", status_code=202)
+    def lancer_eligibilite(d: DemandeEligibilite, c: str = Depends(compte)):
+        mp = _place(d.marketplace)
+        fx = sources(c)
+        if not fx.catalogue or fx.restrictions is None:
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        codes = EL.lire_codes(d.codes)
+        if not codes:
+            raise HTTPException(422, "AUCUN_CODE")
+        if not verifications.lancer(c, mp, fx, codes):
+            raise HTTPException(409, "VERIFICATION_EN_COURS")
+        return {"lancee": True, "codes": len(codes)}
+
+    @app.get("/api/eligibilite")
+    def lire_eligibilite(c: str = Depends(compte)):
+        return {"etat": verifications.etats.get(c)}
+
+    @app.get("/api/eligibilite/export.csv")
+    def exporter_eligibilite(c: str = Depends(compte)):
+        e = verifications.etats.get(c)
+        if not e:
+            raise HTTPException(404, "AUCUNE_VERIFICATION")
+        return Response(EL.export_csv(e), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": 'attachment; filename="autorisations.csv"'})
 
     # ------------------------------------------------------------- ce que je peux vendre [RM-AMZ-084, 085]
     @app.get("/api/exploration")

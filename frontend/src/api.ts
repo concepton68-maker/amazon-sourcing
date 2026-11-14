@@ -41,7 +41,7 @@ export interface Analyse {
   offres: null | { nb_fba: number | null; nb_fbm: number | null; amazon_vend: boolean | null; buybox_amazon: boolean | null };
   historique: null | { prix_moy90: number | null; prix_min90: number | null; prix_max90: number | null;
     ventes_mois: number | null; chutes_bsr_30j: number | null; bsr_moy90: number | null; amazon_en_stock: number | null };
-  ventes_pour_vous: number | null; autorise: boolean | null;
+  ventes_pour_vous: number | null; autorise: boolean | null; liens_autorisation?: { titre: string | null; url: string }[];
   raisons: Msg[]; alertes: Msg[]; non_verifie: Msg[];
 }
 export interface DemandeAnalyse {
@@ -347,3 +347,10 @@ export interface Pays { marketplace: string; devise: string; erreur?: string; as
   prix_vente?: number | null; profit?: number | null; roi?: number | null; marge?: number | null; prix_achat_max?: number | null;
   verdict?: string; autorise?: boolean | null; vendeurs?: number | null; amazon_vend?: boolean | null; hypotheses?: Msg[] }
 export const comparerPays = (d: DemandeAnalyse) => envoyer<{ pays: Pays[] }>("/api/analyse/pays", d);
+
+// Autorisations en masse [RM-AMZ-120, 121]
+export interface Verification { code: string; asin?: string; statut: string; motifs?: string[]; liens?: { titre: string | null; url: string }[] }
+export interface EtatEligibilite { en_cours: boolean; marketplace: string; total: number; resultats: Verification[]; debut: string; fin?: string }
+export const lireEligibilite = () => lire<{ etat: EtatEligibilite | null }>("/api/eligibilite");
+export const lancerEligibilite = (codes: string, marketplace: string) =>
+  requete<{ lancee: boolean; codes: number }>("POST", "/api/eligibilite", { codes, marketplace });

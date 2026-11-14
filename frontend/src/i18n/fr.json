@@ -775,5 +775,20 @@
   "demande.ecart": "plus haut − plus bas",
   "demande.bb_amazon": "Buy Box Amazon",
   "demande.bb_moi": "Buy Box à vous",
-  "demande.moyenne": "moyenne"
+  "demande.moyenne": "moyenne",
+  "elig.titre": "Vérifier une liste de produits",
+  "elig.placeholder": "Collez des ASIN, EAN ou UPC (un par ligne, ou séparés par des virgules)",
+  "elig.fichier": "Ajouter un fichier (.csv, .txt)",
+  "elig.lancer": "Vérifier les autorisations",
+  "elig.en_cours": "Vérification {f}/{t}…",
+  "elig.fini": "{n} produits vérifiés",
+  "elig.demander": "Demander l'autorisation",
+  "elig.AUTORISE": "Autorisé",
+  "elig.APPROBATION": "Approbation requise",
+  "elig.INTERDIT": "Interdit",
+  "elig.INTROUVABLE": "Introuvable",
+  "elig.INCONNU": "Inconnu",
+  "erreur.AUCUN_CODE": "Aucun code reconnu",
+  "erreur.VERIFICATION_EN_COURS": "Une vérification est déjà en cours",
+  "erreur.AUCUNE_VERIFICATION": "Aucune vérification"
 }
