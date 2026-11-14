@@ -465,5 +465,10 @@
   "connexion.etape.AILLEURS_EU": "Le jeton marche sur les serveurs Europe : choisissez la région Europe",
   "connexion.etape.AILLEURS_SANDBOX_EU": "Le jeton marche seulement en mode Sandbox (essai) : créez l'application en Production",
   "connexion.etape.AILLEURS_SANDBOX_NA": "Le jeton marche seulement en Sandbox Amérique : créez l'application en Production, autorisée depuis le Seller Central européen",
-  "connexion.etape.AILLEURS_SANDBOX_FE": "Le jeton marche seulement en Sandbox Extrême-Orient : créez l'application en Production"
+  "connexion.etape.AILLEURS_SANDBOX_FE": "Le jeton marche seulement en Sandbox Extrême-Orient : créez l'application en Production",
+  "synchro.titre": "Synchronisation de nuit",
+  "synchro.vide": "Aucune synchronisation",
+  "synchro.VENTES": "Ventes et frais",
+  "synchro.STOCK": "Stock FBA",
+  "synchro.REMBOURSEMENTS": "Remboursements"
 }

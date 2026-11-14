@@ -236,3 +236,5 @@ export const envoyerCode = (code: string) => etapeAuth<{ etape: string }>("/api/
 export interface EtapeTest { etape: string; ok: boolean | null; statut: number | null; message: string; requete: string | null }
 export const testerConnexion = (marketplace: string) =>
   requete<{ marketplace: string; etapes: EtapeTest[] }>("POST", "/api/connexions/SPAPI/test", { marketplace });
+export interface TacheSynchro { tache: string; le: string; ok: boolean; message: string }
+export const lireJournalSynchro = () => lire<TacheSynchro[]>("/api/synchro/journal");
