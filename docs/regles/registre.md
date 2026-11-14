@@ -204,3 +204,12 @@ de la politique de protection des données d'Amazon ; le texte de la politique e
 | N° | Règle | Source | Statut | Blocage | Test | État |
 |---|---|---|---|---|---|---|
 | RM-AMZ-083 | **Produit différent ?** Quand la ligne du fichier a une désignation, ses mots significatifs (sans accents ni petits mots, pluriel simple ramené au singulier) sont cherchés dans le titre Amazon ; moins de la moitié retrouvée → remarque `L_PRODUIT_DIFFERENT` (part retrouvée) et jamais « Acheter » (au mieux « À vérifier »). Sans désignation : pas de contrôle. | Choix de l'outil (constat de l'essai du 14/11/2026 : un même EAN renvoie des fiches sans rapport) | métier | avertissement | `test_correspondance_titre` | codé |
+
+## Lot 21 : ce que je peux vendre
+
+Source : modèles officiels SP-API lus le 14/11/2026 — Catalog Items 2022-04-01 `searchCatalogItems` (mots-clés, 20 résultats par page au plus, 2 requêtes/s) ; Listings Restrictions 2021-08-01 `getListingsRestrictions` (par ASIN, 5 requêtes/s).
+
+| N° | Règle | Source | Statut | Blocage | Test | État |
+|---|---|---|---|---|---|---|
+| RM-AMZ-084 | **Sondage des rayons** : pour chaque rayon de la liste de l'outil (mots-clés français, place amazon.fr dans cette version), recherche dans le catalogue (20 produits), tri par classement des ventes, puis vérification de l'autorisation de vente de chacun (jeton de marchand requis). Résultat par rayon : produits testés, **autorisés**, approbation requise, interdits, inconnus (erreur) ; statut du rayon : **ouvert** (≥ 80 % autorisés), **partiel** (> 0 %), **fermé** (0 %), **inconnu** (aucune réponse). C'est un **sondage**, jamais une garantie : une marque peut être fermée dans un rayon ouvert ; l'analyse produit garde le dernier mot. | Modèles SP-API ; seuils : choix de l'outil | lu / métier | — | `test_sondage_rayons` | à coder |
+| RM-AMZ-085 | **Exploration** : lancée à la demande (une à la fois par compte), en arrière-plan avec progression, débit sous les plafonds d'Amazon ; résultat gardé par compte (le dernier), daté ; relancée par la synchronisation de nuit s'il a plus de 7 jours. | Choix de l'outil | métier | — | `test_exploration_api`, `test_exploration_par_compte` | à coder |
