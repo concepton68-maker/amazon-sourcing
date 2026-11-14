@@ -377,6 +377,34 @@ class DepotPostgres:
         self._executer(compte_id, "DELETE FROM amz.connexions WHERE source = %s", (source,))
         return avant
 
+    # -------------------------------------------------------------- envois FBA [RM-AMZ-137]
+    _COLS_FBA = "id, compte_id, nom, marketplace, lignes, etiquette, preparation, statut, plan_id, donnees, cree_le, maj"
+
+    @staticmethod
+    def _envoi(r):
+        from .envoi_fba import EnvoiFBA
+        i, c, nom, mp, lignes, et, pr, st, plan, don, cree, maj = r
+        return EnvoiFBA(str(i), str(c), nom, mp, lignes, et, pr, st, plan, don, cree, maj)
+
+    def enregistrer_envoi_fba(self, compte_id: str, e) -> None:
+        if e.compte_id != compte_id:
+            raise AccesRefuse("envoi d'un autre compte")
+        self._executer(compte_id, f"""INSERT INTO amz.envois_fba ({self._COLS_FBA}) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            ON CONFLICT (id) DO UPDATE SET statut = EXCLUDED.statut, plan_id = EXCLUDED.plan_id,
+            donnees = EXCLUDED.donnees, maj = EXCLUDED.maj""",
+            (_uuid(e.id), _uuid(compte_id), e.nom, e.marketplace, json.dumps(e.lignes), e.proprietaire_etiquette,
+             e.proprietaire_preparation, e.statut, e.plan_id, json.dumps(e.donnees), e.cree_le, e.maj))
+
+    def envois_fba(self, compte_id: str) -> list:
+        return [self._envoi(r) for r in self._executer(compte_id, f"SELECT {self._COLS_FBA} FROM amz.envois_fba ORDER BY cree_le DESC")]
+
+    def envoi_fba(self, compte_id: str, envoi_id: str):
+        try:
+            rows = self._executer(compte_id, f"SELECT {self._COLS_FBA} FROM amz.envois_fba WHERE id = %s", (_uuid(envoi_id),))
+        except AccesRefuse:
+            return None
+        return self._envoi(rows[0]) if rows else None
+
     # -------------------------------------------------------------- envois de bons [RM-AMZ-131]
     def ajouter_envoi_bon(self, compte_id: str, t) -> None:
         try:

@@ -27,6 +27,7 @@ export function SourcingVue({ analyser, traitementInitial }: { analyser: (code: 
     setColonnes(c);
   };
   const [erreur, setErreur] = useState<string | null>(null);
+  const [replie, setReplie] = useState(false);                 // réglages repliés une fois l'analyse lancée
 
   const [params, setParams] = useState<Params | null>(null);
   useEffect(() => {
@@ -64,7 +65,7 @@ export function SourcingVue({ analyser, traitementInitial }: { analyser: (code: 
     try {
       const r = await lancerTraitement(fichier.fichier_id, { colonnes, marketplace: place, regime_tva: regime,
         achat_ttc: ttc, prix_par_carton: carton });
-      setTid(r.traitement_id);
+      setTid(r.traitement_id); setReplie(true);
     } catch (x) { setErreur((x as Error).message); }
   };
 
@@ -82,7 +83,14 @@ export function SourcingVue({ analyser, traitementInitial }: { analyser: (code: 
       </div>
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
 
-      {fichier && (
+      {fichier && replie && (
+        <div className="carte reglages-replies">
+          <span><strong>{fichier.nom}</strong> · {Object.keys(colonnes).filter((r) => colonnes[r] != null).map((r) => t(`role.${r}`)).join(" · ")}
+            {" · "}{places.find((p) => p.code === place)?.domaine ?? place} · {t(`regime.${regime}`)} · {ttc ? t("analyse.ttc") : t("analyse.ht")}</span>
+          <button type="button" className="lien" onClick={() => setReplie(false)}>{t("sourcing.modifier_reglages")}</button>
+        </div>
+      )}
+      {fichier && !replie && (
         <form className="carte" onSubmit={lancer}>
           <div className="etat-colonnes">
             {["code", "prix"].map((r) => (

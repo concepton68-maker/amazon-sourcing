@@ -454,7 +454,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
                   or bool(correspondances.en_cours) or bool(explorations.en_cours)
                   or any(e.get("en_cours") for e in list(verifications.etats.values()))
                   or any(e.get("en_cours") for e in list(analyses_globales.values()))
-                  or bool(verrous_ms._en_cours))
+                  or bool(verrous_ms._en_cours) or bool(fba_en_cours))
         return {"occupe": bool(actifs)}
 
     # ------------------------------------------------------------- session [RM-AMZ-037, 038]
@@ -1128,6 +1128,159 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     def envois_messagerie(bon_id: str, c: str = Depends(compte)):
         b = _bon(c, bon_id)
         return [_tentative_json(x) for x in depot.envois_bon(c, b.id)]
+
+    # ------------------------------------------------------------- envois FBA, partie 1 [RM-AMZ-137 à 139]
+    from . import envoi_fba as FBA
+    fba_en_cours: set = set()
+
+    def _client_brut(c: str):
+        cx = depot.connexions(c).get("SPAPI")
+        cle = CX.cle_serveur()
+        if cx is None or (cle is None and fabrique_spapi is None):
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        v = CX.dechiffrer(cle, c, "SPAPI", cx.chiffre) if cle else {"region": "EU"}
+        return (fabrique_spapi or SN.client_spapi)(v)
+
+    def _envoi(c: str, eid: str):
+        e = depot.envoi_fba(c, eid)
+        if e is None:
+            raise HTTPException(404, "ENVOI_INCONNU")
+        return e
+
+    def _envoi_json(e) -> dict:
+        return {"id": e.id, "nom": e.nom, "marketplace": e.marketplace, "lignes": e.lignes,
+                "etiquette": e.proprietaire_etiquette, "preparation": e.proprietaire_preparation, "statut": e.statut,
+                "plan_id": e.plan_id, "donnees": e.donnees, "cree_le": e.cree_le.isoformat(), "maj": e.maj.isoformat(),
+                "en_cours": e.id in fba_en_cours}
+
+    def _action_fba(c: str, e, travail):
+        """Une action à la fois par envoi, en arrière-plan ; l'état et les problèmes d'Amazon sont gardés."""
+        if e.id in fba_en_cours:
+            raise HTTPException(409, "ENVOI_OCCUPE")
+        client = _client_brut(c)
+        fba_en_cours.add(e.id)
+
+        def tourner():
+            try:
+                travail(FBA.Inbound(client, get_marketplace(e.marketplace)))
+            except Exception as x:              # panne : l'envoi le dit, rien n'est perdu
+                cur = depot.envoi_fba(c, e.id)
+                depot.enregistrer_envoi_fba(c, FBA.avec(cur, donnees={**cur.donnees, "erreur": f"{type(x).__name__}: {str(x)[:300]}"}))
+            finally:
+                fba_en_cours.discard(e.id)
+        if traitement_en_fond:
+            threading.Thread(target=tourner, daemon=True).start()
+        else:
+            tourner()
+        return _envoi_json(depot.envoi_fba(c, e.id))
+
+    @app.get("/api/envois-fba")
+    def lister_envois_fba(c: str = Depends(compte)):
+        return [_envoi_json(e) for e in depot.envois_fba(c)]
+
+    @app.get("/api/envois-fba/{eid}")
+    def lire_envoi_fba(eid: str, c: str = Depends(compte)):
+        return _envoi_json(_envoi(c, eid))
+
+    @app.post("/api/envois-fba", status_code=201)
+    def creer_envoi_fba(d: dict, c: str = Depends(compte)):
+        """[RM-AMZ-137] Brouillon, rien chez Amazon."""
+        try:
+            e = FBA.nouveau_brouillon(c, d.get("nom"), _place(d.get("marketplace") or "FR").code, d.get("lignes") or [],
+                                      d.get("etiquette") or "SELLER", d.get("preparation") or "NONE")
+        except FBA.ErreurEnvoi as x:
+            raise HTTPException(422, {"code": x.args[0], "champ": x.args[1]}) from None
+        depot.enregistrer_envoi_fba(c, e)
+        return _envoi_json(e)
+
+    @app.post("/api/envois-fba/{eid}/creer-plan", status_code=202)
+    def creer_plan_fba(eid: str, c: str = Depends(compte)):
+        """[RM-AMZ-138] Sur un clic : plan chez Amazon, puis options d'emballage."""
+        e = _envoi(c, eid)
+        if e.statut != FBA.BROUILLON:
+            raise HTTPException(409, "ETAPE_DEJA_FAITE")
+        try:
+            adresse = FBA.adresse_expedition(params(c).societe)
+        except FBA.ErreurEnvoi as x:
+            raise HTTPException(422, {"code": x.args[0], "champ": x.args[1]}) from None
+        mp = get_marketplace(e.marketplace)
+
+        def travail(api):
+            plan_id, op = api.creer_plan(FBA.corps_plan(e, mp.marketplace_id, adresse))
+            cur = FBA.avec(depot.envoi_fba(c, e.id), plan_id=plan_id, donnees={"probleme_plan": FBA.problemes(op)})
+            if op.get("operationStatus") != "SUCCESS":
+                depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.ERREUR))
+                return
+            depot.enregistrer_envoi_fba(c, cur)
+            op2, options = api.options_emballage(plan_id)
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.PLAN_CREE if options else FBA.ERREUR,
+                                                     donnees={**cur.donnees, "options": FBA.resume_options(options),
+                                                              "probleme_emballage": FBA.problemes(op2)}))
+        return _action_fba(c, e, travail)
+
+    @app.post("/api/envois-fba/{eid}/confirmer-emballage", status_code=202)
+    def confirmer_emballage_fba(eid: str, d: dict, c: str = Depends(compte)):
+        """[RM-AMZ-138] Une seule option par plan, définitive : sur un clic du vendeur."""
+        e = _envoi(c, eid)
+        if e.statut != FBA.PLAN_CREE:
+            raise HTTPException(409, "ETAPE_INVALIDE")
+        option = next((o for o in e.donnees.get("options", []) if o["id"] == d.get("option")), None)
+        if option is None:
+            raise HTTPException(422, "OPTION_INCONNUE")
+
+        def travail(api):
+            op = api.confirmer_emballage(e.plan_id, option["id"])
+            cur = depot.envoi_fba(c, e.id)
+            if op.get("operationStatus") != "SUCCESS":
+                depot.enregistrer_envoi_fba(c, FBA.avec(cur, donnees={**cur.donnees, "probleme_confirmation": FBA.problemes(op)}))
+                return
+            p = option.get("poids") or {}
+            k = 0.45359237 if str(p.get("unit", "KG")).upper() == "LB" else 1.0        # livre → kg
+            groupes = [{"id": g, "mskus": [i.get("msku") for i in api.articles_groupe(e.plan_id, g)],
+                        "poids_min": None if p.get("minimum") is None else round(float(p["minimum"]) * k, 3),
+                        "poids_max": None if p.get("maximum") is None else round(float(p["maximum"]) * k, 3)}
+                       for g in option["groupes"]]
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.EMBALLAGE_CONFIRME,
+                                                     donnees={**cur.donnees, "option_choisie": option["id"], "groupes": groupes}))
+        return _action_fba(c, e, travail)
+
+    @app.post("/api/envois-fba/{eid}/cartons", status_code=202)
+    def cartons_fba(eid: str, d: dict, c: str = Depends(compte)):
+        """[RM-AMZ-139] Contrôles, puis setPackingInformation (contenu fourni)."""
+        e = _envoi(c, eid)
+        if e.statut != FBA.EMBALLAGE_CONFIRME:
+            raise HTTPException(409, "ETAPE_INVALIDE")
+        try:
+            cartons = FBA.controler_cartons(e, d.get("cartons"))
+        except FBA.ErreurEnvoi as x:
+            raise HTTPException(422, {"code": x.args[0], "champ": x.args[1]}) from None
+
+        def travail(api):
+            op = api.envoyer_cartons(e.plan_id, FBA.corps_cartons(e, cartons))
+            cur = depot.envoi_fba(c, e.id)
+            ok = op.get("operationStatus") == "SUCCESS"
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.CARTONS_ENVOYES if ok else cur.statut,
+                                                     donnees={**cur.donnees, "cartons": cartons,
+                                                              "probleme_cartons": FBA.problemes(op)}))
+        return _action_fba(c, e, travail)
+
+    @app.post("/api/envois-fba/{eid}/annuler", status_code=202)
+    def annuler_fba(eid: str, c: str = Depends(compte)):
+        """[RM-AMZ-139] cancelInboundPlan ; un brouillon est simplement marqué annulé."""
+        e = _envoi(c, eid)
+        if e.statut == FBA.ANNULE:
+            raise HTTPException(409, "DEJA_ANNULE")
+        if not e.plan_id:
+            depot.enregistrer_envoi_fba(c, FBA.avec(e, statut=FBA.ANNULE))
+            return _envoi_json(depot.envoi_fba(c, e.id))
+
+        def travail(api):
+            op = api.annuler(e.plan_id)
+            cur = depot.envoi_fba(c, e.id)
+            ok = op.get("operationStatus") == "SUCCESS"
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.ANNULE if ok else cur.statut,
+                                                     donnees={**cur.donnees, "probleme_annulation": FBA.problemes(op)}))
+        return _action_fba(c, e, travail)
 
     # ------------------------------------------------------------- travaux de nuit lancés à la main [RM-AMZ-115]
     @app.post("/api/travaux/arreter")

@@ -11,7 +11,8 @@ const STOCK = ["delai_fournisseur", "delai_reception", "marge_securite", "seuil_
 type Cle = (typeof SEUILS)[number] | (typeof COUTS)[number] | (typeof FRAIS)[number] | (typeof STOCK)[number];
 const TOUS = [...SEUILS, ...COUTS, ...FRAIS, ...STOCK];
 const RUBRIQUES = ["objectifs", "couts", "frais", "stock", "tva", "societe", "connexions"] as const;
-const SOCIETE = ["raison_sociale", "adresse", "adresse_livraison", "tva_intra", "courriel", "telephone"] as const;
+const SOCIETE = ["raison_sociale", "adresse", "adresse_livraison", "tva_intra", "courriel", "telephone",
+  "expedition_rue", "expedition_cp", "expedition_ville", "expedition_pays"] as const;
 const LONGS = new Set(["adresse", "adresse_livraison"]);
 type Rubrique = (typeof RUBRIQUES)[number];
 const rubriqueDepuisAdresse = (): Rubrique => {

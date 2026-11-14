@@ -238,6 +238,18 @@ class ContratDepot:
         self.d.ajouter_opportunites(A, "FOURNISSEUR:f", "FR", [x])
         self.assertEqual(next(y for y in self.d.opportunites(A) if y.asin == "B04").prevision, prev)
 
+    def test_envois_fba_depot(self):
+        """[RM-AMZ-137] Envoi FBA enregistré, relu, mis à jour ; propre au compte."""
+        from sourcing import envoi_fba as FBA
+        e = FBA.nouveau_brouillon(A, "Envoi 1", "FR", [{"msku": "S1", "quantite": 3}])
+        self.d.enregistrer_envoi_fba(A, e)
+        self.d.enregistrer_envoi_fba(A, FBA.avec(e, statut="PLAN_CREE", plan_id="wf-1", donnees={"options": [{"id": "po"}]}))
+        r = self.d.envoi_fba(A, e.id)
+        self.assertEqual((r.statut, r.plan_id, r.donnees["options"][0]["id"], r.lignes[0]["msku"]), ("PLAN_CREE", "wf-1", "po", "S1"))
+        self.assertEqual([x.id for x in self.d.envois_fba(A)], [e.id])
+        self.assertIsNone(self.d.envoi_fba(B, e.id))
+        self.assertEqual(self.d.envois_fba(B), [])
+
     def test_envois_bon_depot(self):
         """[RM-AMZ-131] Tentatives en ajout seul, une par génération, propres au compte."""
         from sourcing import achats as Ach
