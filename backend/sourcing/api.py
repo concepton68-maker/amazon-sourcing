@@ -26,6 +26,7 @@ from . import connexions as CX
 from . import exploration as EX
 from . import historique as H
 from . import tableau as TB
+from . import frais_fba as FF
 from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
@@ -432,7 +433,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
 
     @app.get("/api/parametres")
     def lire_parametres(c: str = Depends(compte)):
-        return {**params(c).to_dict(), "versions": len(depot.versions_parametres(c))}
+        return {**params(c).to_dict(), "versions": len(depot.versions_parametres(c)),
+                "reference_carburant": {"taux": FF.CARBURANT[-1][1], "depuis": FF.CARBURANT[-1][0].isoformat()}}
 
     @app.put("/api/parametres")
     def ecrire_parametres(brut: dict, c: str = Depends(compte)):
@@ -443,7 +445,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         valeurs = p.to_dict()
         valeurs["tva"] = {k: v for k, v in valeurs["tva"].items() if v != "hors_taxe"}
         version = depot.enregistrer_parametres(c, valeurs)
-        return {**p.to_dict(), "versions": version}
+        return {**p.to_dict(), "versions": version,
+                "reference_carburant": {"taux": FF.CARBURANT[-1][1], "depuis": FF.CARBURANT[-1][0].isoformat()}}
 
     # ------------------------------------------------------------- fournisseurs et bons [RM-AMZ-049 à 053]
     def _fournisseurs(c: str) -> dict:
@@ -713,7 +716,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
                            for dv, x in ch["par_devise"].items()},
             "serie": [{"jour": s["jour"], "profit": _num(s["profit"])} for s in ch["serie"]],
             "ventes_non_rattachees": ch["ventes_non_rattachees"], "unites_sans_cout": ch["unites_sans_cout"],
-            "a_faire": {**af, "valeur_remboursements": {k: _num(v) for k, v in af["valeur_remboursements"].items()}},
+            "a_faire": {**af, "carburant": p.carburant_taux if p.carburant_actif else None,
+                        "valeur_remboursements": {k: _num(v) for k, v in af["valeur_remboursements"].items()}},
             "mouvements": [{**m, "prix": _num(m["prix"]), "titre": titres.get(m["asin"])} for m in mv],
         }
 

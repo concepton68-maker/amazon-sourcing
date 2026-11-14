@@ -15,7 +15,7 @@ BORNES = {
     "envoi": (0.0, 1000.0), "preparation": (0.0, 1000.0), "stockage": (0.0, 1000.0), "retours": (0.0, 1.0),
     # coût complet [RM-AMZ-096 à 098]
     "port_fournisseur": (0.0, 1000.0), "placement": (0.0, 1000.0), "duree_stock_mois": (0.0, 24.0),
-    "carburant_inclus": (0, 1),
+    "carburant_taux": (0.0, 0.2), "carburant_actif": (0, 1),
     # stock [RM-AMZ-047, 048] : jours
     "delai_fournisseur": (0, 365), "delai_reception": (0, 365), "marge_securite": (0, 365),
     "seuil_rupture": (0, 365), "seuil_surstock": (1, 3650),
@@ -46,7 +46,8 @@ class Parametres:
     port_fournisseur: float = 0.0
     placement: float = 0.0
     duree_stock_mois: float = 2.0       # durée de stockage prévue avant la vente (choix de l'outil, modifiable)
-    carburant_inclus: int = 0            # 1 = l'estimation Amazon inclut déjà le supplément carburant (vérifié)
+    carburant_taux: float = 0.02         # [RM-AMZ-097] pré-rempli : valeur officielle au 2/11/2026
+    carburant_actif: int = 1             # décoché : le taux reste enregistré
     delai_fournisseur: int = 7
     delai_reception: int = 10
     marge_securite: int = 14
@@ -71,7 +72,8 @@ class Parametres:
 
     def options_cout(self) -> dict:
         """[RM-AMZ-096, 097] Options de coût complet passées à l'analyse."""
-        return {"duree_stock_mois": self.duree_stock_mois, "carburant_inclus": bool(self.carburant_inclus)}
+        return {"duree_stock_mois": self.duree_stock_mois,
+                "carburant_taux": self.carburant_taux if self.carburant_actif else None}
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -94,6 +96,9 @@ def valider(brut: dict) -> Parametres:
                 if regime not in REGIMES_REGLABLES:
                     raise ParametreInvalide("REGIME_TVA_INCONNU", f"tva.{mp}")
                 p.tva[mp] = regime
+            continue
+        if cle == "carburant_inclus":                     # ancien réglage (1 jour en ligne) : « inclus » = inactif
+            p.carburant_actif = 0 if valeur else 1
             continue
         if cle not in BORNES:
             raise ParametreInvalide("PARAMETRE_INCONNU", cle)
