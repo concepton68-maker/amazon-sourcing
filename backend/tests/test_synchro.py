@@ -95,6 +95,20 @@ class TestSynchro(unittest.TestCase):
         self.assertEqual([(x["tache"], x["ok"]) for x in j][:3], [("REMBOURSEMENTS", True), ("STOCK", False), ("VENTES", True)])
         self.assertIn("403", j[1]["message"])
 
+    def test_rapport_annule_vide(self):
+        """Rapport CANCELLED (aucune donnée selon le modèle d'Amazon) : vide, pas une erreur ; FATAL : erreur."""
+        from sourcing.providers.base import ErreurFournisseur
+        from sourcing.providers.spapi import ClientSPAPI
+        for statut, attendu in (("CANCELLED", ""), ("FATAL", None)):
+            c = ClientSPAPI(client_id="i", client_secret="s", refresh_tokens={"EU": "r"})
+            reponses = iter([{"reportId": "R1"}, {"processingStatus": statut}])
+            c._appel = lambda *a, **k: next(reponses)
+            if attendu is None:
+                with self.assertRaises(ErreurFournisseur):
+                    c.rapport(get_marketplace("FR"), "GET_FBA_REIMBURSEMENTS_DATA", attendre=lambda s: None)
+            else:
+                self.assertEqual(c.rapport(get_marketplace("FR"), "GET_FBA_REIMBURSEMENTS_DATA", attendre=lambda s: None), "")
+
     @unittest.skipUnless(PG, "AMZ_TEST_PG absent")
     def test_synchro_journal_postgres(self):
         """Curseur et journal en base (rôle de l'application) ; comptes connectés (propriétaire) ; état sans compte."""

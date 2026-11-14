@@ -642,7 +642,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(422, "PLACE_INCONNUE") from None
         from .providers.spapi import ClientSPAPI
         v = CX.dechiffrer(cle, c, "SPAPI", cx["SPAPI"].chiffre)
-        client = ClientSPAPI(client_id=v["client_id"], client_secret=v["client_secret"],
+        client = ClientSPAPI(client_id=v["client_id"], client_secret=v["client_secret"], seller_id=v.get("seller_id"),
                              refresh_tokens={v["region"]: v["refresh_token"]})
         if mp.region != v["region"]:
             raise HTTPException(422, "REGION_DIFFERENTE")

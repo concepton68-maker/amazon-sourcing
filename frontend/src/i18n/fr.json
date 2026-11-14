@@ -470,5 +470,6 @@
   "synchro.vide": "Aucune synchronisation",
   "synchro.VENTES": "Ventes et frais",
   "synchro.STOCK": "Stock FBA",
-  "synchro.REMBOURSEMENTS": "Remboursements"
+  "synchro.REMBOURSEMENTS": "Remboursements",
+  "connexion.champ.seller_id": "Identifiant vendeur (facultatif)"
 }
