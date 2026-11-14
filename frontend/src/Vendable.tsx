@@ -17,7 +17,8 @@ function Rayon({ r, analyser, suivi, basculer }: { r: RayonSonde; analyser: (cod
   const part = r.testes ? r.autorises / r.testes : 0;
   return (
     <>
-      <tr>
+      <tr className={`cliquable ${suivi ? "choisie" : ""}`}
+        onClick={(e) => { if (!(e.target as HTMLElement).closest("a, button, input")) basculer(); }}>
         <td className="case-suivi"><input type="checkbox" checked={suivi} onChange={basculer} aria-label={t("vendable.suivre_rayon", { rayon: t(`rayon.${r.code}`) })} /></td>
         <td><strong>{t(`rayon.${r.code}`)}</strong></td>
         <td><span className={`statut-rayon ${affiche(r)}`}>{t(`rayon.statut.${affiche(r)}`)}</span></td>

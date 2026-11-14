@@ -189,6 +189,7 @@ function Annuaire({ ajoute }: { ajoute: () => void }) {
     && (!q || `${r.nom} ${r.pays} ${r.categories.map((c) => t(`rayon.${c}`)).join(" ")} ${r.note}`.toLowerCase().includes(q)));
   const cochables = visibles.filter((r) => !r.ajoute).map((r) => r.code);
   const tous = cochables.length > 0 && cochables.every((c) => choix.includes(c));
+  const basculer = (code: string) => setChoix((l) => (l.includes(code) ? l.filter((c) => c !== code) : [...l, code]));
   const ajouter = () => ajouterReferences(choix).then((r) => {
     setBilan(t("annuaire.bilan", { n: r.ajoutes.length })); setChoix([]); lire(); ajoute();
   }).catch((e) => setErreur(e.message));
@@ -220,10 +221,10 @@ function Annuaire({ ajoute }: { ajoute: () => void }) {
           <th scope="col">{t("fiche.revente")}</th><th scope="col">{t("annuaire.connexion")}</th><th scope="col">{t("annuaire.acces")}</th>
         </tr></thead>
         <tbody>{visibles.map((r) => (
-          <tr key={r.code} className={choix.includes(r.code) ? "choisie" : undefined}>
+          <tr key={r.code} className={`${choix.includes(r.code) ? "choisie" : ""} ${r.ajoute ? "" : "cliquable"}`}
+            onClick={(e) => { if (r.ajoute || (e.target as HTMLElement).closest("a, input")) return; basculer(r.code); }}>
             <td className="case-suivi">{r.ajoute ? <span className="positif" title={t("annuaire.ajoute")}>✓</span>
-              : <input type="checkbox" aria-label={r.nom} checked={choix.includes(r.code)}
-                onChange={() => setChoix(choix.includes(r.code) ? choix.filter((c) => c !== r.code) : [...choix, r.code])} />}</td>
+              : <input type="checkbox" aria-label={r.nom} checked={choix.includes(r.code)} onChange={() => basculer(r.code)} />}</td>
             <td><a className="produit" href={r.site} target="_blank" rel="noreferrer">{r.nom}</a> <span className="meta">{r.pays}</span>
               <div className="meta tronque" title={r.note}>{r.note}</div></td>
             <td className="meta" title={r.categories.map((c) => t(`rayon.${c}`)).join(", ")}>

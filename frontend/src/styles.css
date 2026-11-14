@@ -436,3 +436,4 @@ button.tri.actif { color: var(--accent); }
 .barre-selection { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--accent-doux); border-radius: 10px; font-weight: 600; font-size: 14px; }
 .barre-selection button.principal { min-height: 34px; font-size: 13.5px; padding: 0 14px; }
 .sans-retour { white-space: nowrap; }
+tr.cliquable { cursor: pointer; } tr.cliquable:hover td { background: #f6f8fb; } tr.cliquable.choisie:hover td { background: var(--accent-doux); }
