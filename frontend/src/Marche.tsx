@@ -19,7 +19,7 @@ function ReleverMaintenant({ fini }: { fini: () => void }) {
       {enCours ? <>
           <span className="en-cours"><span className="point-pulse" aria-hidden="true" /> {etat?.courante ? (etat.detail ?? t(`synchro.${etat.courante}`)) : t("manuel.attente")}</span>
           <button type="button" className="secondaire" disabled={!!etat?.arret} onClick={() => arreterTravaux().then(lireEtat)}>{etat?.arret ? t("arret.en_cours") : t("arret.bouton")}</button></>
-        : <button type="button" className="principal" onClick={() => { setErreur(null); lancerSynchroManuelle(["HISTORIQUE"]).then(lireEtat).catch((x) => setErreur((x as Error).message)); }}>{t("sm.relever")}</button>}
+        : <button type="button" className="principal" onClick={() => { setErreur(null); lancerSynchroManuelle(["HISTORIQUE"], true).then(lireEtat).catch((x) => setErreur((x as Error).message)); }}>{t("sm.relever")}</button>}
       {!enCours && releve && <span className="meta">{releve.ok ? "✓" : "✗"} {releve.message}</span>}
       {erreur && <span role="alert" className="alerte">{t(`erreur.${erreur}`)}</span>}
     </div>

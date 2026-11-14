@@ -9,6 +9,8 @@ from sourcing.api import creer_app
 from sourcing.depot import DepotMemoire
 from sourcing.marketplaces import get_marketplace
 
+PROPRE = "USE_YOUR_OWN_CARRIER"
+
 C = "00000000-0000-4000-8000-0000000000dd"
 SOCIETE = {"raison_sociale": "GO-SHOPPING", "expedition_rue": "1 rue A", "expedition_cp": "68000",
            "expedition_ville": "Colmar", "expedition_pays": "FR", "telephone": "0600000000"}
@@ -37,7 +39,39 @@ class FauxInbound:
                                             {"boxRequirements": {"weight": {"minimum": 0.1, "maximum": 23, "unit": "KG"}}}]}]}
         if "/packingGroups/" in chemin:
             return {"items": [{"msku": "SKU-A"}, {"msku": "SKU-B"}]}
+        if chemin.endswith("/placementOptions") and methode == "GET":
+            return {"placementOptions": [{"placementOptionId": "pl-1", "status": "OFFERED", "shipmentIds": ["sh-1", "sh-2"],
+                                          "fees": [{"type": "FEE", "value": {"amount": 1.1, "code": "EUR"}, "description": "Placement"}],
+                                          "discounts": [], "expiration": "2026-11-20T00:00:00Z"}]}
+        if "/shipments/" in chemin and methode == "GET" and chemin.count("/") == 7:
+            sid = chemin.rsplit("/", 1)[1]
+            return {"shipmentId": sid, "shipmentConfirmationId": "FBA" + sid.upper(), "status": "WORKING",
+                    "destination": {"warehouseId": "ORY1", "destinationType": "AMAZON_WAREHOUSE", "address": {"city": "Saran"}}}
+        if chemin.endswith("/transportationOptions") and methode == "GET":
+            if not (params or {}).get("paginationToken"):
+                return {"transportationOptions": [self._t("sh-1", "to-1", "UPS", PROPRE), self._t("sh-2", "to-2", "UPS", PROPRE),
+                                                  {"transportationOptionId": "to-lt", "shipmentId": "sh-1", "shippingMode": "FREIGHT_LTL"}],
+                        "pagination": {"nextToken": "p2"}}
+            return {"transportationOptions": [self._t("sh-1", "to-3", "DHL", PROPRE)]}
+        if chemin.endswith("/deliveryWindowOptions") and methode == "GET":
+            return {"deliveryWindowOptions": [{"deliveryWindowOptionId": "dw-" + chemin.split("/")[-2], "startDate": "2026-11-20",
+                                               "endDate": "2026-11-27", "availabilityType": "AVAILABLE"}]}
+        if chemin.endswith("/boxes"):
+            return {"boxes": [{"boxId": "FBA" + chemin.split("/")[-2].upper() + "U000001"}]}
+        if "/labels" in chemin:
+            return {"payload": {"DownloadURL": "https://exemple.invalid/etiquettes.pdf"}}
         return {"operationId": "op-x"}
+
+    @staticmethod
+    def _t(sid, oid, transporteur, solution):
+        return {"transportationOptionId": oid, "shipmentId": sid, "shippingMode": "GROUND_SMALL_PARCEL",
+                "shippingSolution": solution, "carrier": {"name": transporteur, "alphaCode": transporteur},
+                "quote": {"cost": {"amount": 12.5, "code": "EUR"}}}
+
+    class session:
+        @staticmethod
+        def get(url, timeout=None):
+            return type("R", (), {"status_code": 200, "content": b"%PDF-etiquettes"})()
 
 
 def app(faux):
@@ -168,3 +202,97 @@ class TestApi(unittest.TestCase):
         r = self.cl.post(f"/api/envois-fba/{self.eid}/creer-plan")
         self.assertEqual((r.status_code, r.json()["detail"]["code"]), (422, "ADRESSE_INCOMPLETE"))
         self.assertFalse(self.faux.appels)
+
+
+
+class TestPartie2(unittest.TestCase):
+    def setUp(self):
+        p = mock.patch.object(FBA, "PAUSE_ECRITURE", 0)
+        p.start()
+        self.addCleanup(p.stop)
+        s = mock.patch("sourcing.envoi_fba.time.sleep", lambda s: None)
+        s.start()
+        self.addCleanup(s.stop)
+        self.faux = FauxInbound()
+        self.d, self.cl = app(self.faux)
+        e = self.cl.post("/api/envois-fba", json={"nom": "E2", "lignes": [{"msku": "SKU-A", "quantite": 10},
+                                                                          {"msku": "SKU-B", "quantite": 4}]}).json()
+        self.eid = e["id"]
+        self.cl.post(f"/api/envois-fba/{self.eid}/creer-plan")
+        self.cl.post(f"/api/envois-fba/{self.eid}/confirmer-emballage", json={"option": "po-1"})
+        self.cl.post(f"/api/envois-fba/{self.eid}/cartons", json={"cartons": [
+            {"groupe": "pg-1", "longueur": 40, "largeur": 30, "hauteur": 30, "poids": 8, "nombre": 2, "contenu": {"SKU-A": 5, "SKU-B": 2}}]})
+
+    def get(self):
+        return self.cl.get(f"/api/envois-fba/{self.eid}").json()
+
+    def chemins(self):
+        return [c[1] for c in self.faux.appels]
+
+    def test_repartition(self):
+        """[RM-AMZ-142] Options, destinations et frais tels que rendus ; rien de confirmé."""
+        self.cl.post(f"/api/envois-fba/{self.eid}/repartition")
+        e = self.get()
+        self.assertEqual(e["statut"], "REPARTITION_PROPOSEE")
+        o = e["donnees"]["repartitions"][0]
+        self.assertEqual((o["envois"], o["frais"][0]["montant"], o["frais"][0]["devise"]), (["sh-1", "sh-2"], 1.1, "EUR"))
+        self.assertEqual(e["donnees"]["destinations"]["sh-1"]["entrepot"], "ORY1")
+        self.assertFalse(any(x.endswith("/confirmation") and "placement" in x for x in self.chemins()))
+
+    def test_transport(self):
+        """[RM-AMZ-143] Toutes les pages lues, colis seulement, fenêtres pour le propre transporteur."""
+        self.cl.post(f"/api/envois-fba/{self.eid}/repartition")
+        self.cl.post(f"/api/envois-fba/{self.eid}/transport", json={"placement": "pl-1", "pret_le": "2026-11-16"})
+        e = self.get()
+        self.assertEqual(e["statut"], "TRANSPORT_PROPOSE")
+        self.assertEqual(sorted(o["id"] for o in e["donnees"]["transports"]["sh-1"]), ["to-1", "to-3"])   # LTL écarté, page 2 lue
+        self.assertEqual(e["donnees"]["fenetres"]["sh-2"][0]["id"], "dw-sh-2")
+        corps = next(c[2] for c in self.faux.appels if c[1].endswith("/transportationOptions") and c[0] == "POST")
+        self.assertEqual(corps["shipmentTransportationConfigurations"][0]["readyToShipWindow"]["start"], "2026-11-16T00:00:00Z")
+
+    def preparer_transport(self):
+        self.cl.post(f"/api/envois-fba/{self.eid}/repartition")
+        self.cl.post(f"/api/envois-fba/{self.eid}/transport", json={"placement": "pl-1"})
+
+    def test_meme_transporteur(self):
+        """[RM-AMZ-143] Deux transporteurs différents refusés ; fenêtre exigée pour le propre transporteur."""
+        self.preparer_transport()
+        self.cl.post(f"/api/envois-fba/{self.eid}/confirmer-repartition")
+        r = self.cl.post(f"/api/envois-fba/{self.eid}/confirmer-transport", json={"choix": {"sh-1": "to-3", "sh-2": "to-2"}})
+        self.assertEqual(r.json()["detail"]["code"], "TRANSPORTEURS_DIFFERENTS")
+        r = self.cl.post(f"/api/envois-fba/{self.eid}/confirmer-transport", json={"choix": {"sh-1": "to-1", "sh-2": "to-2"}})
+        self.assertEqual(r.json()["detail"]["code"], "FENETRE_REQUISE")
+
+    def test_confirmations_separees(self):
+        """[RM-AMZ-144] Répartition confirmée seule ; transport seulement sur un second appel, après les fenêtres."""
+        self.preparer_transport()
+        self.assertEqual(self.cl.post(f"/api/envois-fba/{self.eid}/confirmer-transport", json={}).status_code, 409)
+        self.cl.post(f"/api/envois-fba/{self.eid}/confirmer-repartition")
+        self.assertEqual(self.get()["statut"], "REPARTITION_CONFIRMEE")
+        self.assertFalse(any(x.endswith("/transportationOptions/confirmation") for x in self.chemins()))
+        self.cl.post(f"/api/envois-fba/{self.eid}/confirmer-transport",
+                     json={"choix": {"sh-1": "to-1", "sh-2": "to-2"}, "fenetres": {"sh-1": "dw-sh-1", "sh-2": "dw-sh-2"}})
+        e = self.get()
+        self.assertEqual(e["statut"], "TRANSPORT_CONFIRME")
+        ch = self.chemins()
+        i_fen = max(i for i, x in enumerate(ch) if "/deliveryWindowOptions/dw-" in x)
+        i_tr = ch.index(next(x for x in ch if x.endswith("/transportationOptions/confirmation")))
+        self.assertLess(i_fen, i_tr)
+        self.assertEqual(e["donnees"]["envois"]["sh-1"]["confirmation"], "FBASH-1")
+
+    def test_etiquettes(self):
+        """[RM-AMZ-145] getLabels v0 avec le numéro de confirmation et les cartons ; PDF remis tel quel."""
+        self.test_confirmations_separees()
+        r = self.cl.get(f"/api/envois-fba/{self.eid}/etiquettes/sh-1")
+        self.assertEqual((r.status_code, r.content), (200, b"%PDF-etiquettes"))
+        self.assertTrue(any(x == "/fba/inbound/v0/shipments/FBASH-1/labels" for x in self.chemins()))
+        self.assertEqual(self.cl.get(f"/api/envois-fba/{self.eid}/etiquettes/sh-1?page=Lettre").status_code, 422)
+
+    def test_suivi_colis(self):
+        """[RM-AMZ-146] Un numéro par carton, sinon refus ; envoi des numéros."""
+        self.test_confirmations_separees()
+        self.assertEqual(self.cl.post(f"/api/envois-fba/{self.eid}/suivi", json={"envoi": "sh-1", "numeros": {}}).status_code, 422)
+        self.cl.post(f"/api/envois-fba/{self.eid}/suivi", json={"envoi": "sh-1", "numeros": {"FBASH-1U000001": "1Z999"}})
+        self.assertEqual(self.get()["donnees"]["envois"]["sh-1"]["suivi"], {"FBASH-1U000001": "1Z999"})
+        corps = next(c[2] for c in self.faux.appels if c[1].endswith("/trackingDetails"))
+        self.assertEqual(corps["trackingDetails"]["spdTrackingDetail"]["spdTrackingItems"][0]["trackingId"], "1Z999")

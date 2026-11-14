@@ -61,7 +61,7 @@ def places_actives(depot, compte_id: str, places: list) -> list:
 def executer_compte(compte_id: str, client, region: str, depot, maintenant: datetime,
                     horloge: Callable[[], datetime] = None, attendre=None, taches: Optional[set] = None,
                     suivi: Optional[Callable] = None, detail: Optional[Callable] = None,
-                    arret: Callable[[], bool] = lambda: False) -> list[ResultatTache]:
+                    arret: Callable[[], bool] = lambda: False, rapide: bool = False) -> list[ResultatTache]:
     """`taches` : sous-ensemble à exécuter (None = toutes) ; `suivi(tache, resultat|None)` : début et fin de chaque
     tâche, pour l'avancement réel [RM-AMZ-115]."""
     horloge = horloge or (lambda: datetime.now(maintenant.tzinfo))
@@ -178,7 +178,8 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
     def historique():                                                     # [RM-AMZ-090]
         from . import historique as H
         return H.executer(compte_id, client, places, depot, maintenant, **kw,
-                          progression=lambda texte: detail and detail("HISTORIQUE", texte))
+                          progression=lambda texte: detail and detail("HISTORIQUE", texte),
+                          **({"plafond": H.PLAFOND_RAPIDE, "familles": False} if rapide else {}))
 
     tache("HISTORIQUE", historique)
 
@@ -212,7 +213,8 @@ class SynchrosManuelles:
         self.en_fond = en_fond
         self._verrou = threading.Lock()
 
-    def lancer(self, compte_id: str, client, region: str, depot, taches: Optional[set] = None, attendre=None) -> bool:
+    def lancer(self, compte_id: str, client, region: str, depot, taches: Optional[set] = None, attendre=None,
+               rapide: bool = False) -> bool:
         with self._verrou:
             if self.etats.get(compte_id, {}).get("en_cours"):
                 return False
@@ -239,7 +241,7 @@ class SynchrosManuelles:
         def travail():
             try:
                 executer_compte(compte_id, client, region, depot, datetime.now(timezone.utc), attendre=attendre,
-                                taches=set(voulues), suivi=suivi, detail=signe, arret=lambda: bool(etat.get("arret")))
+                                taches=set(voulues), suivi=suivi, detail=signe, arret=lambda: bool(etat.get("arret")), rapide=rapide)
             except Exception as e:  # garde-fou : l'état ne reste jamais « en cours »
                 etat["terminees"].append({"tache": etat.get("courante") or "?", "ok": False, "message": _message(e),
                                           "fin": datetime.now(timezone.utc).isoformat()})

@@ -3,7 +3,84 @@ import { CartonFBA, EnvoiFBA, GroupeFBA, ProblemeFBA, actionEnvoiFBA, creerEnvoi
 import { dateCourte, t } from "./i18n";
 
 // Envois FBA par l'API, partie 1 [RM-AMZ-137 à 139] : brouillon → plan → emballage → cartons.
-const ETAPES = ["BROUILLON", "PLAN_CREE", "EMBALLAGE_CONFIRME", "CARTONS_ENVOYES"];
+const ETAPES = ["BROUILLON", "PLAN_CREE", "EMBALLAGE_CONFIRME", "CARTONS_ENVOYES", "REPARTITION_PROPOSEE", "TRANSPORT_PROPOSE", "REPARTITION_CONFIRMEE", "TRANSPORT_CONFIRME"];
+interface Montant { montant: number | null; devise: string | null; description: string | null }
+interface OptRep { id: string; envois: string[]; frais: Montant[]; remises: Montant[]; expiration: string | null }
+interface OptTr { id: string; transporteur: string | null; solution: string; devis: number | null; devise: string | null }
+interface Fen { id: string; debut: string; fin: string; disponibilite: string }
+const somme = (l: Montant[]) => l.reduce((s, x) => s + (Number(x.montant) || 0), 0);
+const argent = (v: number, d?: string | null) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${d ?? ""}`.trim();
+
+// Partie 2 [RM-AMZ-142 à 146] : répartition, transport, deux confirmations, étiquettes, suivi
+function Partie2({ e, faire }: { e: EnvoiFBA; faire: (a: "repartition" | "transport" | "confirmer-repartition" | "confirmer-transport" | "suivi", corps?: unknown) => void }) {
+  const d = e.donnees as Record<string, unknown>;
+  const reps = (d.repartitions as OptRep[] | undefined) ?? [];
+  const dest = (d.destinations as Record<string, { entrepot: string | null; ville: string | null }> | undefined) ?? {};
+  const transports = (d.transports as Record<string, OptTr[]> | undefined) ?? {};
+  const fenetres = (d.fenetres as Record<string, Fen[]> | undefined) ?? {};
+  const envois = (d.envois as Record<string, { confirmation: string; statut: string; cartons: string[]; suivi?: Record<string, string> }> | undefined) ?? {};
+  const [placement, setPlacement] = useState<string>((d.placement_choisi as string) ?? "");
+  const [pret, setPret] = useState(new Date().toISOString().slice(0, 10));
+  const [choix, setChoix] = useState<Record<string, string>>({});
+  const [fen, setFen] = useState<Record<string, string>>({});
+  const [confirmer, setConfirmer] = useState<string | null>(null);
+  const [numeros, setNumeros] = useState<Record<string, string>>({});
+  const opt = reps.find((o) => o.id === (d.placement_choisi as string));
+  const fraisRep = opt ? somme(opt.frais) - somme(opt.remises) : 0;
+  const devise = opt?.frais[0]?.devise ?? Object.values(transports)[0]?.[0]?.devise ?? "EUR";
+  const devis = Object.entries(choix).reduce((s, [sid, oid]) => s + (Number(transports[sid]?.find((o) => o.id === oid)?.devis) || 0), 0);
+  const choixComplet = Object.keys(transports).length > 0 && Object.keys(transports).every((s) => choix[s]);
+  const Confirmer = ({ cle, texte, action, corps }: { cle: string; texte: string; action: "confirmer-repartition" | "confirmer-transport"; corps?: unknown }) =>
+    confirmer === cle ? <div className="confirmation"><p>{t("fba.irreversible")}</p>
+        <button type="button" className="principal" onClick={() => { setConfirmer(null); faire(action, corps); }}>{t("fba.oui_confirmer")}</button>
+        <button type="button" className="lien" onClick={() => setConfirmer(null)}>{t("bon.annuler")}</button></div>
+      : <button type="button" className="principal" onClick={() => setConfirmer(cle)}>{texte}</button>;
+  const choixTransport = (
+    <div className="choix-option">{Object.entries(transports).map(([sid, opts]) => (
+      <fieldset key={sid} className="groupe-fba"><legend>{t("fba.envoi_vers", { e: dest[sid]?.entrepot ?? sid, v: dest[sid]?.ville ?? "" })}</legend>
+        {opts.map((o) => <label key={o.id} className="option-fba"><input type="radio" name={`tr-${sid}`} checked={choix[sid] === o.id}
+          onChange={() => setChoix({ ...choix, [sid]: o.id })} />
+          {o.transporteur} · {t(`fba.solution.${o.solution}`)} · {o.devis === null ? t("fba.sans_devis") : argent(Number(o.devis), o.devise)}</label>)}
+        {fenetres[sid]?.length ? <label>{t("fba.fenetre")}<select value={fen[sid] ?? ""} onChange={(x) => setFen({ ...fen, [sid]: x.target.value })}>
+          <option value="">—</option>{fenetres[sid].map((w) => <option key={w.id} value={w.id}>{w.debut.slice(0, 10)} → {w.fin.slice(0, 10)} · {w.disponibilite}</option>)}</select></label> : null}
+      </fieldset>))}</div>);
+  return (
+    <div className="partie2">
+      {e.statut === "CARTONS_ENVOYES" && <button type="button" className="principal" onClick={() => faire("repartition")}>{t("fba.voir_repartition")}</button>}
+      {e.statut === "REPARTITION_PROPOSEE" && <div className="choix-option">
+        {reps.map((o, i) => <label key={o.id} className="option-fba"><input type="radio" name="rep" checked={placement === o.id} onChange={() => setPlacement(o.id)} />
+          <span>{t("fba.repartition", { n: i + 1, e: o.envois.length })} · {o.envois.map((s) => dest[s]?.entrepot ?? "?").join(", ")}
+            {" · "}{o.frais.length ? `${t("fba.frais")} ${argent(somme(o.frais), o.frais[0].devise)}` : t("fba.sans_frais")}
+            {o.remises.length ? ` · ${t("fba.remises")} ${argent(somme(o.remises), o.remises[0].devise)}` : ""}</span></label>)}
+        <label>{t("fba.pret_le")}<input type="date" value={pret} onChange={(x) => setPret(x.target.value)} /></label>
+        <button type="button" className="principal" disabled={!placement} onClick={() => faire("transport", { placement, pret_le: pret })}>{t("fba.voir_transport")}</button></div>}
+      {(e.statut === "TRANSPORT_PROPOSE" || e.statut === "REPARTITION_CONFIRMEE") && <>
+        {choixTransport}
+        <div className="recap-fba">
+          <div><span>{t("fba.recap_repartition")}</span><strong>{argent(fraisRep, devise)}</strong></div>
+          <div><span>{t("fba.recap_transport")}</span><strong>{choixComplet ? argent(devis, devise) : "—"}</strong></div>
+          <div className="total"><span>{t("fba.recap_total")}</span><strong>{choixComplet ? argent(fraisRep + devis, devise) : "—"}</strong></div>
+          <p className="meta">{t("fba.recap_info")}</p></div>
+        {e.statut === "TRANSPORT_PROPOSE" && <Confirmer cle="rep" action="confirmer-repartition" texte={t("fba.confirmer_repartition", { m: argent(fraisRep, devise) })} />}
+        {e.statut === "REPARTITION_CONFIRMEE" && (choixComplet
+          ? <Confirmer cle="tr" action="confirmer-transport" corps={{ choix, fenetres: fen }} texte={t("fba.confirmer_transport", { m: argent(devis, devise) })} />
+          : <p className="meta">{t("fba.choisir_transport")}</p>)}
+      </>}
+      {e.statut === "TRANSPORT_CONFIRME" && <div className="choix-option">
+        <p className="meta">{t("fba.send_to_amazon")}</p>
+        {Object.entries(envois).map(([sid, x]) => (
+          <fieldset key={sid} className="groupe-fba"><legend>{x.confirmation} · {dest[sid]?.entrepot ?? ""} · {x.statut}</legend>
+            <div className="formulaire nu">
+              <a className="bouton-lien" href={`/api/envois-fba/${e.id}/etiquettes/${sid}?page=PackageLabel_A4_4`}>{t("fba.etiquettes_4")}</a>
+              <a className="bouton-lien" href={`/api/envois-fba/${e.id}/etiquettes/${sid}?page=PackageLabel_A4_2`}>{t("fba.etiquettes_2")}</a></div>
+            {x.suivi ? <p className="meta">{t("fba.suivi_envoye")}</p> : <>
+              {x.cartons.map((b) => <label key={b} className="ligne-reglage">{b}<input maxLength={64} value={numeros[b] ?? ""} onChange={(v) => setNumeros({ ...numeros, [b]: v.target.value })} /></label>)}
+              <button type="button" className="secondaire" disabled={!x.cartons.every((b) => numeros[b]?.trim())}
+                onClick={() => faire("suivi", { envoi: sid, numeros: Object.fromEntries(x.cartons.map((b) => [b, numeros[b]])) })}>{t("fba.envoyer_suivi")}</button></>}
+          </fieldset>))}</div>}
+    </div>
+  );
+}
 
 function Problemes({ liste }: { liste?: unknown }) {
   const l = (liste as ProblemeFBA[] | undefined) ?? [];
@@ -82,7 +159,7 @@ function Detail({ id, maj }: { id: string; maj: () => void }) {
   useEffect(() => { setErreur(null); lire(); }, [id]);
   useEffect(() => { if (!e?.en_cours) return; const i = setTimeout(lire, 3000); return () => clearTimeout(i); }, [e]);
   if (!e) return null;
-  const faire = (a: "creer-plan" | "confirmer-emballage" | "cartons" | "annuler", corps: unknown = {}) => {
+  const faire = (a: "creer-plan" | "confirmer-emballage" | "cartons" | "annuler" | "repartition" | "transport" | "confirmer-repartition" | "confirmer-transport" | "suivi", corps: unknown = {}) => {
     setErreur(null); setConfirmer(false);
     actionEnvoiFBA(e.id, a, corps).then(setE).catch((x) => setErreur((x as Error).message));
   };
@@ -93,11 +170,14 @@ function Detail({ id, maj }: { id: string; maj: () => void }) {
       <div className="entete-vue"><div><h3>{e.nom}</h3><p className="meta">{t("fba.cree_le", { date: dateCourte(e.cree_le) })}{e.plan_id ? ` · ${e.plan_id}` : ""}</p></div>
         <span className={`statut-bon ${e.statut}`}>{t(`fba.statut.${e.statut}`)}</span></div>
       <ol className="etapes-fba">{ETAPES.map((s, i) => <li key={s} className={i < rang ? "faite" : i === rang ? "courante" : ""}>{t(`fba.etape.${s}`)}</li>)}
-        <li className="a-venir">{t("fba.etape.SUITE")}</li></ol>
+</ol>
       {e.en_cours && <p role="status" className="en-cours"><span className="point-pulse" aria-hidden="true" /> {t("fba.en_cours")}</p>}
       {e.donnees.erreur && <p role="alert" className="alerte">{t("fba.panne")} {String(e.donnees.erreur)}</p>}
       <Problemes liste={e.donnees.probleme_plan} /><Problemes liste={e.donnees.probleme_emballage} />
       <Problemes liste={e.donnees.probleme_confirmation} /><Problemes liste={e.donnees.probleme_cartons} />
+      <Problemes liste={e.donnees.probleme_repartition} /><Problemes liste={e.donnees.probleme_transport} />
+      <Problemes liste={e.donnees.probleme_confirmation_repartition} /><Problemes liste={e.donnees.probleme_confirmation_transport} />
+      <Problemes liste={e.donnees.probleme_suivi} />
       <table className="table-compacte"><tbody>{e.lignes.map((l) => <tr key={l.msku}><td>{l.msku}</td><td className="num">{l.quantite}</td></tr>)}</tbody></table>
       {!e.en_cours && e.statut === "BROUILLON" && <div className="formulaire nu">
         <button type="button" className="principal" onClick={() => faire("creer-plan")}>{t("fba.creer_plan")}</button>
@@ -114,7 +194,8 @@ function Detail({ id, maj }: { id: string; maj: () => void }) {
       </div>}
       {!e.en_cours && e.statut === "EMBALLAGE_CONFIRME" && e.donnees.groupes &&
         <Cartons e={e} groupes={e.donnees.groupes} envoyer={(c) => faire("cartons", { cartons: c })} />}
-      {e.statut === "CARTONS_ENVOYES" && <p className="meta">{t("fba.suite_partie2")}</p>}
+      {!e.en_cours && ["CARTONS_ENVOYES", "REPARTITION_PROPOSEE", "TRANSPORT_PROPOSE", "REPARTITION_CONFIRMEE", "TRANSPORT_CONFIRME"].includes(e.statut) &&
+        <Partie2 e={e} faire={faire} />}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
       {!e.en_cours && e.statut !== "ANNULE" && <div className="actions">
         <button type="button" className="lien" onClick={() => faire("annuler")} title={t("fba.annuler_info")}>{t("fba.annuler")}</button></div>}

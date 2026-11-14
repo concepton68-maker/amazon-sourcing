@@ -18,6 +18,7 @@ from .exploration import RAYONS
 PARIS = ZoneInfo("Europe/Paris")
 FAMILLES = dict(RAYONS)                 # code → mots-clés (rayons de l'outil)
 PLAFOND = 20_000                        # produits par compte et par nuit [RM-AMZ-086]
+PLAFOND_RAPIDE = 500                    # relevé lancé à la main [RM-AMZ-147]
 MAX_FAMILLE = 1_000                     # « maximum number of items … paged through is 1,000 »
 PAQUET = 20                             # « maxItems »: 20 (getItemOffersBatch, searchCatalogItems)
 JOURS_ANALYSES = 90
@@ -145,7 +146,7 @@ def relever(client, mp, asins: list[str], connus: dict, jour: date, attendre: Ca
 
 def executer(compte_id: str, client, places: list, depot, maintenant: datetime,
              attendre: Callable[[float], None] = time.sleep, plafond: int = PLAFOND,
-             progression: Callable[[str], None] = lambda texte: None) -> str:
+             progression: Callable[[str], None] = lambda texte: None, familles: bool = True) -> str:
     """Tâche de nuit « HISTORIQUE » [RM-AMZ-090]. Familles : amazon.fr seulement dans cette version."""
     jour = jour_paris(maintenant)
     budget, morceaux = plafond, []
@@ -155,7 +156,7 @@ def executer(compte_id: str, client, places: list, depot, maintenant: datetime,
         suivis = depot.suivis(compte_id, mp.code)
         analyses = depot.asins_analyses(compte_id, mp.code, maintenant - timedelta(days=JOURS_ANALYSES))
         fam_items, err_fam = {}, 0
-        if mp.code == "FR":
+        if mp.code == "FR" and familles:
             for code in depot.familles_suivies(compte_id):
                 if code in FAMILLES:
                     progression(f"{mp.code} · produits les mieux classés : famille {code}")
