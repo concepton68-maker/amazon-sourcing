@@ -304,3 +304,14 @@ export interface Tableau { devise: string | null; par_devise: Record<string, Chi
     synchro: { le: string; echecs: string[] } | null };
   mouvements: { asin: string; titre: string | null; variation: number; prix: number | null; bsr: number | null }[] }
 export const lireTableau = () => lire<Tableau>("/api/tableau");
+
+// Produits rentables [RM-AMZ-105 à 108]
+export interface ProduitRentable { origine: string; origine_nom: string; marketplace: string; code: string; asin: string;
+  titre: string | null; designation: string | null; prix_achat: number | null; unites_lot: number; cout_achat: number | null;
+  prix_vente: number | null; profit: number | null; roi: number | null; marge: number | null; prix_achat_max: number | null;
+  verdict: string | null; vendabilite: string; motif: string | null; bsr: number | null; nb_vendeurs: number | null;
+  amazon_vend: boolean | null; rotation: number | null; historique_court: boolean; analyse_le: string | null }
+export interface ListeRentables { total: number; nombre: number; compteurs: Record<string, number>;
+  origines: { cle: string; nom: string }[]; produits: ProduitRentable[] }
+export const lireRentables = (q: Record<string, string>) =>
+  lire<ListeRentables>(`/api/opportunites?${new URLSearchParams(q).toString()}`);

@@ -216,6 +216,21 @@ class ContratDepot:
         with self.assertRaises(AccesRefuse):
             self.d.enregistrer_catalogue(B, f.id, {"nom_fichier": "x", "lignes": 0, "rejets": 0}, [])
 
+    def test_opportunites_depot(self):
+        """[RM-AMZ-105] Remplacement par origine et place ; propre au compte."""
+        from datetime import datetime, timezone
+        from sourcing.opportunites import Opportunite
+        t = datetime(2026, 11, 14, tzinfo=timezone.utc)
+        o = lambda asin, profit, ori="FOURNISSEUR:f": Opportunite(ori, ori, "FR", "370", asin, "T", None, 8.5, 1,  # noqa: E731
+                                                                  8.5, 24.9, profit, 0.5, 0.2, 9.8, "ACHETER",
+                                                                  "VENDABLE", None, 4200, 5, False, t)
+        self.d.enregistrer_opportunites(A, "FOURNISSEUR:f", "F", "FR", [o("B01", 4.28), o("B02", 1.5)])
+        self.d.enregistrer_opportunites(A, "FOURNISSEUR:f", "F", "FR", [o("B03", 2.0)])
+        self.d.enregistrer_opportunites(A, "FICHIER:x.csv", "x.csv", "FR", [o("B01", 3.0, "FICHIER:x.csv")])
+        r = sorted((x.origine, x.asin, x.profit) for x in self.d.opportunites(A))
+        self.assertEqual(r, [("FICHIER:x.csv", "B01", 3.0), ("FOURNISSEUR:f", "B03", 2.0)])
+        self.assertEqual(self.d.opportunites(B), [])
+
     # ------------------------------------------------------------ historique [RM-AMZ-086 à 090]
     def test_releve_remplace_meme_jour(self):
         """[RM-AMZ-087] Une ligne par produit, place et jour : le second relevé du jour remplace le premier."""

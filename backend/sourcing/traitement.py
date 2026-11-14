@@ -46,6 +46,14 @@ class ResultatLigne:
     alertes: list[Message] = field(default_factory=list)
     lignes: list[Message] = field(default_factory=list)   # remarques propres à la ligne du fichier
     statut: str = "ANALYSEE"                     # ANALYSEE, INTROUVABLE, ERREUR_SOURCE
+    # liste des produits rentables [RM-AMZ-105, 106]
+    marge: Optional[float] = None
+    prix_achat_max: Optional[float] = None
+    vendabilite: str = "INCONNU"
+    motif: Optional[str] = None
+    bsr: Optional[int] = None
+    nb_vendeurs: Optional[int] = None
+    amazon_vend: Optional[bool] = None
 
 
 @dataclass
@@ -60,6 +68,7 @@ class Traitement:
     rejets: list[tuple[int, Message]] = field(default_factory=list)
     doublons: list[tuple[int, str]] = field(default_factory=list)
     appariements_memoire: int = 0
+    origine: Optional[tuple[str, str]] = None     # (clé, nom) pour la liste des produits rentables [RM-AMZ-105]
     debut: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def tries(self) -> list[ResultatLigne]:
@@ -127,6 +136,13 @@ def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, reg
     r.titre, r.verdict, r.prix_vente = a.catalogue.titre, a.verdict, a.prix_vente_retenu
     if a.rentabilite:
         r.profit, r.roi = a.rentabilite.profit_net, a.rentabilite.roi
+        r.marge, r.prix_achat_max = a.rentabilite.marge, a.rentabilite.prix_achat_max_pour_roi
+    from .opportunites import vendabilite
+    r.vendabilite, r.motif = vendabilite(a.restrictions)
+    r.bsr = a.catalogue.bsr
+    if a.offres and (a.offres.nb_offres_fba is not None or a.offres.nb_offres_fbm is not None):
+        r.nb_vendeurs = (a.offres.nb_offres_fba or 0) + (a.offres.nb_offres_fbm or 0)
+    r.amazon_vend = a.offres.amazon_vend if a.offres else None
     r.ventes_mois = a.historique.ventes_mois_estimees if a.historique else None
     r.raisons = [x for x in a.raisons if x.code not in ("R_PRIX_ACHAT_MAX", "R_TOUT_OK")]   # le verdict le dit déjà
     r.alertes = [x for x in a.alertes if x.code != "A_LOT_MULTIPLE"]     # déjà dit par L_LOT_AMAZON
@@ -136,6 +152,14 @@ def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, reg
         if r.verdict == "ACHETER":
             r.verdict = "A_VERIFIER"
     return r
+
+
+def opportunite(origine: tuple[str, str], mp_code: str, r: ResultatLigne):
+    from .opportunites import Opportunite
+    return Opportunite(origine[0], origine[1], mp_code, r.code, r.asin, r.titre, r.designation, float(r.prix_unitaire),
+                       r.unites_lot, None if r.cout_achat is None else float(r.cout_achat), r.prix_vente, r.profit,
+                       r.roi, r.marge, r.prix_achat_max, r.verdict, r.vendabilite, r.motif, r.bsr, r.nb_vendeurs,
+                       r.amazon_vend, datetime.now(timezone.utc))
 
 
 def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs, depot,
@@ -161,6 +185,10 @@ def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs,
                 t.resultats.append(_ligne(l, mp, asin, f, regime, seuils, achat_ttc, parametres))
             t.faits += 1
         t.statut = "TERMINE"
+        if t.origine and hasattr(depot, "enregistrer_opportunites"):          # [RM-AMZ-105]
+            depot.enregistrer_opportunites(t.compte_id, t.origine[0], t.origine[1], mp.code,
+                                           [opportunite(t.origine, mp.code, r) for r in t.resultats
+                                            if r.statut == "ANALYSEE" and r.asin])
     except Exception:                             # une panne n'efface pas ce qui est déjà calculé
         t.statut = "ERREUR"
         raise
@@ -175,8 +203,9 @@ class Traitements:
         self._verrou = threading.Lock()
 
     def lancer(self, compte_id: str, prep: Preparation, mp: Marketplace, f: Fournisseurs, depot, regime: str,
-               achat_ttc: bool, seuils: Optional[Seuils] = None, en_fond: bool = True, parametres=None) -> Traitement:
-        t = Traitement(str(uuid.uuid4()), compte_id, mp.code, total=len(prep.lignes))
+               achat_ttc: bool, seuils: Optional[Seuils] = None, en_fond: bool = True, parametres=None,
+               origine: Optional[tuple[str, str]] = None) -> Traitement:
+        t = Traitement(str(uuid.uuid4()), compte_id, mp.code, total=len(prep.lignes), origine=origine)
         with self._verrou:
             self._t[t.id] = t
         travail = lambda: executer(t, prep, mp, f, depot, regime, seuils, achat_ttc, parametres)  # noqa: E731

@@ -43,6 +43,7 @@ class DepotMemoire:
         self._explorations: dict[str, dict] = {}
         self._familles: dict[str, list[str]] = {}
         self._catalogues: dict[tuple[str, str], tuple[dict, list]] = {}
+        self._opportunites: dict[tuple[str, str, str], list] = {}
         self._suivis: dict[tuple[str, str, str], datetime] = {}
         self._releves: dict[tuple[str, str, str, date], object] = {}
         self._produits_marche: dict[tuple[str, str, str], object] = {}
@@ -232,6 +233,13 @@ class DepotMemoire:
     def catalogue(self, compte_id: str, fournisseur_id: str) -> Optional[tuple[dict, list]]:
         return self._catalogues.get((compte_id, fournisseur_id))
 
+    # -------------------------------------------------------------- produits rentables [RM-AMZ-105]
+    def enregistrer_opportunites(self, compte_id: str, origine: str, origine_nom: str, marketplace: str, ops) -> None:
+        self._opportunites[(compte_id, origine, marketplace)] = list(ops)
+
+    def opportunites(self, compte_id: str) -> list:
+        return [o for (c, _, _), l in self._opportunites.items() if c == compte_id for o in l]
+
     # -------------------------------------------------------------- historique et suivi de marché [RM-AMZ-086 à 090]
     def familles_suivies(self, compte_id: str) -> list[str]:
         return list(self._familles.get(compte_id, []))
@@ -321,6 +329,7 @@ class DepotMemoire:
             self._explorations.pop(c, None)
             self._familles.pop(c, None)
             self._catalogues = {k: v for k, v in self._catalogues.items() if k[0] != c}
+            self._opportunites = {k: v for k, v in self._opportunites.items() if k[0] != c}
             self._suivis = {k: v for k, v in self._suivis.items() if k[0] != c}
             self._releves = {k: v for k, v in self._releves.items() if k[0] != c}
             self._produits_marche = {k: v for k, v in self._produits_marche.items() if k[0] != c}
