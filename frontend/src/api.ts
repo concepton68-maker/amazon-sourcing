@@ -18,7 +18,7 @@ const ENTETE = { "x-syllig-vente": "1" };
 
 export class NonConnecte extends Error {}
 
-async function lire<T>(url: string): Promise<T> {
+export async function lire<T>(url: string): Promise<T> {
   const r = await fetch(url, { credentials: "same-origin" });
   if (r.status === 401) throw new NonConnecte("NON_CONNECTE");
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail ?? "erreur.chargement");

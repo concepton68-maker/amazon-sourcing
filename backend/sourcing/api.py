@@ -1283,6 +1283,15 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         return _action_fba(c, e, travail)
 
     # ------------------------------------------------------------- travaux de nuit lancés à la main [RM-AMZ-115]
+    @app.get("/api/donnees/{nom}")
+    def donnees(nom: str, c: str = Depends(compte)):
+        """[RM-AMZ-140] Un jeu de données entier, à trier et filtrer à l'écran."""
+        from . import donnees as DN
+        try:
+            return DN.jeu(nom, depot, c, H.jour_paris(datetime.now(timezone.utc)))
+        except KeyError:
+            raise HTTPException(404, "JEU_INCONNU") from None
+
     @app.post("/api/travaux/arreter")
     def arreter_travaux(c: str = Depends(compte)):
         """[RM-AMZ-136] Arrête tout travail long du compte à la prochaine étape sûre."""

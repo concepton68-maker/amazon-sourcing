@@ -515,3 +515,16 @@ textarea { background: var(--carte); color: var(--encre); }
 .ligne-carton input { width: 110px; min-height: 36px; }
 .confirmation { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; } .confirmation p { margin: 0; font-weight: 600; }
 tr.cliquable { user-select: none; }
+/* Données [RM-AMZ-140] */
+.recherche-donnees { width: 360px; max-width: 100%; min-height: 38px; }
+.table-donnees th { position: relative; white-space: nowrap; }
+.table-donnees td { font-size: 13.5px; } .table-donnees td.produit { min-width: 240px; white-space: normal; }
+.entonnoir { border: 0; background: none; color: var(--doux); cursor: pointer; padding: 0 2px; font-size: 12px; }
+.entonnoir.actif { color: var(--accent); font-weight: 700; }
+.filtre-colonne { position: absolute; z-index: 30; top: 100%; left: 0; min-width: 220px; max-height: 320px; overflow: auto; background: var(--carte);
+  border: 1px solid var(--bord); border-radius: 10px; box-shadow: 0 12px 32px rgba(15, 23, 36, .14); padding: 10px; display: grid; gap: 8px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.filtre-colonne label { display: grid; gap: 4px; font-size: 12.5px; } .filtre-colonne .valeurs { display: grid; gap: 4px; }
+.choix-colonnes summary { cursor: pointer; font-size: 13.5px; color: var(--doux); } .choix-colonnes > div { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 8px; }
+.releve-maintenant { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-left: auto; }
+.filtre-colonne .case-filtre { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.table-donnees td, .table-donnees th { padding: 6px 8px; }
