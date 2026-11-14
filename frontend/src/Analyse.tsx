@@ -198,6 +198,7 @@ function Resultat({ a, cree, demande, places }: { a: Analyse; cree: (id: string)
         <div className="produit-verdict">
           <span className={`verdict grand ${a.verdict}`}>{t(`verdict.${a.verdict}`)}</span>
           {r && <p className="meta">{t("kpi.prix_max", { roi: pourcent(n(r.roi_cible)) })} : <strong className="chiffre">{monnaie(n(r.prix_achat_max), d)}</strong></p>}
+          {a.prix_plancher != null && <p className="meta">{t("plancher.libelle")} <abbr className="info-mini" title={t("plancher.info")}>ⓘ</abbr> : <strong className="chiffre">{monnaie(n(a.prix_plancher), d)}</strong></p>}
         </div>
       </div>
 

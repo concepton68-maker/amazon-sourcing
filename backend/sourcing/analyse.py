@@ -59,6 +59,7 @@ class AnalyseProduit:
     raisons: list[Message]
     alertes: list[Message]
     non_verifie: list[Message]
+    prix_plancher: Optional[float] = None      # [RM-AMZ-122]
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -240,9 +241,13 @@ def analyser_asin(
         raisons.append(m("R_PRIX_ACHAT_MAX", roi=seuils.roi_min, montant=rent.prix_achat_max_pour_roi,
                          devise=mp.devise))
 
+    plancher = None
+    if rent and frais and prix:                                    # [RM-AMZ-122]
+        from .prix_plancher import prix_plancher
+        plancher = prix_plancher(mp, prix, frais, couts, regime_tva, seuils.profit_min, taux_tva_vente)
     return AnalyseProduit(
         marketplace=mp.code, asin=asin, catalogue=cat, offres=off, restrictions=restr, historique=hist,
         frais=frais, prix_vente_retenu=prix, origine_prix=origine, rentabilite=rent,
         rentabilite_prudente=rent_prudente, ventes_estimees_pour_vous=ventes_vous,
-        verdict=verdict, raisons=raisons, alertes=alertes, non_verifie=nv,
+        verdict=verdict, raisons=raisons, alertes=alertes, non_verifie=nv, prix_plancher=plancher,
     )

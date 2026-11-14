@@ -790,5 +790,19 @@
   "elig.INCONNU": "Inconnu",
   "erreur.AUCUN_CODE": "Aucun code reconnu",
   "erreur.VERIFICATION_EN_COURS": "Une vérification est déjà en cours",
-  "erreur.AUCUNE_VERIFICATION": "Aucune vérification"
+  "erreur.AUCUNE_VERIFICATION": "Aucune vérification",
+  "plancher.libelle": "Prix plancher",
+  "plancher.info": "Plus bas prix de vente qui garde votre profit minimum, coût complet compris (commission supposée proportionnelle au prix)",
+  "tb.sous_plancher": "{n} produits vendus sous le prix plancher",
+  "repricer.titre": "Repricer gratuit d'Amazon (Automate Pricing)",
+  "repricer.info": "Vérifiez puis envoyez : Amazon ajustera le prix entre le minimum et le maximum, selon la règle choisie.",
+  "repricer.prix": "Prix actuel",
+  "repricer.minimum": "Minimum",
+  "repricer.maximum": "Maximum",
+  "repricer.regle": "Règle de prix",
+  "repricer.sous_plancher": "Sous le plancher",
+  "repricer.envoyer": "Envoyer à Amazon ({n})",
+  "repricer.preparer": "Préparer le repricer ({n})",
+  "fermer": "Fermer",
+  "synchro.PRIX": "Contrôle des prix (plancher)"
 }

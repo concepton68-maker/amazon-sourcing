@@ -44,6 +44,7 @@ class DepotMemoire:
         self._familles: dict[str, list[str]] = {}
         self._catalogues: dict[tuple[str, str], tuple[dict, list]] = {}
         self._opportunites: dict[tuple[str, str, str], list] = {}
+        self._alertes_prix: dict[str, list] = {}
         self._suivis: dict[tuple[str, str, str], datetime] = {}
         self._releves: dict[tuple[str, str, str, date], object] = {}
         self._produits_marche: dict[tuple[str, str, str], object] = {}
@@ -237,6 +238,13 @@ class DepotMemoire:
     def enregistrer_opportunites(self, compte_id: str, origine: str, origine_nom: str, marketplace: str, ops) -> None:
         self._opportunites[(compte_id, origine, marketplace)] = list(ops)
 
+    def enregistrer_alertes_prix(self, compte_id: str, alertes: list[dict]) -> None:
+        """[RM-AMZ-124] Remplace les alertes du compte."""
+        self._alertes_prix[compte_id] = [dict(a) for a in alertes]
+
+    def alertes_prix(self, compte_id: str) -> list[dict]:
+        return list(self._alertes_prix.get(compte_id, []))
+
     def vider_opportunites(self, compte_id: str, origine: str, marketplace: str) -> None:
         self._opportunites.pop((compte_id, origine, marketplace), None)
 
@@ -339,6 +347,7 @@ class DepotMemoire:
             self._familles.pop(c, None)
             self._catalogues = {k: v for k, v in self._catalogues.items() if k[0] != c}
             self._opportunites = {k: v for k, v in self._opportunites.items() if k[0] != c}
+            self._alertes_prix.pop(c, None)
             self._suivis = {k: v for k, v in self._suivis.items() if k[0] != c}
             self._releves = {k: v for k, v in self._releves.items() if k[0] != c}
             self._produits_marche = {k: v for k, v in self._produits_marche.items() if k[0] != c}

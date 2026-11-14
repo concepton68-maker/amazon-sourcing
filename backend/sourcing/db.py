@@ -459,6 +459,21 @@ class DepotPostgres:
                                   o.prix_achat_max, o.verdict, o.vendabilite, o.motif, o.bsr, o.nb_vendeurs,
                                   o.amazon_vend, o.analyse_le) for o in ops])
 
+    def enregistrer_alertes_prix(self, compte_id: str, alertes: list[dict]) -> None:
+        """[RM-AMZ-124] Remplace les alertes du compte."""
+        c = _uuid(compte_id)
+        with connexion(self.source) as conn, conn.transaction():
+            conn.execute("SELECT set_config('app.compte_id', %s, true)", (str(c),))
+            conn.execute("DELETE FROM amz.alertes_prix")
+            for a in alertes:
+                conn.execute("INSERT INTO amz.alertes_prix (compte_id, marketplace, sku, asin, prix, plancher) "
+                             "VALUES (%s,%s,%s,%s,%s,%s)", (c, a["marketplace"], a["sku"], a.get("asin"), a["prix"], a["plancher"]))
+
+    def alertes_prix(self, compte_id: str) -> list[dict]:
+        return [{"marketplace": m, "sku": s, "asin": a, "prix": float(p), "plancher": float(pl)}
+                for m, s, a, p, pl in self._executer(compte_id, "SELECT marketplace, sku, asin, prix, plancher "
+                                                                "FROM amz.alertes_prix ORDER BY sku")]
+
     def vider_opportunites(self, compte_id: str, origine: str, marketplace: str) -> None:
         self._executer(compte_id, "DELETE FROM amz.opportunites WHERE origine = %s AND marketplace = %s",
                        (origine, marketplace))

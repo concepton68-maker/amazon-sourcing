@@ -1,0 +1,210 @@
+<title>Indices de déboîtage</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout : une ligne par domaine, deux repères sur une même règle 0–10 (nous / meilleur concurrent), l'écart à droite. */
+:root {
+  --bg: #f3f5f7; --surface: #ffffff; --fg: #17202b; --muted: #5d6b7a; --line: #d9e0e7;
+  --nous: #1f5fbf; --eux: #8a96a3; --ok: #1d7a4b; --ko: #b4442b; --mid: #a26a00;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161c; --surface: #18202a; --fg: #e4eaf0; --muted: #93a1af; --line: #2a3542;
+  --nous: #6ea2ff; --eux: #7d8996; --ok: #4cc28a; --ko: #ef7a5f; --mid: #e0a941; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11161c; --surface: #18202a; --fg: #e4eaf0; --muted: #93a1af; --line: #2a3542;
+  --nous: #6ea2ff; --eux: #7d8996; --ok: #4cc28a; --ko: #ef7a5f; --mid: #e0a941; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--display); }
+.page { max-width: 980px; margin: 0 auto; padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 20px; }
+h1 { font-size: 1.6rem; font-weight: 800; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+h2 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 700; }
+.tete { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: end; justify-content: space-between; }
+.date { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+.chiffres { display: flex; gap: 24px; flex-wrap: wrap; }
+.chiffre { display: grid; gap: 2px; }
+.chiffre b { font-family: var(--mono); font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+.chiffre span { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.legende { display: flex; gap: 16px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); }
+.legende i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.bloc { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.table { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 640px; }
+th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tr.ligne { cursor: pointer; }
+tr.ligne:hover td { background: color-mix(in srgb, var(--nous) 6%, transparent); }
+tr.ligne:focus-visible { outline: 2px solid var(--nous); outline-offset: -2px; }
+.dom { font-weight: 700; }
+.ref { font-size: .75rem; color: var(--muted); font-weight: 500; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.regle { position: relative; height: 18px; min-width: 180px; }
+.regle::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 2px; background: var(--line); }
+.regle .seg { position: absolute; top: 8px; height: 2px; }
+.regle .pt { position: absolute; top: 3px; width: 12px; height: 12px; border-radius: 50%; transform: translateX(-6px); border: 2px solid var(--surface); }
+.pt.nous { background: var(--nous); z-index: 2; }
+.pt.eux { background: var(--eux); }
+.ecart { font-family: var(--mono); font-weight: 600; text-align: right; white-space: nowrap; }
+.plus { color: var(--ok); } .moins { color: var(--ko); } .egal { color: var(--mid); }
+.detail td { background: color-mix(in srgb, var(--bg) 60%, transparent); font-size: .84rem; color: var(--fg); }
+.detail p { margin: 0 0 4px; max-width: 75ch; }
+.detail .k { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; margin-right: 6px; }
+.grille2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grille2 > * { min-width: 0; }
+ul.liste { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: .88rem; }
+ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; }
+.tag { font-family: var(--mono); font-size: .75rem; color: var(--muted); white-space: nowrap; }
+.note { font-size: .8rem; color: var(--muted); max-width: 80ch; }
+@media (max-width: 720px) { .grille2 { grid-template-columns: 1fr; } .chiffre b { font-size: 1.5rem; } }
+@media (prefers-reduced-motion: no-preference) { .pt { transition: left .4s ease; } }
+</style>
+
+<div class="page">
+  <header class="tete">
+    <div>
+      <h1>Indices de déboîtage</h1>
+      <div class="date" id="date"></div>
+    </div>
+    <div class="chiffres">
+      <div class="chiffre"><b id="g-indice">—</b><span>Indice global</span></div>
+      <div class="chiffre"><b id="g-devant">—</b><span>Domaines en tête</span></div>
+      <div class="chiffre"><b id="g-retard">—</b><span>Domaines en retard</span></div>
+    </div>
+  </header>
+
+  <div class="legende">
+    <span><i style="background:var(--nous)"></i>Syllig Vente</span>
+    <span><i style="background:var(--eux)"></i>Meilleur concurrent du domaine</span>
+    <span>Notes sur 10 · indice = nous ÷ meilleur concurrent</span>
+  </div>
+
+  <section class="bloc">
+    <h2>Par domaine</h2>
+    <div class="table">
+      <table>
+        <thead><tr><th>Domaine</th><th>0 — 10</th><th class="num">Nous</th><th class="num">Eux</th><th class="num">Indice</th></tr></thead>
+        <tbody id="corps"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grille2">
+    <section class="bloc">
+      <h2>Prochains gains</h2>
+      <ul class="liste" id="gains"></ul>
+    </section>
+    <section class="bloc">
+      <h2>Historique</h2>
+      <ul class="liste" id="historique"></ul>
+    </section>
+  </div>
+
+  <p class="note">Notes d'appréciation, pas des mesures : elles s'appuient sur l'audit du 14/11/2026
+    (docs/recherches/2026-11-14-audit-coherence-concurrence.md, pages officielles des éditeurs) et sur ce qui est
+    livré dans main. « Eux » = le meilleur outil vérifié sur le domaine, quel qu'il soit. Une fonction non essayée
+    sur le vrai compte compte à moitié. Cliquer une ligne pour le détail.</p>
+</div>
+
+<script type="application/json" id="donnees">
+{
+  "maj": "14/11/2026, 13 h 00 (Paris)",
+  "domaines": [
+    {"id": "elig", "nom": "Éligibilité", "nous": 8.5, "eux": 8, "qui": "Seller Assistant (20 000 ASIN d'un coup), Boxem (ungating auto, US)",
+     "fait": "Sondage de nuit des rayons avec alerte « débloqué » (introuvable chez les 14 outils lus), vérification en masse sur fichier, lien « Demander l'autorisation » d'Amazon (PR #40, #47).",
+     "manque": "Pas d'aide automatisée à l'ungating (aucun automatisme sourcé)."},
+    {"id": "trouver", "nom": "Trouver des produits", "nous": 4, "eux": 9, "qui": "SmartScout (500 000 marques), Helium 10 Black Box, Keepa Product Finder",
+     "fait": "Suivi de marché par rayon, liste des produits rentables triable, exploration de nuit (PR #29, #35, #40).",
+     "manque": "Recherche par marque et par vitrine ; écart en partie structurel (pas de Keepa, pas d'aspiration)."},
+    {"id": "fourn", "nom": "Fournisseurs", "nous": 8, "eux": 7, "qui": "Seller Assistant (Price List Analyzer, AI Supplier Finder), Tactical Arbitrage (Wholesale Search)",
+     "fait": "Annuaire de 20 fournisseurs UE avec conditions de revente sourcées, catalogues, « Où l'acheter » sur tous les catalogues, correspondance de nuit (PR #34, #36, #39).",
+     "manque": "Aucun fournisseur encore branché par API ; formulaire de création manuel trop léger."},
+    {"id": "cout", "nom": "Coût complet et profit", "nous": 9, "eux": 7, "qui": "SellerAmp (Max Cost, TVA), BuyBotPro (PAN-EU), Tactical Arbitrage (TVA par pays)",
+     "fait": "Stockage au barème UE depuis les dimensions, carburant réglable, placement, port fournisseur, TVA, prix d'achat max, comparaison entre pays européens (PR #32, #45).",
+     "manque": "Carburant : vérifier sur un vrai relevé s'il est déjà compté par l'API."},
+    {"id": "demande", "nom": "Demande, historique, Buy Box", "nous": 4, "eux": 9, "qui": "Keepa (ventes/mois, historique), SmartScout (Buy Box Map)",
+     "fait": "Relevés de nuit maison : baisses de BSR, stabilité du prix, présence d'Amazon, détenteur de la Buy Box, profondeur affichée (PR #29, #46).",
+     "manque": "Historique ancien impossible sans Keepa ; il se construit nuit après nuit."},
+    {"id": "acheter", "nom": "Acheter", "nous": 6, "eux": 7, "qui": "Seller Assistant (bon de commande en un clic, PDF/XLSX)",
+     "fait": "Bons de commande, lots, prévu/réel par lot (exclusif dans le panel).",
+     "manque": "Envoi du bon au fournisseur depuis la messagerie connectée (chantier 5)."},
+    {"id": "fba", "nom": "Envoi chez Amazon", "nous": 0, "eux": 7, "qui": "Seller Assistant (bon → prep → envoi FBA) ; InventoryLab, Boxem (US seulement)",
+     "fait": "Rien encore.",
+     "manque": "Création d'envoi par l'API Inbound 2024-03-20, étiquettes, placement réel repris dans le profit (chantier 5)."},
+    {"id": "vendre", "nom": "Vendre et prix", "nous": 5, "eux": 8, "qui": "Repricers payants (SmartRepricer, Aura, BQool) ; Automate Pricing d'Amazon gratuit",
+     "fait": "Prix plancher calculé sur le coût complet, poussé vers le repricer gratuit d'Amazon avec validation, contrôle de nuit (PR #48).",
+     "manque": "Pas encore essayé sur une vraie offre en ligne ; pas d'alerte de perte de Buy Box sur le stock."},
+    {"id": "apres", "nom": "Après-vente", "nous": 7, "eux": 8, "qui": "sellerboard (remboursements, alertes), Helium 10",
+     "fait": "Profit réel, FIFO, réassort, remboursements, fiches EPR/GPSR, alerte sous le plancher.",
+     "manque": "Alertes perte de Buy Box / nouveau vendeur / retour d'Amazon ; remboursements à confirmer sur le vrai compte."},
+    {"id": "auto", "nom": "Autonomie et temps réel", "nous": 8, "eux": 6, "qui": "sellerboard (alertes), Seller Assistant",
+     "fait": "Travaux de nuit relançables à la main avec avancement réel, résultats au fil de l'eau, déblocages annoncés (PR #40 à #42).",
+     "manque": "Copilote : plan d'achat proposé puis validé (vision)."},
+    {"id": "confiance", "nom": "Confiance et conformité", "nous": 9, "eux": 5, "qui": "Outils adossés à Keepa ou à des bases aspirées",
+     "fait": "Données Amazon du compte seulement, sans aspiration ni revente, valeurs réglementaires sourcées ou marquées « non sourcé ».",
+     "manque": "Serveur à déplacer en Europe avant le premier client."}
+  ],
+  "gains": [
+    {"quoi": "Chantier 5 : bon envoyé au fournisseur, envoi FBA par l'API", "effet": "Envoi chez Amazon 0 → 6 · Acheter 6 → 8"},
+    {"quoi": "Prix plancher essayé sur une vraie offre", "effet": "Vendre et prix 5 → 6"},
+    {"quoi": "Alertes Buy Box et nouveaux vendeurs sur le stock", "effet": "Après-vente 7 → 8 · Vendre 6 → 7"},
+    {"quoi": "Premier fournisseur branché par API (Qogita)", "effet": "Fournisseurs 8 → 9"},
+    {"quoi": "Découverte par marque depuis nos relevés", "effet": "Trouver des produits 4 → 5"}
+  ],
+  "historique": [
+    {"date": "14/11", "quoi": "Création. Chantier concurrence 1 à 4 livrés (multi-pays, demande et Buy Box, éligibilité en masse, prix plancher)."}
+  ]
+}
+</script>
+
+<script>
+(function () {
+  var d = JSON.parse(document.getElementById("donnees").textContent);
+  var fmt = function (n) { return String(n).replace(".", ","); };
+  document.getElementById("date").textContent = "Mis à jour le " + d.maj;
+
+  var somN = 0, somE = 0, devant = 0, retard = 0;
+  d.domaines.forEach(function (x) { somN += x.nous; somE += x.eux; if (x.nous > x.eux) devant++; if (x.nous < x.eux) retard++; });
+  document.getElementById("g-indice").textContent = Math.round(100 * somN / somE) + " %";
+  document.getElementById("g-devant").textContent = devant + " / " + d.domaines.length;
+  document.getElementById("g-retard").textContent = retard + " / " + d.domaines.length;
+
+  var corps = document.getElementById("corps");
+  d.domaines.forEach(function (x) {
+    var tr = document.createElement("tr");
+    tr.className = "ligne"; tr.tabIndex = 0;
+    var ind = x.eux ? Math.round(100 * x.nous / x.eux) : 0;
+    var cls = x.nous > x.eux ? "plus" : x.nous < x.eux ? "moins" : "egal";
+    var a = Math.min(x.nous, x.eux) * 10, b = Math.max(x.nous, x.eux) * 10;
+    tr.innerHTML =
+      '<td><div class="dom"></div><div class="ref"></div></td>' +
+      '<td><div class="regle"><div class="seg" style="left:' + a + '%;width:' + (b - a) + '%;background:var(--' + (cls === "plus" ? "ok" : cls === "moins" ? "ko" : "mid") + ')"></div>' +
+      '<div class="pt eux" style="left:' + x.eux * 10 + '%"></div><div class="pt nous" style="left:' + x.nous * 10 + '%"></div></div></td>' +
+      '<td class="num">' + fmt(x.nous) + '</td><td class="num">' + fmt(x.eux) + '</td>' +
+      '<td class="ecart ' + cls + '">' + ind + ' %</td>';
+    tr.querySelector(".dom").textContent = x.nom;
+    tr.querySelector(".ref").textContent = x.qui;
+    var det = document.createElement("tr");
+    det.className = "detail"; det.hidden = true;
+    det.innerHTML = '<td colspan="5"><p><span class="k">Fait</span></p><p><span class="k">Manque</span></p></td>';
+    var ps = det.querySelectorAll("p");
+    ps[0].appendChild(document.createTextNode(x.fait));
+    ps[1].appendChild(document.createTextNode(x.manque));
+    var bascule = function () { det.hidden = !det.hidden; };
+    tr.addEventListener("click", bascule);
+    tr.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); bascule(); } });
+    corps.appendChild(tr); corps.appendChild(det);
+  });
+
+  var li = function (id, tag, txt) {
+    var el = document.createElement("li");
+    var t = document.createElement("span"); t.className = "tag"; t.textContent = tag;
+    var s = document.createElement("span"); s.textContent = txt;
+    el.appendChild(t); el.appendChild(s); document.getElementById(id).appendChild(el);
+  };
+  d.gains.forEach(function (g, i) { li("gains", String(i + 1), g.quoi + " — " + g.effet); });
+  d.historique.forEach(function (h) { li("historique", h.date, h.quoi); });
+})();
+</script>
