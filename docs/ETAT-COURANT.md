@@ -47,7 +47,7 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 | (lot messagerie) | Chantier 5/5, partie 2 : envoi du bon depuis la messagerie Microsoft du vendeur (connexion par code + PKCE, envoi seul, aperçu puis envoi, traces en ajout seul, incertain jamais repris) ; bascule jour / nuit en icônes seules | RM-AMZ-129 à 131 | 1.20 |
 
 Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 131) · décisions `docs/decisions/registre.md`
-(D-AMZ-001 à 032).
+(D-AMZ-001 à 033).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)
 
@@ -60,7 +60,7 @@ Index : `docs/recherches/README.md`.
   de passe, de clé ou de jeton, ni dans le chat ni ailleurs : il les colle lui-même dans le site.
 - **Stratégie d'abord, puis règles, puis code.** Mandat de fusion permanent (D-AMZ-024) : fusionner quand la
   suite complète et la construction sont vertes, vérifier la mise en ligne, le dire.
-- **Ordinateur d'abord** (D-AMZ-025).
+- **Ordinateur d'abord** (D-AMZ-025) ; **téléphone = mode nomade** (D-AMZ-033) : suivi, actions urgentes, scan, rien d'autre.
 - **Ergonomie** :
   - tout ce qui se coche a « tout cocher / tout décocher » et une sélection groupée ;
   - **un clic sur la ligne coche la case** ;
@@ -90,7 +90,7 @@ puis suit commande, réception, envoi à Amazon et encaissement. Courriels depui
 ## 6. En attente
 
 - **Messagerie : action de Sam** (guide `docs/guides/microsoft-messagerie.md`) : ajouter l'adresse de retour à l'application « Syllig » chez Microsoft, créer une clé, la coller dans Paramètres › Connexions, connecter sa boîte, faire un premier envoi vers sa propre adresse.
-- **Vision « pilote automatique »** (Sam, 14/11) : objectifs + garde-fous + niveaux d'autonomie 0 à 3 par étape, validation humaine aux étapes qui engagent de l'argent ; scan code-barres au téléphone demandé (exception à D-AMZ-025, accord à confirmer) ; recherche des fonctions Amazon et de leurs API en cours (`docs/recherches/2026-11-14-passerelle-amazon-sp-api.md`), feuille de route à proposer.
+- **Vision « pilote automatique »** (Sam, 14/11) : objectifs + garde-fous + niveaux d'autonomie 0 à 3 par étape, validation humaine aux étapes qui engagent de l'argent ; mode téléphone « nomade » décidé (D-AMZ-033 : suivi, actions urgentes, scan code-barres ; le reste sur ordinateur) ; recherche des fonctions Amazon et de leurs API en cours (`docs/recherches/2026-11-14-passerelle-amazon-sp-api.md`), feuille de route à proposer.
 - **Chantier 5 (suite)** : partie 3 = envoi FBA par l'API (étude `2026-11-14-envoi-fba-api-inbound.md` : transporteur partenaire en France incertain, deux confirmations payantes à valider à la main).
 - **Nom : Syllig Pilot** (D-AMZ-031, 14/11). Marques à vérifier à la main (TMview, INPI, classes 9, 35, 42). **Logo posé** (piste 1, D-AMZ-032) : mot-symbole « syllig pilot » à repère orange, favicon, mode Jour · Nuit · Auto (captures 1.19). L'adresse reste vente.concepton.fr (changement d'adresse : décision à part).
 - **Chantier « réponse à la concurrence » lancé par Sam le 14/11** (ordre) : 1 multi-pays (fait), 2 demande et Buy Box tirées de nos relevés (fait), 3 éligibilité en masse + lien de demande d'autorisation (fait), 4 prix plancher + repricer gratuit d'Amazon + alerte (fait, non essayé sur une vraie offre), 5 bon de commande envoyé au fournisseur puis envoi FBA par l'API.
