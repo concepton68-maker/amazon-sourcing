@@ -96,6 +96,7 @@ class DemandeAnalyse(BaseModel):
     regime_tva: Optional[str] = None          # absent : régime du compte pour cette place [RM-AMZ-044]
     taux_tva: Optional[float] = Field(default=None, ge=0, lt=1)
     prix_vente: Optional[float] = Field(default=None, gt=0)
+    port_fournisseur: Optional[float] = Field(default=None, ge=0, le=1000)   # [RM-AMZ-098] remplace le défaut
 
 
 class DemandeTraitement(BaseModel):
@@ -234,7 +235,7 @@ def _analyse_json(a: AnalyseProduit, jeton: str) -> dict:
             "prix_vente_ht": r.prix_vente_ht, "tva_collectee": r.tva_collectee, "cout_achat_net": r.cout_achat_net,
             "frais_amazon": r.frais_amazon, "tva_frais": r.tva_sur_frais_non_recuperable, "autres": r.autres_couts,
             "profit": r.profit_net, "roi": r.roi, "marge": r.marge, "prix_achat_max": r.prix_achat_max_pour_roi,
-            "roi_cible": r.roi_cible, "regime_tva": r.regime_tva, "hypotheses": msgs(r.hypotheses)},
+            "roi_cible": r.roi_cible, "regime_tva": r.regime_tva, "hypotheses": msgs(r.hypotheses), "detail": r.detail},
         "frais_source": a.frais.source if a.frais else None,
         "prudent": None if not p else {"prix_vente": p.prix_vente, "profit": p.profit_net, "roi": p.roi},
         "offres": None if not o else {"nb_fba": o.nb_offres_fba, "nb_fbm": o.nb_offres_fbm,
@@ -908,9 +909,12 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(404, "PRODUIT_INTROUVABLE")
         depot.memoriser_appariement(c, mp.code, d.code.strip().upper(), asins)   # relevé de nuit [RM-AMZ-086]
         couts = p.couts(d.prix_achat, d.achat_ttc, d.taux_tva)
+        if d.port_fournisseur is not None:
+            from dataclasses import replace as _remplacer
+            couts = _remplacer(couts, port_fournisseur=d.port_fournisseur)
         sortie = []
         for asin in asins:
-            a = analyser_asin(mp, asin, couts, fx, regime, p.seuils(), d.prix_vente, d.taux_tva)
+            a = analyser_asin(mp, asin, couts, fx, regime, p.seuils(), d.prix_vente, d.taux_tva, **p.options_cout())
             jeton = str(uuid.uuid4())
             analyses[jeton] = (c, a, couts)
             while len(analyses) > 500:

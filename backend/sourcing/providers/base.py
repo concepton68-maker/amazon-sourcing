@@ -24,6 +24,9 @@ class InfosCatalogue:
     nb_unites_lot: Optional[int] = None   # « Pack of 6 » -> 6 si connu
     classification: Optional[str] = None  # itemClassification du catalogue [RM-AMZ-082]
     nb_variantes: Optional[int] = None
+    dimensions_cm: Optional[tuple] = None   # colis (catalogue « package ») [RM-AMZ-096]
+    poids_kg: Optional[float] = None
+    groupe_affichage: Optional[str] = None  # websiteDisplayGroup du classement des ventes
 
 
 @dataclass

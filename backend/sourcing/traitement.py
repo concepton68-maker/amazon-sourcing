@@ -122,7 +122,8 @@ def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, reg
     r.unites_lot, r.cout_achat = k, l.prix_unitaire * k
     couts = parametres.couts(float(r.cout_achat), achat_ttc) if parametres else \
         ParametresCout(float(r.cout_achat), prix_achat_ttc=achat_ttc)       # [RM-AMZ-044] coûts par défaut du compte
-    a: AnalyseProduit = analyser_asin(mp, asin, couts, f, regime, seuils)
+    a: AnalyseProduit = analyser_asin(mp, asin, couts, f, regime, seuils,
+                                      **(parametres.options_cout() if parametres else {}))
     r.titre, r.verdict, r.prix_vente = a.catalogue.titre, a.verdict, a.prix_vente_retenu
     if a.rentabilite:
         r.profit, r.roi = a.rentabilite.profit_net, a.rentabilite.roi

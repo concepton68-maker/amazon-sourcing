@@ -30,10 +30,11 @@ class FraisAmazon:
     cloture: float = 0.0             # variable closing fee (médias)
     autres: float = 0.0              # DST, surcharges...
     source: str = "saisie"           # "sp-api", "estimation", "saisie"
+    carburant: float = 0.0           # supplément carburant et logistique ajouté par l'outil [RM-AMZ-097]
 
     @property
     def total_ht(self) -> float:
-        return self.commission + self.fba + self.cloture + self.autres
+        return self.commission + self.fba + self.cloture + self.autres + self.carburant
 
 
 @dataclass
@@ -46,6 +47,8 @@ class ParametresCout:
     stockage_estime: float = 0.0         # stockage FBA estimé par unité (HT)
     taux_retours: float = 0.0            # provision retours, en % du prix de vente (0.03 = 3 %)
     autres_couts: float = 0.0            # tout autre coût unitaire (HT)
+    port_fournisseur: float = 0.0        # transport du fournisseur jusqu'à vous, par unité (HT) [RM-AMZ-098]
+    placement: float = 0.0               # frais de placement Amazon à l'envoi, par unité (HT) [RM-AMZ-098]
 
 
 @dataclass
@@ -64,6 +67,7 @@ class ResultatRentabilite:
     roi_cible: float
     regime_tva: str
     hypotheses: list[Message] = field(default_factory=list)
+    detail: dict = field(default_factory=dict)   # [RM-AMZ-095] coût complet ligne par ligne (montants positifs)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -134,7 +138,8 @@ def calculer_rentabilite(
 
     # --- Autres coûts ---
     retours = couts.taux_retours * prix_vente
-    autres = couts.envoi_entrepot + couts.preparation + couts.stockage_estime + couts.autres_couts + retours
+    autres = (couts.envoi_entrepot + couts.preparation + couts.stockage_estime + couts.autres_couts + retours
+              + couts.port_fournisseur + couts.placement)
     if couts.taux_retours:
         hyp.append(m("HYP_PROVISION_RETOURS", taux=couts.taux_retours))
 
@@ -171,6 +176,12 @@ def calculer_rentabilite(
         roi_cible=roi_cible,
         regime_tva=regime_tva,
         hypotheses=hyp,
+        detail={k: round(v, 2) for k, v in (
+            ("achat", cout_achat), ("port_fournisseur", couts.port_fournisseur), ("envoi", couts.envoi_entrepot),
+            ("preparation", couts.preparation), ("placement", couts.placement), ("commission", frais.commission),
+            ("fba", frais.fba), ("cloture", frais.cloture), ("frais_autres", frais.autres),
+            ("carburant", frais.carburant), ("tva_frais", tva_frais), ("stockage", couts.stockage_estime),
+            ("retours", retours), ("autres", couts.autres_couts))},
     )
 
 

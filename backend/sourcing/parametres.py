@@ -13,6 +13,9 @@ BORNES = {
     "roi_min": (0.0, 10.0), "profit_min": (0.0, 1000.0), "ventes_mois_min": (0, 100000),
     "part_ventes_min": (0.0, 100000.0), "ecart_prix_max": (0.0, 5.0),
     "envoi": (0.0, 1000.0), "preparation": (0.0, 1000.0), "stockage": (0.0, 1000.0), "retours": (0.0, 1.0),
+    # coût complet [RM-AMZ-096 à 098]
+    "port_fournisseur": (0.0, 1000.0), "placement": (0.0, 1000.0), "duree_stock_mois": (0.0, 24.0),
+    "carburant_inclus": (0, 1),
     # stock [RM-AMZ-047, 048] : jours
     "delai_fournisseur": (0, 365), "delai_reception": (0, 365), "marge_securite": (0, 365),
     "seuil_rupture": (0, 365), "seuil_surstock": (1, 3650),
@@ -40,6 +43,10 @@ class Parametres:
     preparation: float = 0.0
     stockage: float = 0.0
     retours: float = 0.0
+    port_fournisseur: float = 0.0
+    placement: float = 0.0
+    duree_stock_mois: float = 2.0       # durée de stockage prévue avant la vente (choix de l'outil, modifiable)
+    carburant_inclus: int = 0            # 1 = l'estimation Amazon inclut déjà le supplément carburant (vérifié)
     delai_fournisseur: int = 7
     delai_reception: int = 10
     marge_securite: int = 14
@@ -59,7 +66,12 @@ class Parametres:
         """[RM-AMZ-044] Coûts par défaut du compte appliqués à un prix d'achat."""
         return ParametresCout(prix_achat=prix_achat, prix_achat_ttc=achat_ttc, taux_tva_achat=taux_tva,
                               envoi_entrepot=self.envoi, preparation=self.preparation,
-                              stockage_estime=self.stockage, taux_retours=self.retours)
+                              stockage_estime=self.stockage, taux_retours=self.retours,
+                              port_fournisseur=self.port_fournisseur, placement=self.placement)
+
+    def options_cout(self) -> dict:
+        """[RM-AMZ-096, 097] Options de coût complet passées à l'analyse."""
+        return {"duree_stock_mois": self.duree_stock_mois, "carburant_inclus": bool(self.carburant_inclus)}
 
     def to_dict(self) -> dict:
         d = asdict(self)
