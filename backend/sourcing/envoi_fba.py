@@ -15,6 +15,12 @@ BASE = "/inbound/fba/2024-03-20"
 PROPRIETAIRES = ("SELLER", "AMAZON", "NONE")
 BROUILLON, EN_COURS, PLAN_CREE, EMBALLAGE_CONFIRME, CARTONS_ENVOYES, ANNULE, ERREUR = (
     "BROUILLON", "EN_COURS", "PLAN_CREE", "EMBALLAGE_CONFIRME", "CARTONS_ENVOYES", "ANNULE", "ERREUR")
+# partie 2 [RM-AMZ-142 à 146]
+REPARTITION_PROPOSEE, TRANSPORT_PROPOSE, REPARTITION_CONFIRMEE, TRANSPORT_CONFIRME = (
+    "REPARTITION_PROPOSEE", "TRANSPORT_PROPOSE", "REPARTITION_CONFIRMEE", "TRANSPORT_CONFIRME")
+COLIS = "GROUND_SMALL_PARCEL"
+PARTENAIRE, PROPRE = "AMAZON_PARTNERED_CARRIER", "USE_YOUR_OWN_CARRIER"
+PAGES_ETIQUETTES = ("PackageLabel_A4_4", "PackageLabel_A4_2")
 PAUSE_ECRITURE = 0.5            # 2 requêtes par seconde au plus
 ATTENTE_MAX_OPERATION = 600.0   # 10 minutes
 
@@ -209,6 +215,130 @@ class Inbound:
     def annuler(self, plan_id: str) -> dict:
         r = self._ecrire("PUT", f"/inboundPlans/{plan_id}/cancellation")
         return self.operation(r["operationId"])
+
+
+    # ---------------------------------------------------------------- partie 2 [RM-AMZ-142 à 146]
+    def options_repartition(self, plan_id: str) -> tuple[dict, list]:
+        r = self._ecrire("POST", f"/inboundPlans/{plan_id}/placementOptions", {})
+        op = self.operation(r["operationId"])
+        if op.get("operationStatus") != "SUCCESS":
+            return op, []
+        return op, self._lister(f"/inboundPlans/{plan_id}/placementOptions", "placementOptions")
+
+    def envoi(self, plan_id: str, shipment_id: str) -> dict:
+        return self.c._appel(self.mp, "GET", f"{BASE}/inboundPlans/{plan_id}/shipments/{shipment_id}")
+
+    def options_transport(self, plan_id: str, placement_id: str, envois: list, pret_le: str, contact: Optional[dict]) -> tuple[dict, list]:
+        confs = [{"shipmentId": s, "readyToShipWindow": {"start": f"{pret_le}T00:00:00Z"},
+                  **({"contactInformation": contact} if contact else {})} for s in envois]
+        r = self._ecrire("POST", f"/inboundPlans/{plan_id}/transportationOptions",
+                         {"placementOptionId": placement_id, "shipmentTransportationConfigurations": confs})
+        op = self.operation(r["operationId"])
+        if op.get("operationStatus") != "SUCCESS":
+            return op, []
+        out, jeton = [], None
+        while True:                                     # toutes les pages, 20 au plus chacune [RM-AMZ-143]
+            params = {"placementOptionId": placement_id, "pageSize": 20}
+            if jeton:
+                params["paginationToken"] = jeton
+            p = self.c._appel(self.mp, "GET", f"{BASE}/inboundPlans/{plan_id}/transportationOptions", params=params)
+            out += p.get("transportationOptions", [])
+            jeton = (p.get("pagination") or {}).get("nextToken")
+            if not jeton:
+                return op, out
+
+    def fenetres(self, plan_id: str, shipment_id: str) -> tuple[dict, list]:
+        r = self._ecrire("POST", f"/inboundPlans/{plan_id}/shipments/{shipment_id}/deliveryWindowOptions")
+        op = self.operation(r["operationId"])
+        if op.get("operationStatus") != "SUCCESS":
+            return op, []
+        return op, self._lister(f"/inboundPlans/{plan_id}/shipments/{shipment_id}/deliveryWindowOptions", "deliveryWindowOptions")
+
+    def confirmer_repartition(self, plan_id: str, placement_id: str) -> dict:
+        r = self._ecrire("POST", f"/inboundPlans/{plan_id}/placementOptions/{placement_id}/confirmation")
+        return self.operation(r["operationId"])
+
+    def confirmer_fenetre(self, plan_id: str, shipment_id: str, fenetre_id: str) -> dict:
+        r = self._ecrire("POST", f"/inboundPlans/{plan_id}/shipments/{shipment_id}/deliveryWindowOptions/{fenetre_id}/confirmation")
+        return self.operation(r["operationId"])
+
+    def confirmer_transport(self, plan_id: str, choix: dict, contact: Optional[dict]) -> dict:
+        sel = [{"shipmentId": s, "transportationOptionId": o, **({"contactInformation": contact} if contact else {})}
+               for s, o in choix.items()]
+        r = self._ecrire("POST", f"/inboundPlans/{plan_id}/transportationOptions/confirmation", {"transportationSelections": sel})
+        return self.operation(r["operationId"])
+
+    def cartons_envoi(self, plan_id: str, shipment_id: str) -> list:
+        return self._lister(f"/inboundPlans/{plan_id}/shipments/{shipment_id}/boxes", "boxes")
+
+    def etiquettes(self, confirmation_id: str, box_ids: list, page: str) -> bytes:
+        """[RM-AMZ-145] getLabels v0 ; l'adresse ne vaut que 15 s : téléchargée aussitôt."""
+        p = {"PageType": page, "LabelType": "UNIQUE", "PackageLabelsToPrint": ",".join(box_ids)}
+        r = self.c._appel(self.mp, "GET", f"/fba/inbound/v0/shipments/{confirmation_id}/labels", params=p)
+        url = (r.get("payload") or {}).get("DownloadURL")
+        if not url:
+            raise ErreurEnvoi("ETIQUETTES_ABSENTES", confirmation_id)
+        d = self.c.session.get(url, timeout=60)
+        if d.status_code != 200:
+            raise ErreurEnvoi("ETIQUETTES_TELECHARGEMENT", str(d.status_code))
+        return d.content
+
+    def suivi(self, plan_id: str, shipment_id: str, numeros: dict) -> dict:
+        corps = {"trackingDetails": {"spdTrackingDetail": {"spdTrackingItems": [
+            {"boxId": b, "trackingId": n} for b, n in numeros.items()]}}}
+        r = self._ecrire("PUT", f"/inboundPlans/{plan_id}/shipments/{shipment_id}/trackingDetails", corps)
+        return self.operation(r["operationId"])
+
+
+def montants(liste) -> list[dict]:
+    """Frais ou remises tels que rendus (montant, devise, description) [RM-AMZ-142]."""
+    return [{"montant": (x.get("value") or {}).get("amount"), "devise": (x.get("value") or {}).get("code"),
+             "description": x.get("description"), "cible": x.get("target")} for x in liste or []]
+
+
+def resume_repartition(options: list) -> list[dict]:
+    return [{"id": o.get("placementOptionId"), "statut": o.get("status"), "expiration": o.get("expiration"),
+             "envois": list(o.get("shipmentIds") or []), "frais": montants(o.get("fees")), "remises": montants(o.get("discounts"))}
+            for o in options]
+
+
+def resume_transport(options: list) -> dict:
+    """Options colis seulement, par envoi [RM-AMZ-143]."""
+    par: dict[str, list] = {}
+    for o in options:
+        if o.get("shippingMode") != COLIS:
+            continue
+        q = o.get("quote") or {}
+        par.setdefault(o.get("shipmentId"), []).append({
+            "id": o.get("transportationOptionId"), "transporteur": (o.get("carrier") or {}).get("name"),
+            "code_transporteur": (o.get("carrier") or {}).get("alphaCode"), "solution": o.get("shippingSolution"),
+            "devis": (q.get("cost") or {}).get("amount"), "devise": (q.get("cost") or {}).get("code"),
+            "annulable_jusqu_au": q.get("voidableUntil"), "conditions": o.get("preconditions") or []})
+    return par
+
+
+def controler_transport(transports: dict, choix: dict) -> None:
+    """Un choix par envoi, parmi les options rendues ; même transporteur pour tous les envois colis."""
+    if set(choix) != set(transports):
+        raise ErreurEnvoi("TRANSPORT_INCOMPLET", ",".join(sorted(set(transports) - set(choix))))
+    vus = set()
+    for s, oid in choix.items():
+        o = next((x for x in transports[s] if x["id"] == oid), None)
+        if o is None:
+            raise ErreurEnvoi("TRANSPORT_INCONNU", s)
+        vus.add((o["code_transporteur"] or o["transporteur"], o["solution"]))
+    if len(vus) > 1:
+        raise ErreurEnvoi("TRANSPORTEURS_DIFFERENTS", "transport")
+
+
+def contact(societe: dict) -> Optional[dict]:
+    s = societe or {}
+    if not (s.get("raison_sociale") and s.get("telephone")):
+        return None
+    c = {"name": s["raison_sociale"][:50], "phoneNumber": s["telephone"]}
+    if s.get("courriel"):
+        c["email"] = s["courriel"]
+    return c
 
 
 def problemes(op: dict) -> list[dict]:

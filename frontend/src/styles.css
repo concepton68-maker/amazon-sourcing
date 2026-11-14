@@ -528,3 +528,7 @@ tr.cliquable { user-select: none; }
 .releve-maintenant { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-left: auto; }
 .filtre-colonne .case-filtre { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 .table-donnees td, .table-donnees th { padding: 6px 8px; }
+.partie2 { display: grid; gap: 12px; }
+.recap-fba { display: grid; gap: 4px; max-width: 420px; border: 1px solid var(--bord); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.recap-fba > div { display: flex; justify-content: space-between; gap: 12px; } .recap-fba .total { border-top: 1px solid var(--bord); padding-top: 4px; }
+.recap-fba strong { font-family: var(--chiffre); }

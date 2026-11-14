@@ -99,7 +99,7 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
 
 <script type="application/json" id="donnees">
 {
-  "maj": "14/11/2026, 17 h 30 (Paris)",
+  "maj": "14/11/2026, 18 h 00 (Paris)",
   "strates": [
     {"id": "s0", "nom": "Avant le chantier (estimé)", "date": "14/11 matin"},
     {"id": "s1", "nom": "Chantier concurrence 1 à 4 (PR #45 à #48)", "date": "14/11"},
@@ -107,7 +107,8 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
     {"id": "s3", "nom": "Bon envoyé depuis la messagerie (PR #53)", "date": "14/11"},
     {"id": "s4", "nom": "Analyse de tous les catalogues, avancement en direct, bouton Arrêter (PR #57 à #59)", "date": "14/11"},
     {"id": "s5", "nom": "Envoi FBA par l'API, partie 1 (PR #60)", "date": "14/11"},
-    {"id": "s6", "nom": "Écran Données, relever maintenant (PR #62)", "date": "14/11"}
+    {"id": "s6", "nom": "Écran Données, relever maintenant (PR #62)", "date": "14/11"},
+    {"id": "s7", "nom": "Envoi FBA par l'API, partie 2 (PR #64)", "date": "14/11"}
   ],
   "domaines": [
     {"nom": "Éligibilité", "notes": {"s0": 7, "s1": 8.5}, "eux": 8, "qui": "Seller Assistant (outil tiers) ; Boxem (outil tiers, États-Unis seulement)",
@@ -122,8 +123,8 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
      "fait": "Relevés de nuit : baisses de BSR, stabilité du prix, présence d'Amazon, détenteur de la Buy Box.", "manque": "Historique ancien impossible sans Keepa ; il se construit nuit après nuit."},
     {"nom": "Acheter", "notes": {"s0": 6, "s2": 7, "s3": 8}, "eux": 7, "qui": "Seller Assistant (outil tiers : bon PDF/XLSX)",
      "fait": "Plan d'achat (un bon par fournisseur), bon PDF et Excel, envoi depuis la messagerie avec traces, prévu/réel par lot.", "manque": "Paiement intégré ; API fournisseurs ; envoi par messagerie pas encore essayé sur le vrai compte."},
-    {"nom": "Envoi chez Amazon", "notes": {"s5": 2}, "eux": 7, "qui": "Seller Assistant (outil tiers) ; InventoryLab et Boxem (outils tiers, États-Unis seulement)",
-     "fait": "Brouillon depuis le stock, plan créé chez Amazon, options d'emballage, confirmation, cartons envoyés, annulation (partie 1).", "manque": "Répartition entre entrepôts, transport, étiquettes, suivi (partie 2) ; pas encore essayé sur le vrai compte (compte à moitié)."},
+    {"nom": "Envoi chez Amazon", "notes": {"s5": 2, "s7": 4}, "eux": 7, "qui": "Seller Assistant (outil tiers) ; InventoryLab et Boxem (outils tiers, États-Unis seulement)",
+     "fait": "Chaîne complète par l'API : brouillon, plan, emballage, cartons, répartition, transport, deux confirmations payantes séparées, étiquettes, suivi, annulation.", "manque": "Pas encore essayé sur le vrai compte (compte à moitié) ; transporteur partenaire en France non établi."},
     {"nom": "Vendre et prix", "notes": {"s1": 5}, "eux": 8, "qui": "SmartRepricer, Aura, BQool ; Automate Pricing",
      "fait": "Prix plancher, envoi au repricer gratuit d'Amazon avec validation, contrôle de nuit.", "manque": "Pas essayé sur une vraie offre ; alertes Buy Box en temps réel."},
     {"nom": "Après-vente", "notes": {"s0": 6.5, "s1": 7}, "eux": 8, "qui": "sellerboard, Helium 10",
@@ -134,13 +135,14 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
      "fait": "Données du compte seulement, sans aspiration ni revente, valeurs sourcées.", "manque": "Serveur en Europe avant le premier client."}
   ],
   "gains": [
-    {"quoi": "Envoi FBA partie 2 (répartition, transport, étiquettes) et essai réel", "effet": "Envoi chez Amazon 2 → 6"},
+    {"quoi": "Premier envoi FBA réel par l'outil", "effet": "Envoi chez Amazon 4 → 7"},
     {"quoi": "Objectifs, journal et plan d'achat du matin", "effet": "Autonomie 8 → 9"},
     {"quoi": "Prix plancher essayé sur une vraie offre", "effet": "Vendre et prix 5 → 6"},
     {"quoi": "Notifications Amazon en temps réel", "effet": "Après-vente 7 → 8 · Vendre 6 → 7"},
     {"quoi": "Premier fournisseur branché par API (Qogita)", "effet": "Fournisseurs 8 → 9"}
   ],
   "historique": [
+    {"strate": "s7", "quoi": "Envoi chez Amazon 2 → 4 : répartition, transport, confirmations séparées, étiquettes, suivi (non essayés sur le vrai compte)."},
     {"strate": "s6", "quoi": "Trouver 4,5 → 5 et Demande 4 → 4,5 : écran Données (recherche, filtres, tri, export sur tout ce qui est collecté), relevé de marché à la demande."},
     {"strate": "s5", "quoi": "Envoi chez Amazon 0 → 2 : brouillon, plan Amazon, emballage, cartons, annulation (partie 1, non essayée sur le vrai compte)."},
     {"strate": "s4", "quoi": "Trouver 4 → 4,5 et Autonomie 8 → 8,5 : analyse de tous les catalogues en un geste, avancement en direct des travaux (rapport n sur 3, dernière nouvelle), mise à jour du site qui attend la fin d'un travail."},

@@ -136,6 +136,7 @@ class DemandeEligibilite(BaseModel):
 
 class DemandeSynchroManuelle(BaseModel):
     taches: list[str] = Field(max_length=20)
+    rapide: bool = False                     # [RM-AMZ-147] relevé limité aux suivis et analysés
 
 
 class DemandeAjoutAnnuaire(BaseModel):
@@ -1282,6 +1283,154 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
                                                      donnees={**cur.donnees, "probleme_annulation": FBA.problemes(op)}))
         return _action_fba(c, e, travail)
 
+    # ------------------------------------------------------------- envois FBA, partie 2 [RM-AMZ-142 à 146]
+    @app.post("/api/envois-fba/{eid}/repartition", status_code=202)
+    def repartition_fba(eid: str, c: str = Depends(compte)):
+        """[RM-AMZ-142] Options de répartition (rien n'est confirmé)."""
+        e = _envoi(c, eid)
+        if e.statut not in (FBA.CARTONS_ENVOYES, FBA.REPARTITION_PROPOSEE, FBA.TRANSPORT_PROPOSE):
+            raise HTTPException(409, "ETAPE_INVALIDE")
+
+        def travail(api):
+            op, options = api.options_repartition(e.plan_id)
+            res = FBA.resume_repartition(options)
+            destinations = {}
+            for o in res:
+                for s in o["envois"]:
+                    if s not in destinations:
+                        dest = (api.envoi(e.plan_id, s).get("destination") or {})
+                        destinations[s] = {"entrepot": dest.get("warehouseId"), "type": dest.get("destinationType"),
+                                           "ville": (dest.get("address") or {}).get("city")}
+            cur = depot.envoi_fba(c, e.id)
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.REPARTITION_PROPOSEE if res else cur.statut,
+                                                     donnees={**cur.donnees, "repartitions": res, "destinations": destinations,
+                                                              "probleme_repartition": FBA.problemes(op)}))
+        return _action_fba(c, e, travail)
+
+    @app.post("/api/envois-fba/{eid}/transport", status_code=202)
+    def transport_fba(eid: str, d: dict, c: str = Depends(compte)):
+        """[RM-AMZ-143] Options de transport (colis) et fenêtres de livraison pour l'option de répartition choisie."""
+        e = _envoi(c, eid)
+        if e.statut not in (FBA.REPARTITION_PROPOSEE, FBA.TRANSPORT_PROPOSE):
+            raise HTTPException(409, "ETAPE_INVALIDE")
+        option = next((o for o in e.donnees.get("repartitions", []) if o["id"] == d.get("placement")), None)
+        if option is None:
+            raise HTTPException(422, "OPTION_INCONNUE")
+        pret_le = str(d.get("pret_le") or date.today().isoformat())[:10]
+        ct = FBA.contact(params(c).societe)
+
+        def travail(api):
+            op, opts = api.options_transport(e.plan_id, option["id"], option["envois"], pret_le, ct)
+            transports = FBA.resume_transport(opts)
+            fenetres = {}
+            for s in option["envois"]:
+                if any(x["solution"] == FBA.PROPRE for x in transports.get(s, [])):
+                    _, f = api.fenetres(e.plan_id, s)
+                    fenetres[s] = [{"id": w.get("deliveryWindowOptionId"), "debut": w.get("startDate"), "fin": w.get("endDate"),
+                                    "disponibilite": w.get("availabilityType"), "valable_jusqu_au": w.get("validUntil")} for w in f]
+            cur = depot.envoi_fba(c, e.id)
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.TRANSPORT_PROPOSE if transports else cur.statut,
+                                                     donnees={**cur.donnees, "placement_choisi": option["id"], "pret_le": pret_le,
+                                                              "transports": transports, "fenetres": fenetres,
+                                                              "probleme_transport": FBA.problemes(op)}))
+        return _action_fba(c, e, travail)
+
+    @app.post("/api/envois-fba/{eid}/confirmer-repartition", status_code=202)
+    def confirmer_repartition_fba(eid: str, c: str = Depends(compte)):
+        """[RM-AMZ-144] Confirmation 1 : définitive, frais de placement ; sur un clic du vendeur."""
+        e = _envoi(c, eid)
+        if e.statut != FBA.TRANSPORT_PROPOSE or not e.donnees.get("placement_choisi"):
+            raise HTTPException(409, "ETAPE_INVALIDE")
+
+        def travail(api):
+            op = api.confirmer_repartition(e.plan_id, e.donnees["placement_choisi"])
+            cur = depot.envoi_fba(c, e.id)
+            ok = op.get("operationStatus") == "SUCCESS"
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.REPARTITION_CONFIRMEE if ok else cur.statut,
+                                                     donnees={**cur.donnees, "probleme_confirmation_repartition": FBA.problemes(op)}))
+        return _action_fba(c, e, travail)
+
+    @app.post("/api/envois-fba/{eid}/confirmer-transport", status_code=202)
+    def confirmer_transport_fba(eid: str, d: dict, c: str = Depends(compte)):
+        """[RM-AMZ-144] Confirmation 2 : fenêtres (propre transporteur) puis transport ; sur un clic distinct."""
+        e = _envoi(c, eid)
+        if e.statut != FBA.REPARTITION_CONFIRMEE:
+            raise HTTPException(409, "ETAPE_INVALIDE")
+        choix, fen = d.get("choix") or {}, d.get("fenetres") or {}
+        transports = e.donnees.get("transports", {})
+        try:
+            FBA.controler_transport(transports, choix)
+        except FBA.ErreurEnvoi as x:
+            raise HTTPException(422, {"code": x.args[0], "champ": x.args[1]}) from None
+        propres = [s for s, oid in choix.items() if next(o for o in transports[s] if o["id"] == oid)["solution"] == FBA.PROPRE]
+        for s in propres:
+            if fen.get(s) not in {w["id"] for w in e.donnees.get("fenetres", {}).get(s, [])}:
+                raise HTTPException(422, {"code": "FENETRE_REQUISE", "champ": s})
+        ct = FBA.contact(params(c).societe)
+
+        def travail(api):
+            probs = []
+            for s in propres:
+                op = api.confirmer_fenetre(e.plan_id, s, fen[s])
+                probs += FBA.problemes(op)
+                if op.get("operationStatus") != "SUCCESS":
+                    cur = depot.envoi_fba(c, e.id)
+                    depot.enregistrer_envoi_fba(c, FBA.avec(cur, donnees={**cur.donnees, "probleme_confirmation_transport": probs}))
+                    return
+            op = api.confirmer_transport(e.plan_id, choix, ct)
+            probs += FBA.problemes(op)
+            cur = depot.envoi_fba(c, e.id)
+            if op.get("operationStatus") != "SUCCESS":
+                depot.enregistrer_envoi_fba(c, FBA.avec(cur, donnees={**cur.donnees, "probleme_confirmation_transport": probs}))
+                return
+            envois = {}
+            for s in choix:
+                sh = api.envoi(e.plan_id, s)
+                envois[s] = {"confirmation": sh.get("shipmentConfirmationId"), "statut": sh.get("status"),
+                             "cartons": [b.get("boxId") for b in api.cartons_envoi(e.plan_id, s)]}
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, statut=FBA.TRANSPORT_CONFIRME,
+                                                     donnees={**cur.donnees, "transport_choisi": choix, "fenetres_choisies": fen,
+                                                              "envois": envois, "probleme_confirmation_transport": probs}))
+        return _action_fba(c, e, travail)
+
+    @app.get("/api/envois-fba/{eid}/etiquettes/{shipment_id}")
+    def etiquettes_fba(eid: str, shipment_id: str, page: str = "PackageLabel_A4_4", c: str = Depends(compte)):
+        """[RM-AMZ-145] Téléchargées aussitôt (adresse valable 15 s) et remises telles quelles."""
+        e = _envoi(c, eid)
+        info = (e.donnees.get("envois") or {}).get(shipment_id)
+        if e.statut != FBA.TRANSPORT_CONFIRME or not info or not info.get("confirmation"):
+            raise HTTPException(409, "ETAPE_INVALIDE")
+        if page not in FBA.PAGES_ETIQUETTES:
+            raise HTTPException(422, "FORMAT_INCONNU")
+        api = FBA.Inbound(_client_brut(c), get_marketplace(e.marketplace))
+        try:
+            contenu = api.etiquettes(info["confirmation"], info.get("cartons") or [], page)
+        except FBA.ErreurEnvoi as x:
+            raise HTTPException(502, x.args[0]) from None
+        return Response(contenu, media_type="application/pdf",
+                        headers={"Content-Disposition": f'attachment; filename="etiquettes-{info["confirmation"]}.pdf"'})
+
+    @app.post("/api/envois-fba/{eid}/suivi", status_code=202)
+    def suivi_fba(eid: str, d: dict, c: str = Depends(compte)):
+        """[RM-AMZ-146] Un numéro de suivi par carton (propre transporteur)."""
+        e = _envoi(c, eid)
+        s = d.get("envoi")
+        info = (e.donnees.get("envois") or {}).get(s)
+        if e.statut != FBA.TRANSPORT_CONFIRME or not info:
+            raise HTTPException(409, "ETAPE_INVALIDE")
+        numeros = {str(k): str(v).strip() for k, v in (d.get("numeros") or {}).items()}
+        if set(numeros) != set(info.get("cartons") or []) or any(not (1 <= len(v) <= 64) for v in numeros.values()):
+            raise HTTPException(422, {"code": "SUIVI_INCOMPLET", "champ": s})
+
+        def travail(api):
+            op = api.suivi(e.plan_id, s, numeros)
+            cur = depot.envoi_fba(c, e.id)
+            envois = dict(cur.donnees.get("envois") or {})
+            if op.get("operationStatus") == "SUCCESS":
+                envois[s] = {**envois[s], "suivi": numeros, "statut": api.envoi(e.plan_id, s).get("status")}
+            depot.enregistrer_envoi_fba(c, FBA.avec(cur, donnees={**cur.donnees, "envois": envois, "probleme_suivi": FBA.problemes(op)}))
+        return _action_fba(c, e, travail)
+
     # ------------------------------------------------------------- travaux de nuit lancés à la main [RM-AMZ-115]
     @app.get("/api/donnees/{nom}")
     def donnees(nom: str, c: str = Depends(compte)):
@@ -1318,7 +1467,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
         v = CX.dechiffrer(cle, c, "SPAPI", cx.chiffre) if cle else {"region": "EU"}
         client = (fabrique_spapi or SN.client_spapi)(v)
-        if not manuelles.lancer(c, client, v.get("region", "EU"), depot, set(d.taches)):
+        if not manuelles.lancer(c, client, v.get("region", "EU"), depot, set(d.taches), rapide=d.rapide):
             raise HTTPException(409, "SYNCHRO_EN_COURS")
         return {"lancee": True}
 

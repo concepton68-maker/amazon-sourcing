@@ -211,7 +211,8 @@ export const listerEnvoisFBA = () => lire<EnvoiFBA[]>("/api/envois-fba");
 export const lireEnvoiFBA = (id: string) => lire<EnvoiFBA>(`/api/envois-fba/${id}`);
 export const creerEnvoiFBA = (nom: string, lignes: { msku: string; quantite: number; asin?: string | null }[], etiquette: string, preparation: string) =>
   requete<EnvoiFBA>("POST", "/api/envois-fba", { nom, lignes, etiquette, preparation, marketplace: "FR" });
-export const actionEnvoiFBA = (id: string, action: "creer-plan" | "confirmer-emballage" | "cartons" | "annuler", corps: unknown = {}) =>
+export const actionEnvoiFBA = (id: string, action: "creer-plan" | "confirmer-emballage" | "cartons" | "annuler" | "repartition" | "transport"
+  | "confirmer-repartition" | "confirmer-transport" | "suivi", corps: unknown = {}) =>
   requete<EnvoiFBA>("POST", `/api/envois-fba/${id}/${action}`, corps);
 export const bonDepuisStock = (fournisseur: string) => envoyer<Bon>("/api/bons/depuis-stock", { fournisseur });
 export async function retirerLigneBon(id: string, ligne: string): Promise<Bon> {
@@ -376,7 +377,7 @@ export interface EtatManuel { en_cours: boolean; debut: string; fin?: string; ta
   terminees: { tache: string; ok: boolean; message: string; fin: string }[] }
 export const arreterTravaux = () => requete<{ manuels: boolean; analyses: number; correspondance: boolean }>("POST", "/api/travaux/arreter", {});
 export const lireSynchroManuelle = () => lire<{ taches: string[]; etat: EtatManuel | null }>("/api/synchro/manuelle");
-export const lancerSynchroManuelle = (taches: string[]) => requete<{ lancee: boolean }>("POST", "/api/synchro/manuelle", { taches });
+export const lancerSynchroManuelle = (taches: string[], rapide = false) => requete<{ lancee: boolean }>("POST", "/api/synchro/manuelle", { taches, rapide });
 
 // Activités en cours [RM-AMZ-116]
 export interface Activite { type: "ANALYSE" | "ANALYSE_TOUT" | "CORRESPONDANCE" | "NUIT_MANUELLE"; nom: string | null; faits: number; total: number; phase?: string }

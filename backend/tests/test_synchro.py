@@ -277,3 +277,25 @@ class FauxHistorique(Faux):
 
     def rechercher_page(self, *a, **k):
         return [], None
+
+
+class TestReleverLimite(unittest.TestCase):
+    def test_relever_limite(self):
+        """[RM-AMZ-147] Relevé rapide : familles non parcourues, suivis relevés."""
+        d, c = construire()
+        d.enregistrer_familles(c, ["SPORT"])
+        d.ajouter_suivi(c, "FR", "B0RAPIDE01")
+        appels = {"recherche": 0, "offres": []}
+
+        class F(FauxHistorique):
+            def rechercher_page(self, *a, **k):
+                appels["recherche"] += 1
+                return [], None
+
+            def offres_par_paquet(self, mp, asins):
+                appels["offres"] += list(asins)
+                return {}
+        r = SN.executer_compte(c, F(), "EU", d, NUIT, attendre=lambda s: None, taches={"HISTORIQUE"}, rapide=True)
+        self.assertTrue(r[0].ok, r[0].message)
+        self.assertEqual(appels["recherche"], 0)
+        self.assertIn("B0RAPIDE01", appels["offres"])
