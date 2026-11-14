@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Connexions, EtapeTest, TacheSynchro, lireJournalSynchro, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
+import { Connexions, EtapeTest, EtatManuel, TacheSynchro, lancerSynchroManuelle, lireJournalSynchro, lireSynchroManuelle, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
 import { dateCourte, t } from "./i18n";
 
 // Où trouver chaque code chez Amazon (adresses données par Sam et par la documentation Amazon)
@@ -65,9 +65,50 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
   );
 }
 
-function JournalSynchro() {
+// [RM-AMZ-115] lancer les travaux de nuit maintenant, avancement réel
+function TravauxManuels({ fini }: { fini: () => void }) {
+  const [taches, setTaches] = useState<string[]>([]);
+  const [choix, setChoix] = useState<string[]>([]);
+  const [etat, setEtat] = useState<EtatManuel | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const lire = () => lireSynchroManuelle().then((x) => {
+    setTaches(x.taches); setChoix((c) => (c.length ? c : x.taches));
+    setEtat((avant) => { if (avant?.en_cours && x.etat && !x.etat.en_cours) fini(); return x.etat; });
+  }).catch(() => undefined);
+  useEffect(() => { lire(); }, []);
+  useEffect(() => { if (!etat?.en_cours) return; const id = setTimeout(lire, 2000); return () => clearTimeout(id); }, [etat]);
+  const lancer = () => { setErreur(null); lancerSynchroManuelle(choix).then(lire).catch((e) => setErreur((e as Error).message)); };
+  const basculer = (x: string) => setChoix((c) => (c.includes(x) ? c.filter((y) => y !== x) : [...c, x]));
+  const statut = (x: string) => {
+    if (!etat || !etat.taches.includes(x)) return null;
+    const r = etat.terminees.find((y) => y.tache === x);
+    if (r) return <span className={r.ok ? "positif" : "negatif"} title={r.message}>{r.ok ? "✓" : "✗"} {r.message}</span>;
+    return etat.courante === x ? <span className="en-cours">⏳ {t("manuel.en_cours")}</span> : <span className="meta">{etat.en_cours ? t("manuel.attente") : ""}</span>;
+  };
+  return (
+    <section className="carte" aria-label={t("manuel.titre")}>
+      <div className="entete-vue"><h3>{t("manuel.titre")}</h3>
+        <button type="button" className="principal" disabled={etat?.en_cours || choix.length === 0} onClick={lancer}>
+          {etat?.en_cours ? t("manuel.en_cours_n", { f: etat.terminees.length, t: etat.taches.length }) : t("manuel.lancer", { n: choix.length })}</button></div>
+      {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
+      <table className="table-compacte"><tbody>
+        <tr className="cliquable" onClick={(e) => { if (!(e.target as HTMLElement).closest("input")) setChoix(choix.length === taches.length ? [] : taches); }}>
+          <td className="case-suivi"><input type="checkbox" aria-label={t("annuaire.tout")} checked={choix.length === taches.length}
+            onChange={() => setChoix(choix.length === taches.length ? [] : taches)} /></td><td colSpan={2}><strong>{t("annuaire.tout")}</strong></td></tr>
+        {taches.map((x) => (
+          <tr key={x} className={`cliquable ${choix.includes(x) ? "choisie" : ""}`} onClick={(e) => { if (!(e.target as HTMLElement).closest("input")) basculer(x); }}>
+            <td className="case-suivi"><input type="checkbox" aria-label={t(`synchro.${x}`)} checked={choix.includes(x)} onChange={() => basculer(x)} /></td>
+            <td>{t(`synchro.${x}`)}</td><td className="tronque">{statut(x)}</td>
+          </tr>))}
+      </tbody></table>
+      {etat?.fin && !etat.en_cours && <p className="meta">{t("manuel.fini", { date: new Date(etat.fin).toLocaleString("fr-FR") })}</p>}
+    </section>
+  );
+}
+
+function JournalSynchro({ version }: { version: number }) {
   const [j, setJ] = useState<TacheSynchro[] | null>(null);
-  useEffect(() => { lireJournalSynchro().then(setJ).catch(() => setJ([])); }, []);
+  useEffect(() => { lireJournalSynchro().then(setJ).catch(() => setJ([])); }, [version]);
   if (!j) return null;
   return (
     <section className="carte" aria-label={t("synchro.titre")}>
@@ -84,6 +125,7 @@ function JournalSynchro() {
 
 export function ConnexionsVue() {
   const [c, setC] = useState<Connexions | null>(null);
+  const [version, setVersion] = useState(0);
   const [erreur, setErreur] = useState<string | null>(null);
   const maj = () => lireConnexions().then(setC).catch((e) => setErreur((e as Error).message));
   useEffect(() => { maj(); }, []);
@@ -93,7 +135,8 @@ export function ConnexionsVue() {
     <section aria-label={t("connexion.titre")}>
       <h2>{t("connexion.titre")}</h2>
       {!c.chiffrement && <p role="alert" className="alerte">{t("erreur.CHIFFREMENT_NON_CONFIGURE")}</p>}
-      <JournalSynchro />
+      <TravauxManuels fini={() => setVersion((v) => v + 1)} />
+      <JournalSynchro version={version} />
       <div className="grille trois">{c.sources.map((s) => <Source key={s.source + (s.enregistree_le ?? "")} s={s} regions={c.regions} maj={maj} />)}</div>
     </section>
   );

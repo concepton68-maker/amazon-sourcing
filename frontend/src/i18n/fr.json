@@ -746,5 +746,13 @@
   "corr.analyse": "Analyse {f}/{t} · résultats en cours…",
   "synchro.CORRESPONDANCE": "Correspondance fournisseurs",
   "tb.deblocage_1": "Nouveau : 1 rayon débloqué sur Amazon",
-  "vendable.suivis_1": "1 rayon suivi dans Marché"
+  "vendable.suivis_1": "1 rayon suivi dans Marché",
+  "manuel.titre": "Lancer les travaux de nuit maintenant",
+  "manuel.lancer": "Lancer maintenant ({n})",
+  "manuel.en_cours": "en cours…",
+  "manuel.attente": "en attente",
+  "manuel.en_cours_n": "En cours {f}/{t}…",
+  "manuel.fini": "Dernier lancement manuel terminé le {date}",
+  "erreur.TACHE_INCONNUE": "Choisissez au moins une tâche",
+  "erreur.SYNCHRO_EN_COURS": "Des travaux sont déjà en cours"
 }

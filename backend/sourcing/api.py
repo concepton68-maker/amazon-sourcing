@@ -103,6 +103,10 @@ class DemandeAnalyse(BaseModel):
     port_fournisseur: Optional[float] = Field(default=None, ge=0, le=1000)   # [RM-AMZ-098] remplace le défaut
 
 
+class DemandeSynchroManuelle(BaseModel):
+    taches: list[str] = Field(max_length=20)
+
+
 class DemandeAjoutAnnuaire(BaseModel):
     codes: list[str] = Field(min_length=1, max_length=200)
 
@@ -291,7 +295,7 @@ class DemandeConnexion(BaseModel):
 def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool = True, demo: bool = False,
               fournisseurs: Optional[Fournisseurs] = None, seuils: Optional[Seuils] = None,
               traitement_en_fond: bool = True, auth: Optional[Authentification] = None,
-              cookie_secure: bool = True) -> FastAPI:
+              cookie_secure: bool = True, fabrique_spapi=None) -> FastAPI:
     """`auth` absent : un seul compte fixe (`compte_demo`), mode démonstration. `auth` présent : sessions."""
     if auth is None and not compte_demo:
         raise ValueError("compte_demo requis sans authentification")
@@ -323,6 +327,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     traitements = Traitements()
     explorations = EX.Explorations(en_fond=traitement_en_fond)
     correspondances = CO.Correspondances(en_fond=traitement_en_fond)
+    from . import synchro_nuit as SN
+    manuelles = SN.SynchrosManuelles(en_fond=traitement_en_fond)
 
     @app.middleware("http")
     async def anti_csrf(request: Request, appel_suivant):
@@ -835,6 +841,27 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         if not depot.supprimer_connexion(c, source):
             raise HTTPException(404, "CONNEXION_INTROUVABLE")
         return {"source": source, "retiree": True}
+
+    # ------------------------------------------------------------- travaux de nuit lancés à la main [RM-AMZ-115]
+    @app.get("/api/synchro/manuelle")
+    def etat_synchro_manuelle(c: str = Depends(compte)):
+        e = manuelles.etats.get(c)
+        return {"taches": list(SN.TACHES), "etat": e}
+
+    @app.post("/api/synchro/manuelle", status_code=202)
+    def lancer_synchro_manuelle(d: DemandeSynchroManuelle, c: str = Depends(compte)):
+        inconnues = [x for x in d.taches if x not in SN.TACHES]
+        if inconnues or not d.taches:
+            raise HTTPException(422, "TACHE_INCONNUE")
+        cx = depot.connexions(c).get("SPAPI")
+        cle = CX.cle_serveur()
+        if cx is None or (cle is None and fabrique_spapi is None):
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        v = CX.dechiffrer(cle, c, "SPAPI", cx.chiffre) if cle else {"region": "EU"}
+        client = (fabrique_spapi or SN.client_spapi)(v)
+        if not manuelles.lancer(c, client, v.get("region", "EU"), depot, set(d.taches)):
+            raise HTTPException(409, "SYNCHRO_EN_COURS")
+        return {"lancee": True}
 
     # ------------------------------------------------------------- ce que je peux vendre [RM-AMZ-084, 085]
     @app.get("/api/exploration")

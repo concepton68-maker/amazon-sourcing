@@ -331,3 +331,9 @@ export interface EtatCorrespondance { en_cours: boolean; progression: [number, n
   bilan: null | { le?: string; candidats?: number; correspondances?: number; fournisseurs?: number; erreur?: string } }
 export const lireCorrespondance = () => lire<EtatCorrespondance>("/api/correspondance");
 export const lancerCorrespondance = () => requete<{ lancee: boolean }>("POST", "/api/correspondance", {});
+
+// Travaux de nuit lancés à la main [RM-AMZ-115]
+export interface EtatManuel { en_cours: boolean; debut: string; fin?: string; taches: string[]; courante: string | null;
+  terminees: { tache: string; ok: boolean; message: string; fin: string }[] }
+export const lireSynchroManuelle = () => lire<{ taches: string[]; etat: EtatManuel | null }>("/api/synchro/manuelle");
+export const lancerSynchroManuelle = (taches: string[]) => requete<{ lancee: boolean }>("POST", "/api/synchro/manuelle", { taches });
