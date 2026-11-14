@@ -27,7 +27,7 @@ export function dateCourte(iso: string): string {
 }
 
 // Messages codés [RM-AMZ-027] : les paramètres sont formatés selon leur nature.
-const POURCENTS = new Set(["roi", "seuil", "taux", "pct", "amplitude"]);
+const POURCENTS = new Set(["roi", "seuil", "taux", "pct", "amplitude", "part"]);
 const MONTANTS = new Set(["profit", "montant", "prix", "moyenne", "minimum"]);
 
 export interface Msg { code: string; params: Record<string, string | number | null> }

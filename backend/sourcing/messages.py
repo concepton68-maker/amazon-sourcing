@@ -80,6 +80,7 @@ FR: dict[str, str] = {
     "L_ZEROS_AJOUTES": "Zéros de tête rétablis (perdus par le tableur)",
     "L_CLE_INVALIDE": "Clé de contrôle du code-barres incorrecte",
     "L_DOUBLON": "Code en double",
+    "L_PRODUIT_DIFFERENT": "Produit différent ? {part:.0%} des mots de la désignation trouvés dans le titre Amazon",
     "L_LOT_AMAZON": "Listing en lot de {n} : coût = {n} × prix unitaire",
     "L_INTROUVABLE": "Introuvable sur Amazon",
     "L_SOURCE_ERREUR": "Source indisponible",

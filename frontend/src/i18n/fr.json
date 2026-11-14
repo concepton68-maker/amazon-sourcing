@@ -474,5 +474,6 @@
   "connexion.champ.seller_id": "Jeton de marchand (facultatif)",
   "connexion.ou_trouver": "Où le trouver chez Amazon",
   "msg.A_ASIN_PARENT": "Produit parent ({n} variantes) : analysez la variante précise (taille, couleur)",
-  "sourcing.ignorer": "— Ignorer"
+  "sourcing.ignorer": "— Ignorer",
+  "msg.L_PRODUIT_DIFFERENT": "Produit différent ? {part} des mots de la désignation trouvés dans le titre Amazon"
 }
