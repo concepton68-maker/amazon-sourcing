@@ -5,6 +5,8 @@ Chaque ligne : appariement code → ASIN (mémoire du compte, sinon recherche), 
 """
 from __future__ import annotations
 
+import re
+
 import csv
 import io
 import threading
@@ -78,6 +80,31 @@ def _asins(compte_id: str, mp: Marketplace, code: str, f: Fournisseurs, depot, t
     return asins
 
 
+_PETITS_MOTS = {"de", "du", "des", "la", "le", "les", "l", "d", "et", "en", "pour", "avec", "a", "au", "aux", "un",
+                "une", "x", "pc", "pcs", "the", "of", "and", "for", "with"}
+
+
+def _mots(texte: str) -> set[str]:
+    import unicodedata
+    t = unicodedata.normalize("NFKD", texte or "").encode("ascii", "ignore").decode().lower()
+    mots = set()
+    for w in re.findall(r"[a-z]+|\d+", t):
+        if w in _PETITS_MOTS:
+            continue
+        if len(w) > 3 and w.endswith("s") and not w.isdigit():
+            w = w[:-1]
+        mots.add(w)
+    return mots
+
+
+def correspondance(designation: Optional[str], titre: Optional[str]) -> Optional[float]:
+    """[RM-AMZ-083] Part des mots significatifs de la désignation retrouvés dans le titre Amazon."""
+    d, t = _mots(designation or ""), _mots(titre or "")
+    if not d or not t:
+        return None
+    return len(d & t) / len(d)
+
+
 def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, regime: str, seuils: Seuils,
            achat_ttc: bool, parametres=None) -> ResultatLigne:
     r = ResultatLigne(l.numero, l.code, l.designation, l.prix_unitaire, asin=asin, lignes=list(l.avertissements))
@@ -102,6 +129,11 @@ def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, reg
     r.ventes_mois = a.historique.ventes_mois_estimees if a.historique else None
     r.raisons = [x for x in a.raisons if x.code not in ("R_PRIX_ACHAT_MAX", "R_TOUT_OK")]   # le verdict le dit déjà
     r.alertes = [x for x in a.alertes if x.code != "A_LOT_MULTIPLE"]     # déjà dit par L_LOT_AMAZON
+    part = correspondance(l.designation, r.titre)                          # [RM-AMZ-083]
+    if part is not None and part < 0.5:
+        r.lignes.append(m("L_PRODUIT_DIFFERENT", part=round(part, 2)))
+        if r.verdict == "ACHETER":
+            r.verdict = "A_VERIFIER"
     return r
 
 
