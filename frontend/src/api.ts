@@ -281,7 +281,7 @@ export const lancerExploration = () => requete<{ lancee: boolean }>("POST", "/ap
 export interface Tendance { jours: number; releves: number; court: boolean; prix_dernier: number | null; prix_moyen: number | null;
   prix_min: number | null; prix_max: number | null; prix_variation: number | null; bsr_moyen: number | null;
   bsr_dernier: number | null; jours_baisse_bsr: number | null; part_amazon_vend: number | null;
-  part_buybox_amazon: number | null; vendeurs_moyen: number | null }
+  part_buybox_amazon: number | null; vendeurs_moyen: number | null; part_buybox_moi?: number | null; stabilite?: number | null }
 export interface LigneMarche { asin: string; titre: string | null; marque: string | null; famille: string | null;
   dernier: string | null; prix: number | null; bsr: number | null; vendeurs: number | null; amazon_vend: boolean | null;
   tendance: Tendance }

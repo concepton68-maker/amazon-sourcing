@@ -494,6 +494,9 @@ def parser_offres(mp: Marketplace, data: dict) -> InfosOffres:
     if amazon_id and offres:
         res.amazon_vend = any(o.get("SellerId") == amazon_id for o in offres)
         res.buybox_amazon = any(o.get("SellerId") == amazon_id and o.get("IsBuyBoxWinner") for o in offres)
+    gagnant = next((o for o in offres if o.get("IsBuyBoxWinner")), None)      # [RM-AMZ-118]
+    if gagnant and gagnant.get("SellerId"):
+        res.vendeur_buybox = gagnant["SellerId"]
     if res.prix_buybox is None:
         for o in offres:
             if o.get("IsBuyBoxWinner"):

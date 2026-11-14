@@ -223,3 +223,50 @@ class TestHistorique(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBuyBox(unittest.TestCase):
+    def test_detenteur_buybox(self):
+        """[RM-AMZ-118] SellerId de l'offre gagnante ; « vous » si c'est le jeton de marchand du compte."""
+        from sourcing.providers.spapi import parser_offres
+        o = parser_offres(FR, {"payload": {"Summary": {}, "Offers": [
+            {"SellerId": "AUTRE1", "IsBuyBoxWinner": False}, {"SellerId": "MOIXYZ", "IsBuyBoxWinner": True}]}})
+        self.assertEqual(o.vendeur_buybox, "MOIXYZ")
+        self.assertIsNone(parser_offres(FR, {"payload": {"Summary": {}, "Offers": [{"SellerId": "X"}]}}).vendeur_buybox)
+
+        class Client(Faux):
+            seller_id = "MOIXYZ"
+
+            def offres_par_paquet(self, mp, asins):
+                return {a: InfosOffres(10.0, False, False, 1, 0, None, vendeur_buybox="MOIXYZ" if a.endswith("1") else "AUTRE")
+                        for a in asins}
+        d = DepotMemoire()
+        H.relever(Client(), FR, ["B000000001", "B000000002"], {}, date(2026, 11, 14), RIEN, lambda l: d.enregistrer_releves(C, l))
+        r = {x.asin: x.buybox_moi for x in d.releves(C, "FR")}
+        self.assertEqual(r, {"B000000001": True, "B000000002": False})
+        d2 = DepotMemoire()
+        H.relever(Faux(), FR, ["B000000001"], {}, date(2026, 11, 14), RIEN, lambda l: d2.enregistrer_releves(C, l))
+        self.assertIsNone(d2.releves(C, "FR")[0].buybox_moi)                 # sans jeton de marchand : inconnu
+
+    def test_tendances_buybox(self):
+        """[RM-AMZ-119] Stabilité du prix et part de Buy Box détenue par vous."""
+        j = date(2026, 11, 14)
+        rel = [H.Releve("FR", "X", j - timedelta(days=k), Decimal(p), buybox_moi=k % 2 == 0)
+               for k, p in enumerate(["10", "12", "11", "9"])]
+        t = H.tendances(rel, j, 30)
+        self.assertEqual(t["stabilite"], round(3 / 10.5, 4))
+        self.assertEqual(t["part_buybox_moi"], 0.5)
+        self.assertIsNone(H.tendances(rel[:1], j, 30)["stabilite"])
+
+    def test_demande_analyse(self):
+        """[RM-AMZ-119] L'historique d'un produit donne les indicateurs et le nombre de jours mesurés."""
+        d, c = construire()
+        cl = TestClient(creer_app(d, c, servir_interface=False))
+        jour = H.jour_paris(datetime.now(timezone.utc))
+        d.enregistrer_releves(c, [H.Releve("FR", "B0TEST0009", jour - timedelta(days=k), Decimal("20") + k % 3,
+                                           2, 0, False, k < 2, None, 1000 - (k % 2) * 50, buybox_moi=False) for k in range(8)])
+        t = cl.get("/api/marche/produit/FR/B0TEST0009").json()["tendances"]["30"]
+        self.assertEqual((t["releves"], t["court"], t["part_buybox_amazon"], t["part_buybox_moi"]), (8, False, 0.25, 0.0))
+        self.assertIsNotNone(t["stabilite"])
+        vide = cl.get("/api/marche/produit/FR/B0JAMAIS01").json()
+        self.assertEqual((vide["releves"], vide["suivi"]), ([], False))

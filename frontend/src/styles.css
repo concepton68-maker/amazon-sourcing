@@ -445,3 +445,9 @@ tr.cliquable { cursor: pointer; } tr.cliquable:hover td { background: #f6f8fb; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 tr.arrivee td { background: #f2fbf6; }
 @media (prefers-reduced-motion: reduce) { .point-pulse { animation: none; } }
+.mini-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.mini-kpis div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--bord); border-radius: 10px; }
+.mini-kpis span { font-size: 12px; color: var(--doux); }
+.mini-kpis strong { font: 600 18px var(--chiffre); }
+.mini-kpis em { font-style: normal; font-size: 11px; color: var(--doux); }
+@media (max-width: 900px) { .mini-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Analyse, DemandeAnalyse, OffreAchat, Params, Pays, Place, analyser, comparerPays, creerLot, lireParametres, listerPlaces, ouAcheter, suivreProduit } from "./api";
+import { Analyse, DemandeAnalyse, HistoriqueProduit, OffreAchat, Params, Pays, Place, analyser, comparerPays, historiqueProduit, creerLot, lireParametres, listerPlaces, ouAcheter, suivreProduit } from "./api";
 import { Msg, message, monnaie, pourcent, t } from "./i18n";
 
 const REGIMES = ["assujetti", "non_assujetti"];
@@ -155,6 +155,29 @@ function AutresPays({ demande, places }: { demande: DemandeAnalyse; places: Plac
   );
 }
 
+// [RM-AMZ-119] demande et Buy Box d'après nos relevés, jours mesurés toujours affichés
+function Demande({ asin, marketplace }: { asin: string; marketplace: string }) {
+  const [h, setH] = useState<HistoriqueProduit | null>(null);
+  useEffect(() => { historiqueProduit(asin, marketplace).then(setH).catch(() => undefined); }, [asin, marketplace]);
+  if (!h) return null;
+  const tr = h.tendances["30"];
+  const pc = (v: number | null | undefined) => (v === null || v === undefined ? "—" : pourcent(String(v)));
+  return (
+    <div className="carte demande">
+      <h3>{t("demande.titre")} <span className="meta">{tr.releves === 0 ? t("demande.non_suivi") : t("demande.jours", { n: tr.releves })}
+        {tr.court && tr.releves > 0 ? ` · ${t("sm.court")}` : ""}</span></h3>
+      {tr.releves === 0 ? <p className="meta">{t("demande.suivre_info")} <Suivre asin={asin} marketplace={marketplace} /></p> : (
+        <div className="mini-kpis">
+          <div><span>{t("sm.baisses")}</span><strong>{tr.jours_baisse_bsr ?? "—"}</strong><em>{t("estimation")}</em></div>
+          <div><span>{t("demande.stabilite")}</span><strong>{pc(tr.stabilite)}</strong><em>{t("demande.ecart")}</em></div>
+          <div><span>{t("demande.bb_amazon")}</span><strong>{pc(tr.part_buybox_amazon)}</strong></div>
+          <div><span>{t("demande.bb_moi")}</span><strong>{pc(tr.part_buybox_moi)}</strong></div>
+          <div><span>{t("sm.vendeurs")}</span><strong>{tr.vendeurs_moyen ?? "—"}</strong><em>{t("demande.moyenne")}</em></div>
+        </div>)}
+    </div>
+  );
+}
+
 function Resultat({ a, cree, demande, places }: { a: Analyse; cree: (id: string) => void; demande: DemandeAnalyse; places: Place[] }) {
   const r = a.rentabilite, h = a.historique, o = a.offres, d = a.devise;
   return (
@@ -208,6 +231,7 @@ function Resultat({ a, cree, demande, places }: { a: Analyse; cree: (id: string)
           <CreerLot a={a} cree={cree} />
         </div>
       </div>
+      <Demande asin={a.asin} marketplace={a.marketplace} />
       <OuAcheter asin={a.asin} marketplace={a.marketplace} devise={d} />
       <AutresPays key={a.asin} demande={{ ...demande, code: a.asin }} places={places} />
     </section>

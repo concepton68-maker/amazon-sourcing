@@ -42,6 +42,7 @@ class Releve:
     prix_bas_fba: Optional[Decimal] = None
     bsr: Optional[int] = None
     categorie: Optional[str] = None
+    buybox_moi: Optional[bool] = None        # [RM-AMZ-118] vous détenez la Buy Box
 
 
 @dataclass(frozen=True)
@@ -109,6 +110,7 @@ def relever(client, mp, asins: list[str], connus: dict, jour: date, attendre: Ca
             enregistrer: Callable[[list[Releve]], None]) -> tuple[int, int]:
     """Relève par paquets de 20 et enregistre au fil de l'eau. Renvoie (relevés, paquets en erreur)."""
     fiches, erreurs, n = dict(connus), 0, 0
+    moi = getattr(client, "seller_id", None)
     manquants = [a for a in asins if a not in fiches]
     for i in range(0, len(manquants), PAQUET):
         try:
@@ -130,7 +132,8 @@ def relever(client, mp, asins: list[str], connus: dict, jour: date, attendre: Ca
                               nb_fba=o.nb_offres_fba if o else None, nb_fbm=o.nb_offres_fbm if o else None,
                               amazon_vend=o.amazon_vend if o else None, buybox_amazon=o.buybox_amazon if o else None,
                               prix_bas_fba=_dec(o.prix_plus_bas_fba) if o else None,
-                              bsr=c.bsr if c else None, categorie=c.categorie if c else None))
+                              bsr=c.bsr if c else None, categorie=c.categorie if c else None,
+                              buybox_moi=(o.vendeur_buybox == moi) if (o and moi and o.vendeur_buybox) else None))
         enregistrer(lot)
         n += len(lot)
         attendre(PAUSE_OFFRES)
@@ -178,6 +181,7 @@ def tendances(releves: list[Releve], jour: date, jours: int) -> dict:
     bsr = [r.bsr for r in serie if r.bsr is not None]
     av = [r.amazon_vend for r in serie if r.amazon_vend is not None]
     abb = [r.buybox_amazon for r in serie if r.buybox_amazon is not None]
+    bmoi = [r.buybox_moi for r in serie if getattr(r, "buybox_moi", None) is not None]
     vend = [(r.nb_fba or 0) + (r.nb_fbm or 0) for r in serie if r.nb_fba is not None or r.nb_fbm is not None]
     baisses = sum(1 for a, b in zip(bsr, bsr[1:]) if b < a)
     part = lambda l: None if not l else round(sum(1 for x in l if x) / len(l), 2)  # noqa: E731
@@ -189,6 +193,7 @@ def tendances(releves: list[Releve], jour: date, jours: int) -> dict:
         "prix_variation": round(float((prix[-1] - prix[0]) / prix[0]), 4) if len(prix) > 1 and prix[0] else None,
         "bsr_moyen": round(sum(bsr) / len(bsr)) if bsr else None, "bsr_dernier": bsr[-1] if bsr else None,
         "jours_baisse_bsr": baisses if len(bsr) > 1 else None,
-        "part_amazon_vend": part(av), "part_buybox_amazon": part(abb),
+        "part_amazon_vend": part(av), "part_buybox_amazon": part(abb), "part_buybox_moi": part(bmoi),
+        "stabilite": round(float((max(prix) - min(prix)) / (sum(prix) / len(prix))), 4) if len(prix) > 1 else None,
         "vendeurs_moyen": round(sum(vend) / len(vend), 1) if vend else None,
     }
