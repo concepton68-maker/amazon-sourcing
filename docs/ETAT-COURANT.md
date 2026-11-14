@@ -60,7 +60,7 @@ Index : `docs/recherches/README.md`.
   de passe, de clé ou de jeton, ni dans le chat ni ailleurs : il les colle lui-même dans le site.
 - **Stratégie d'abord, puis règles, puis code.** Mandat de fusion permanent (D-AMZ-024) : fusionner quand la
   suite complète et la construction sont vertes, vérifier la mise en ligne, le dire.
-- **Ordinateur d'abord** (D-AMZ-025) ; **téléphone = mode nomade** (D-AMZ-033) : suivi, actions urgentes, scan, rien d'autre.
+- **Ordinateur d'abord** (D-AMZ-025) ; **téléphone = mode nomade** (D-AMZ-033) : suivi, actions urgentes, scan, rien d'autre ; **reporté** jusqu'à ce que la partie ordinateur soit à peu près figée.
 - **Ergonomie** :
   - tout ce qui se coche a « tout cocher / tout décocher » et une sélection groupée ;
   - **un clic sur la ligne coche la case** ;
