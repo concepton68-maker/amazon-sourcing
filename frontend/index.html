@@ -3,7 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Syllig Vente</title>
+    <title>Syllig Pilot</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0e1726" />
+    <script>
+      // Mode jour / nuit (D-AMZ-032) posé avant l'affichage, sans éclair blanc.
+      try { var m = localStorage.getItem("syllig-pilot-theme"); if (m === "light" || m === "dark") document.documentElement.setAttribute("data-theme", m); } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="racine"></div>

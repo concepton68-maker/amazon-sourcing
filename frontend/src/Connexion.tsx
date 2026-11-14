@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { Marque } from "./Marque";
 import { changerMotDePasse, confirmerEnrolement, connecter, debuterEnrolement, envoyerCode, etapeSession } from "./api";
 import { t } from "./i18n";
 
@@ -83,7 +84,7 @@ export function Connexion({ connecte }: { connecte: () => void }) {
   }
   return (
     <main className="connexion">
-      <div className="carte"><span className="marque">{t("app.nom")}</span>{contenu}</div>
+      <div className="carte"><div className="marque-connexion"><Marque /></div>{contenu}</div>
     </main>
   );
 }

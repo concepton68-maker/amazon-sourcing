@@ -11,6 +11,7 @@ import { ConformiteVue } from "./Conformite";
 import { VendableVue } from "./Vendable";
 import { MarcheVue } from "./Marche";
 import { TableauVue } from "./Tableau";
+import { BasculeTheme, Marque } from "./Marque";
 import { RentablesVue } from "./Rentables";
 import { lireTableau } from "./api";
 import { NonConnecte, deconnecter, moi } from "./api";
@@ -198,7 +199,7 @@ export function App() {
   return (
     <div className="app">
       <nav className="menu" aria-label="Navigation principale">
-        <a href="#tableau" className="logo"><i aria-hidden="true" />{t("app.nom")}</a>
+        <a href="#tableau" className="logo"><Marque /></a>
         <h6>{t("nav.groupe.trouver")}</h6>
         {lien("tableau", "◧")}{lien("rentables", "€")}{lien("analyse", "⌕")}{lien("vendable", "✓")}{lien("marche", "↗")}{lien("sourcing", "⇪")}
         <h6>{t("nav.groupe.gerer")}</h6>
@@ -216,6 +217,7 @@ export function App() {
           <input type="search" aria-label={t("nav.recherche")} placeholder={t("nav.recherche")} value={recherche}
             onChange={(e) => setRecherche(e.target.value)} maxLength={40} />
         </form>
+        <BasculeTheme />
       </header>
       {vue === "tableau" ? <main className="contenu-plein"><TableauVue /></main>
         : vue === "rentables" ? <main className="contenu-plein contenu-large"><RentablesVue analyser={analyser} voirBon={ouvrirBon} /></main>
