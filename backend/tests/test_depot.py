@@ -193,6 +193,29 @@ class ContratDepot:
         self.assertEqual(self.d.exploration(A)["le"], "2026-11-15")
         self.assertIsNone(self.d.exploration(B))
 
+    def test_catalogue_et_fiche_fournisseur(self):
+        """[RM-AMZ-100, 102] Fiche complète relue ; catalogue remplacé ; invisible d'un autre compte."""
+        from decimal import Decimal
+        from sourcing import achats as Ach
+        from sourcing.fichier import LigneFournisseur
+        f = Ach.modifier_fiche(Ach.nouveau_fournisseur(A, "Grossiste P"), pays="FR", site="https://x.fr",
+                               categories=["MAISON"], port_unitaire=0.4, revente="AUTORISEE", connexion="FICHIER",
+                               colonnes={"code": "EAN", "prix": "Prix"})
+        self.d.enregistrer_fournisseur(A, f)
+        g = [x for x in self.d.fournisseurs(A) if x.id == f.id][0]
+        self.assertEqual((g.pays, g.categories, g.port_unitaire, g.revente, g.colonnes),
+                         ("FR", ("MAISON",), Decimal("0.4"), "AUTORISEE", {"code": "EAN", "prix": "Prix"}))
+        l1 = [LigneFournisseur(2, "3700000000017", Decimal("8.5"), "Gourde", 6, None),
+              LigneFournisseur(3, "3700000000024", Decimal("15"), None, None, 2)]
+        self.d.enregistrer_catalogue(A, f.id, {"nom_fichier": "a.csv", "lignes": 2, "rejets": 1}, l1)
+        self.d.enregistrer_catalogue(A, f.id, {"nom_fichier": "b.csv", "lignes": 1, "rejets": 0}, l1[1:])
+        meta, lignes = self.d.catalogue(A, f.id)
+        self.assertEqual((meta["nom_fichier"], meta["lignes"], [l.code for l in lignes], lignes[0].minimum),
+                         ("b.csv", 1, ["3700000000024"], 2))
+        self.assertIsNone(self.d.catalogue(B, f.id))
+        with self.assertRaises(AccesRefuse):
+            self.d.enregistrer_catalogue(B, f.id, {"nom_fichier": "x", "lignes": 0, "rejets": 0}, [])
+
     # ------------------------------------------------------------ historique [RM-AMZ-086 à 090]
     def test_releve_remplace_meme_jour(self):
         """[RM-AMZ-087] Une ligne par produit, place et jour : le second relevé du jour remplace le premier."""

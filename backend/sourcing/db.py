@@ -222,17 +222,27 @@ class DepotPostgres:
     # -------------------------------------------------------------- achats [RM-AMZ-049 à 051]
     def fournisseurs(self, compte_id: str) -> list:
         from .achats import Fournisseur
-        return [Fournisseur(str(i), str(c), n, d.strip(), dl, co) for i, c, n, d, dl, co in self._executer(
-            compte_id, "SELECT id, compte_id, nom, devise, delai_jours, courriel FROM amz.fournisseurs ORDER BY lower(nom)")]
+        return [Fournisseur(str(r[0]), str(r[1]), r[2], r[3].strip(), r[4], r[5], r[6], r[7], tuple(r[8] or ()), r[9],
+                            r[10], r[11], r[12], r[13], r[14], r[15]) for r in self._executer(
+            compte_id, "SELECT id, compte_id, nom, devise, delai_jours, courriel, pays, site, categories, port_unitaire, "
+                       "revente, revente_source, connexion, notes, reference, colonnes FROM amz.fournisseurs "
+                       "ORDER BY lower(nom)")]
 
     def enregistrer_fournisseur(self, compte_id: str, f) -> None:
         if f.compte_id != compte_id:
             raise AccesRefuse("fournisseur d'un autre compte")
         try:
-            self._executer(compte_id, """INSERT INTO amz.fournisseurs (id, compte_id, nom, devise, delai_jours, courriel)
-                VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO UPDATE SET devise = EXCLUDED.devise,
-                delai_jours = EXCLUDED.delai_jours, courriel = EXCLUDED.courriel""",
-                (_uuid(f.id), _uuid(compte_id), f.nom, f.devise, f.delai_jours, f.courriel))
+            self._executer(compte_id, """INSERT INTO amz.fournisseurs (id, compte_id, nom, devise, delai_jours, courriel,
+                pays, site, categories, port_unitaire, revente, revente_source, connexion, notes, reference, colonnes)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO UPDATE SET
+                devise = EXCLUDED.devise, delai_jours = EXCLUDED.delai_jours, courriel = EXCLUDED.courriel,
+                pays = EXCLUDED.pays, site = EXCLUDED.site, categories = EXCLUDED.categories,
+                port_unitaire = EXCLUDED.port_unitaire, revente = EXCLUDED.revente,
+                revente_source = EXCLUDED.revente_source, connexion = EXCLUDED.connexion, notes = EXCLUDED.notes,
+                reference = EXCLUDED.reference, colonnes = EXCLUDED.colonnes""",
+                (_uuid(f.id), _uuid(compte_id), f.nom, f.devise, f.delai_jours, f.courriel, f.pays, f.site,
+                 list(f.categories), f.port_unitaire, f.revente, f.revente_source, f.connexion, f.notes, f.reference,
+                 None if f.colonnes is None else json.dumps(f.colonnes)))
         except psycopg.errors.UniqueViolation:
             raise ValueError("FOURNISSEUR_EXISTE") from None
 
@@ -399,6 +409,35 @@ class DepotPostgres:
     def exploration(self, compte_id: str) -> Optional[dict]:
         r = self._executer(compte_id, "SELECT resultat FROM amz.explorations")
         return dict(r[0][0]) if r else None
+
+    # -------------------------------------------------------------- catalogues fournisseurs [RM-AMZ-102]
+    def enregistrer_catalogue(self, compte_id: str, fournisseur_id: str, meta: dict, lignes: list) -> None:
+        c, f = _uuid(compte_id), _uuid(fournisseur_id)
+        with connexion(self.source) as conn, conn.transaction():
+            conn.execute("SELECT set_config('app.compte_id', %s, true)", (str(c),))
+            if not conn.execute("SELECT 1 FROM amz.fournisseurs WHERE id = %s", (f,)).fetchone():
+                raise AccesRefuse("fournisseur d'un autre compte")
+            conn.execute("DELETE FROM amz.catalogue_lignes WHERE fournisseur_id = %s", (f,))
+            conn.execute("DELETE FROM amz.catalogues WHERE fournisseur_id = %s", (f,))
+            conn.execute("INSERT INTO amz.catalogues (compte_id, fournisseur_id, nom_fichier, lignes, rejets) "
+                         "VALUES (%s,%s,%s,%s,%s)", (c, f, meta["nom_fichier"], meta["lignes"], meta["rejets"]))
+            with conn.cursor() as cur:
+                cur.executemany("INSERT INTO amz.catalogue_lignes (compte_id, fournisseur_id, numero, code, designation, "
+                                "prix, colisage, minimum) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                                [(c, f, l.numero, l.code, l.designation, l.prix_unitaire, l.colisage, l.minimum)
+                                 for l in lignes])
+
+    def catalogue(self, compte_id: str, fournisseur_id: str):
+        from .fichier import LigneFournisseur
+        m = self._executer(compte_id, "SELECT nom_fichier, lignes, rejets, maj FROM amz.catalogues "
+                                      "WHERE fournisseur_id = %s", (_uuid(fournisseur_id),))
+        if not m:
+            return None
+        rows = self._executer(compte_id, "SELECT numero, code, prix, designation, colisage, minimum "
+                                         "FROM amz.catalogue_lignes WHERE fournisseur_id = %s ORDER BY numero",
+                              (_uuid(fournisseur_id),))
+        meta = {"nom_fichier": m[0][0], "lignes": m[0][1], "rejets": m[0][2], "maj": m[0][3]}
+        return meta, [LigneFournisseur(n, co, p, d, cl, mi) for n, co, p, d, cl, mi in rows]
 
     # -------------------------------------------------------------- historique et suivi de marché [RM-AMZ-086 à 090]
     def familles_suivies(self, compte_id: str) -> list[str]:

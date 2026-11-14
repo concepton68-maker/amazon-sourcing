@@ -29,6 +29,66 @@ class Fournisseur:
     devise: str = "EUR"
     delai_jours: int = 7
     courriel: Optional[str] = None
+    # fiche [RM-AMZ-100]
+    pays: Optional[str] = None
+    site: Optional[str] = None
+    categories: tuple = ()
+    port_unitaire: Optional[Decimal] = None
+    revente: str = "A_VERIFIER"          # AUTORISEE / INTERDITE / A_VERIFIER
+    revente_source: Optional[str] = None
+    connexion: str = "AUCUNE"            # FICHIER / API / AUCUNE
+    notes: Optional[str] = None
+    reference: Optional[str] = None      # code de l'annuaire [RM-AMZ-101]
+    colonnes: Optional[dict] = None      # colonnes mémorisées du fichier de prix [RM-AMZ-102]
+
+
+REVENTES = ("AUTORISEE", "INTERDITE", "A_VERIFIER")
+CONNEXIONS = ("FICHIER", "API", "AUCUNE")
+
+
+def modifier_fiche(f: Fournisseur, **champs) -> Fournisseur:
+    """[RM-AMZ-100] Contrôle des champs de la fiche ; renvoie la fiche modifiée."""
+    autorises = {"delai_jours", "courriel", "pays", "site", "categories", "port_unitaire", "revente", "revente_source",
+                 "connexion", "notes", "colonnes"}
+    inconnus = set(champs) - autorises
+    if inconnus:
+        raise ErreurAchat("CHAMP_INCONNU")
+    if "revente" in champs and champs["revente"] not in REVENTES:
+        raise ErreurAchat("REVENTE_INVALIDE")
+    if "connexion" in champs and champs["connexion"] not in CONNEXIONS:
+        raise ErreurAchat("CONNEXION_INVALIDE")
+    if "delai_jours" in champs and not (isinstance(champs["delai_jours"], int) and 0 <= champs["delai_jours"] <= 365):
+        raise ErreurAchat("DELAI_INVALIDE")
+    if champs.get("port_unitaire") is not None:
+        p = dec(champs["port_unitaire"])
+        if not (0 <= p <= 1000):
+            raise ErreurAchat("PORT_INVALIDE")
+        champs["port_unitaire"] = p
+    for k in ("courriel", "pays", "site", "revente_source", "notes"):
+        if k in champs:
+            v = (champs[k] or "").strip() or None
+            if v and len(v) > (2000 if k == "notes" else 300):
+                raise ErreurAchat("TEXTE_TROP_LONG")
+            champs[k] = v
+    if champs.get("courriel") and "@" not in champs["courriel"]:
+        raise ErreurAchat("COURRIEL_INVALIDE")
+    if champs.get("site") and not champs["site"].startswith(("https://", "http://")):
+        raise ErreurAchat("SITE_INVALIDE")
+    if "categories" in champs:
+        champs["categories"] = tuple(dict.fromkeys(str(c) for c in champs["categories"] or ()))
+    return replace(f, **champs)
+
+
+def depuis_reference(compte_id: str, ref, existants: Iterable[Fournisseur] = ()) -> Fournisseur:
+    """[RM-AMZ-101] Ajout en un clic depuis l'annuaire : les informations vérifiées sont recopiées."""
+    f = nouveau_fournisseur(compte_id, ref.nom, existants=existants)
+    return replace(f, pays=ref.pays, site=ref.site, categories=tuple(ref.categories), revente=ref.revente,
+                   revente_source=ref.source or None, connexion=ref.connexion, notes=ref.note, reference=ref.code)
+
+
+def analysable(f: Fournisseur) -> bool:
+    """[RM-AMZ-100] Revente sur Amazon interdite : catalogue non analysé."""
+    return f.revente != "INTERDITE"
 
 
 def nouveau_fournisseur(compte_id: str, nom: str, devise: str = "EUR", delai_jours: int = 7,

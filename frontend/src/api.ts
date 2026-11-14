@@ -132,7 +132,29 @@ export const lireStock = () => lire<Stock>("/api/stock");
 export interface FournisseurBilan {
   id: string; nom: string; devise: string; delai_jours: number; courriel: string | null; lots: number;
   achete_12_mois: number; roi_prevu: number | null; roi_reel: number | null; delai_reel_jours: number | null;
+  pays: string | null; site: string | null; categories: string[]; port_unitaire: number | null;
+  revente: "AUTORISEE" | "INTERDITE" | "A_VERIFIER"; revente_source: string | null; connexion: "FICHIER" | "API" | "AUCUNE";
+  notes: string | null; reference: string | null; colonnes: Record<string, string> | null; analysable: boolean;
+  catalogue: null | { nom_fichier: string; lignes: number; rejets: number; maj: string };
 }
+export interface Reference { code: string; nom: string; pays: string; site: string; categories: string[];
+  revente: "AUTORISEE" | "INTERDITE" | "A_VERIFIER"; source: string; verification: "LU" | "EXTRAIT" | "AUCUNE";
+  connexion: string; api: boolean; acces: string; note: string; date_lecture: string; ajoute: boolean }
+export const lireAnnuaire = () => lire<Reference[]>("/api/annuaire");
+export const ajouterReference = (code: string) => requete<FournisseurBilan>("POST", `/api/annuaire/${encodeURIComponent(code)}/ajouter`, {});
+export const modifierFournisseur = (id: string, champs: Partial<FournisseurBilan>) =>
+  requete<FournisseurBilan>("PUT", `/api/fournisseurs/${encodeURIComponent(id)}`, champs);
+export async function deposerTarif(id: string, f: File): Promise<Fichier> {
+  const corps = new FormData(); corps.append("fichier", f);
+  const r = await fetch(`/api/fournisseurs/${encodeURIComponent(id)}/fichier`, { method: "POST", body: corps, headers: ENTETE, credentials: "same-origin" });
+  if (r.status === 401) throw new NonConnecte("NON_CONNECTE");
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail ?? "saisie");
+  return r.json();
+}
+export const enregistrerTarif = (id: string, fichier_id: string, colonnes: Colonnes, prix_par_carton: boolean) =>
+  requete<{ lignes: number; doublons: number; rejets: { ligne: number; message: Msg }[] }>("POST",
+    `/api/fournisseurs/${encodeURIComponent(id)}/catalogue`, { fichier_id, colonnes, prix_par_carton });
+export const analyserTarif = (id: string) => requete<{ traitement_id: string }>("POST", `/api/fournisseurs/${encodeURIComponent(id)}/analyse`, {});
 export interface LigneBonApi {
   id: string; asin: string; marketplace: string; designation: string | null; quantite: number; prix_unitaire: number;
   montant: number; roi_prevu: number | null; quantite_recue: number | null; lot_id: string | null;

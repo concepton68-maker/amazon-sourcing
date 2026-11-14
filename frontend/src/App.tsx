@@ -175,6 +175,8 @@ export function App() {
   const lotCree = (id: string) => { setLotInitial(id); window.location.hash = "#lots"; };
   const [bonInitial, setBonInitial] = useState<string>();
   const ouvrirBon = (id: string) => { setBonInitial(id); window.location.hash = "#fournisseurs"; };
+  const [traitementInitial, setTraitementInitial] = useState<string>();
+  const voirTraitement = (tid: string) => { setTraitementInitial(tid); window.location.hash = "#sourcing"; };
   const analyser = (code: string, prix: number) => { setAnalyseInitiale({ code, prix }); window.location.hash = "#analyse"; };
 
   const [pastilles, setPastilles] = useState<Record<string, number>>({});
@@ -215,14 +217,14 @@ export function App() {
       </header>
       {vue === "tableau" ? <main className="contenu-plein"><TableauVue /></main>
         : vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
-        : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue analyser={analyser} /></main>
+        : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue key={traitementInitial ?? "s"} analyser={analyser} traitementInitial={traitementInitial} /></main>
         : vue === "parametres" ? <main className="contenu-plein"><ParametresVue /></main>
         : vue === "stock" ? <main className="contenu-plein"><StockVue ouvrirBon={ouvrirBon} /></main>
         : vue === "remboursements" ? <main className="contenu-plein"><RemboursementsVue /></main>
         : vue === "conformite" ? <main className="contenu-plein"><ConformiteVue /></main>
         : vue === "marche" ? <main className="contenu-plein"><MarcheVue analyser={(code) => analyser(code, 0)} /></main>
         : vue === "vendable" ? <main className="contenu-plein"><VendableVue analyser={(code) => analyser(code, 0)} /></main>
-        : vue === "fournisseurs" ? <main className="contenu-plein"><FournisseursVue key={bonInitial ?? "f"} bonInitial={bonInitial} voirLot={lotCree} /></main>
+        : vue === "fournisseurs" ? <main className="contenu-plein"><FournisseursVue key={bonInitial ?? "f"} bonInitial={bonInitial} voirLot={lotCree} analyserTraitement={voirTraitement} /></main>
         : <main><LotsVue key={lotInitial ?? "lots"} lotInitial={lotInitial} setDemo={setDemo} /></main>}
       </div>
     </div>

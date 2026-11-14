@@ -397,3 +397,15 @@ a.produit { color: var(--encre); text-decoration: none; } a.produit:hover { colo
 .reglages-corps h2 { font: 800 18px var(--titre); }
 .reglages-corps .ligne-reglage { display: grid; grid-template-columns: minmax(0, 1fr) 200px; align-items: center; gap: 16px; }
 @media (max-width: 900px) { .reglages { grid-template-columns: 1fr; } .sous-menu { position: static; flex-direction: row; overflow-x: auto; } }
+/* Base de fournisseurs */
+.fiche-fournisseur { gap: 16px; }
+.grille-fiche { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.grille-fiche label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: #3a414c; }
+.grille-fiche label.large { grid-column: 1 / -1; }
+.grille-fiche textarea { border: 1px solid #d5dbe4; border-radius: 10px; padding: 10px 12px; font: 14px Inter, sans-serif; }
+.grille-fiche .actions { grid-column: 1 / -1; align-items: center; }
+.bloc-catalogue { border-top: 1px solid var(--bord); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.fichier-bouton { cursor: pointer; }
+.colonnes-tarif { display: flex; flex-direction: column; gap: 10px; background: #f6f8fb; border-radius: 12px; padding: 14px; }
+.grille-roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.grille-roles label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }

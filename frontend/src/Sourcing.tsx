@@ -7,7 +7,7 @@ const COMPTEURS = ["ACHETER", "A_VERIFIER", "PASSER", "INTROUVABLE", "REJETEE", 
 const FILTRES = ["TOUS", "ACHETER", "A_VERIFIER", "PASSER", "INTROUVABLE"];
 const n = (v: number | null) => (v === null ? null : String(v));
 
-export function SourcingVue({ analyser }: { analyser: (code: string, prix: number) => void }) {
+export function SourcingVue({ analyser, traitementInitial }: { analyser: (code: string, prix: number) => void; traitementInitial?: string }) {
   const [places, setPlaces] = useState<Place[]>([]);
   const [fichier, setFichier] = useState<Fichier | null>(null);
   const [colonnes, setColonnes] = useState<Colonnes>({});
@@ -15,7 +15,7 @@ export function SourcingVue({ analyser }: { analyser: (code: string, prix: numbe
   const [regime, setRegime] = useState("assujetti");
   const [ttc, setTtc] = useState(false);
   const [carton, setCarton] = useState(false);
-  const [tid, setTid] = useState<string | null>(null);
+  const [tid, setTid] = useState<string | null>(traitementInitial ?? null);
   const [suivi, setSuivi] = useState<Suivi | null>(null);
   const [filtre, setFiltre] = useState("TOUS");
   // [RM-AMZ-031] rôle choisi dans l'en-tête de la colonne ; une colonne = un rôle au plus

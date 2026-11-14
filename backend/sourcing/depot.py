@@ -42,6 +42,7 @@ class DepotMemoire:
         self._journal: list[tuple[str, object]] = []
         self._explorations: dict[str, dict] = {}
         self._familles: dict[str, list[str]] = {}
+        self._catalogues: dict[tuple[str, str], tuple[dict, list]] = {}
         self._suivis: dict[tuple[str, str, str], datetime] = {}
         self._releves: dict[tuple[str, str, str, date], object] = {}
         self._produits_marche: dict[tuple[str, str, str], object] = {}
@@ -222,6 +223,15 @@ class DepotMemoire:
     def exploration(self, compte_id: str) -> Optional[dict]:
         return self._explorations.get(compte_id)
 
+    # -------------------------------------------------------------- catalogues fournisseurs [RM-AMZ-102]
+    def enregistrer_catalogue(self, compte_id: str, fournisseur_id: str, meta: dict, lignes: list) -> None:
+        if fournisseur_id not in self._fournisseurs or self._fournisseurs[fournisseur_id].compte_id != compte_id:
+            raise AccesRefuse("fournisseur d'un autre compte")
+        self._catalogues[(compte_id, fournisseur_id)] = (dict(meta, maj=datetime.now(timezone.utc)), list(lignes))
+
+    def catalogue(self, compte_id: str, fournisseur_id: str) -> Optional[tuple[dict, list]]:
+        return self._catalogues.get((compte_id, fournisseur_id))
+
     # -------------------------------------------------------------- historique et suivi de marché [RM-AMZ-086 à 090]
     def familles_suivies(self, compte_id: str) -> list[str]:
         return list(self._familles.get(compte_id, []))
@@ -310,6 +320,7 @@ class DepotMemoire:
             self._journal = [x for x in self._journal if x[0] != c]
             self._explorations.pop(c, None)
             self._familles.pop(c, None)
+            self._catalogues = {k: v for k, v in self._catalogues.items() if k[0] != c}
             self._suivis = {k: v for k, v in self._suivis.items() if k[0] != c}
             self._releves = {k: v for k, v in self._releves.items() if k[0] != c}
             self._produits_marche = {k: v for k, v in self._produits_marche.items() if k[0] != c}
