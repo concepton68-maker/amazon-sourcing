@@ -12,14 +12,16 @@ from .base import Historique, InfosCatalogue, InfosOffres, InfosRestrictions
 
 _PRODUITS = {
     "B0DEMO0001": dict(
-        cat=InfosCatalogue("B0DEMO0001", "Gourde inox 750 ml (démo)", "MarqueDemo", "Sports", 4200, 1),
+        cat=InfosCatalogue("B0DEMO0001", "Gourde inox 750 ml (démo)", "MarqueDemo", "Sports", 4200, 1,
+                           codes=("3700000000017",)),
         off=InfosOffres(24.90, False, False, 4, 1, 24.90),
         frais=FraisAmazon(commission=3.74, fba=4.15, source="sp-api"),
         restr=InfosRestrictions(autorise=True),
         hist=Historique(23.50, 21.90, 26.00, 5100, 40, 118, 100, None, 4),
     ),
     "B0DEMO0002": dict(
-        cat=InfosCatalogue("B0DEMO0002", "Jouet de construction 500 pièces (démo)", "GrandeMarqueDemo", "Jeux et Jouets", 950, 1),
+        cat=InfosCatalogue("B0DEMO0002", "Jouet de construction 500 pièces (démo)", "GrandeMarqueDemo", "Jeux et Jouets", 950, 1,
+                           codes=("3700000000024",)),
         off=InfosOffres(39.99, True, True, 9, 2, 40.50),
         frais=FraisAmazon(commission=6.00, fba=5.20, source="sp-api"),
         restr=InfosRestrictions(autorise=False, approbation_requise=True,
@@ -41,6 +43,9 @@ class FournisseurDemo:
 
     def catalogue(self, mp, asin):
         return _PRODUITS[asin]["cat"]
+
+    def catalogue_par_paquet(self, mp, asins):
+        return {a: _PRODUITS[a]["cat"] for a in asins[:20] if a in _PRODUITS}
 
     def rechercher(self, mp, mots, taille=20):
         """Démo [RM-AMZ-084] : produits fictifs générés à partir des mots-clés."""
@@ -92,7 +97,7 @@ def _genere(code: str):
     ventes = [8, 30, 60, 120, 250][_h(code, 7, 5)]
     moy = round(prix * (0.85 + _h(code, 8, 30) / 100), 2)
     return dict(
-        cat=InfosCatalogue(asin, nom, "MarqueDemo", "Maison", 500 + _h(code, 9, 40000), pack),
+        cat=InfosCatalogue(asin, nom, "MarqueDemo", "Maison", 500 + _h(code, 9, 40000), pack, codes=(code,)),
         off=InfosOffres(prix, amazon, amazon, nb_fba, 1, prix),
         frais=FraisAmazon(commission=round(prix * 0.15, 2), fba=round(2.8 + _h(code, 10, 300) / 100, 2), source="démo"),
         restr=InfosRestrictions(autorise=not restreint, approbation_requise=restreint,

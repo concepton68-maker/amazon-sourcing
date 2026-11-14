@@ -29,6 +29,7 @@ from . import tableau as TB
 from . import frais_fba as FF
 from . import annuaire as AN
 from . import opportunites as OP
+from . import correspondance as CO
 from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
@@ -321,6 +322,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     fichiers: "OrderedDict[str, tuple[str, str, fich.Table]]" = OrderedDict()
     traitements = Traitements()
     explorations = EX.Explorations(en_fond=traitement_en_fond)
+    correspondances = CO.Correspondances(en_fond=traitement_en_fond)
 
     @app.middleware("http")
     async def anti_csrf(request: Request, appel_suivant):
@@ -842,6 +844,32 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
         if not explorations.lancer(c, get_marketplace("FR"), fx, depot):
             raise HTTPException(409, "EXPLORATION_EN_COURS")
+        return {"lancee": True}
+
+    # ------------------------------------------------------------- d'Amazon vers les fournisseurs [RM-AMZ-109 à 112]
+    @app.get("/api/produits/{marketplace}/{asin}/ou-acheter")
+    def ou_acheter(marketplace: str, asin: str, c: str = Depends(compte)):
+        mp = _place(marketplace)
+        fx = sources(c)
+        if not fx.catalogue:
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        p = params(c)
+        return CO.ou_acheter(mp, asin.upper(), fx, depot, c, p, p.regime(mp.code))
+
+    @app.get("/api/correspondance")
+    def lire_correspondance(c: str = Depends(compte)):
+        prog = correspondances.en_cours.get(c)
+        return {"en_cours": prog is not None, "progression": list(prog) if prog else None,
+                "bilan": correspondances.bilans.get(c)}
+
+    @app.post("/api/correspondance", status_code=202)
+    def lancer_correspondance(c: str = Depends(compte)):
+        fx = sources(c)
+        if not fx.catalogue:
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        mp, p = get_marketplace("FR"), params(c)
+        if not correspondances.lancer(c, mp, fx, depot, p, p.regime(mp.code)):
+            raise HTTPException(409, "CORRESPONDANCE_EN_COURS")
         return {"lancee": True}
 
     # ------------------------------------------------------------- produits rentables [RM-AMZ-105 à 108]

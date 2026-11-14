@@ -725,5 +725,19 @@
   "annuaire.tout": "Tout sélectionner",
   "annuaire.familles": "Familles",
   "annuaire.bilan": "{n} fournisseurs ajoutés à « Mes fournisseurs »",
-  "connexion.court.FICHIER": "Fichier"
+  "connexion.court.FICHIER": "Fichier",
+  "acheter.titre": "Où l'acheter",
+  "acheter.nombre": "{n} offres",
+  "acheter.aucun": "Aucun de vos fournisseurs ne le propose.",
+  "acheter.fournisseur": "Fournisseur",
+  "acheter.prix": "Prix unitaire",
+  "acheter.minimum": "Minimum",
+  "acheter.delai": "Délai",
+  "corr.lancer": "Chercher chez mes fournisseurs",
+  "corr.en_cours": "Recherche {f}/{t}…",
+  "corr.info": "Produits vendables sur Amazon (autorisés, suivis, familles suivies, analysés) cherchés dans tous vos catalogues par code-barres",
+  "corr.bilan": "Dernière recherche : {c} produits Amazon comparés, {n} trouvés chez {f} fournisseurs.",
+  "corr.erreur": "La dernière recherche a échoué.",
+  "erreur.CORRESPONDANCE_EN_COURS": "Une recherche est déjà en cours",
+  "acheter.nombre_1": "1 offre"
 }

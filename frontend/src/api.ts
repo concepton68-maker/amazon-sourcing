@@ -317,3 +317,15 @@ export interface ListeRentables { total: number; nombre: number; compteurs: Reco
   origines: { cle: string; nom: string }[]; produits: ProduitRentable[] }
 export const lireRentables = (q: Record<string, string>) =>
   lire<ListeRentables>(`/api/opportunites?${new URLSearchParams(q).toString()}`);
+
+// D'Amazon vers les fournisseurs [RM-AMZ-109 à 112]
+export interface OffreAchat { fournisseur_id: string; fournisseur: string; revente: string; code: string; designation: string | null;
+  prix_unitaire: number; colisage: number | null; minimum: number | null; delai_jours: number; port_unitaire: number | null;
+  calcule: boolean; unites_lot?: number; cout_achat?: number | null; prix_vente?: number | null; profit?: number | null;
+  roi?: number | null; marge?: number | null; verdict?: string; vendabilite?: string; remarques?: Msg[] }
+export const ouAcheter = (asin: string, marketplace: string) =>
+  lire<{ asin: string; codes: string[]; offres: OffreAchat[] }>(`/api/produits/${encodeURIComponent(marketplace)}/${encodeURIComponent(asin)}/ou-acheter`);
+export interface EtatCorrespondance { en_cours: boolean; progression: [number, number] | null;
+  bilan: null | { le?: string; candidats?: number; correspondances?: number; fournisseurs?: number; erreur?: string } }
+export const lireCorrespondance = () => lire<EtatCorrespondance>("/api/correspondance");
+export const lancerCorrespondance = () => requete<{ lancee: boolean }>("POST", "/api/correspondance", {});
