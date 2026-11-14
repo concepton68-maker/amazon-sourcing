@@ -35,8 +35,10 @@ Mis à jour le 14/11/2026, 12 h 20 (heure de Paris). **À mettre à jour dans la
 | #40 | Travail autonome de nuit, déblocages annoncés | RM-AMZ-085 révisée, 113, 114 | 1.12 |
 | #41 | Travaux de nuit lancés à la main | RM-AMZ-115 | 1.13 |
 | #42 | Résultats en temps réel, sans doublon | RM-AMZ-116 | 1.14 |
+| #43, #44 | Traçabilité (ce fichier), audit de cohérence face à la concurrence | — | — |
+| (lot multi-pays) | Chantier concurrence 1/5 : comparaison entre pays européens dans l'analyse | RM-AMZ-117 | 1.15 |
 
-Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 116) · décisions `docs/decisions/registre.md`
+Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 117) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 029).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)
@@ -76,7 +78,8 @@ puis suit commande, réception, envoi à Amazon et encaissement. Courriels depui
 
 ## 6. En attente
 
-- **Décision de Sam** : choisir parmi les 7 pistes d'efficacité proposées le 14/11 : ajustement automatique des
+- **Chantier « réponse à la concurrence » lancé par Sam le 14/11** (ordre) : 1 multi-pays (fait), 2 demande et Buy Box tirées de nos relevés, 3 éligibilité en masse + lien de demande d'autorisation, 4 prix plancher + repricer gratuit d'Amazon + alerte, 5 bon de commande envoyé au fournisseur puis envoi FBA par l'API.
+- (Ancien) choix parmi les 7 pistes d'efficacité proposées le 14/11 : ajustement automatique des
   prix, arbitrage entre pays européens, assistant de demande d'autorisation, négociation fournisseur, alertes de
   risque sur le stock, plan de trésorerie, saisonnalité.
 - **Audit de cohérence face à la concurrence** fait (`docs/recherches/2026-11-14-audit-coherence-concurrence.md`). Résultat : devant sur fournisseurs UE, coût complet, éligibilité de nuit, prévu/réel ; derrière sur ventes/historique, rotation de Buy Box, repricing, multi-pays UE, envoi FBA, recherche par marque, éligibilité en masse, alertes stock. Priorités recommandées en attente de choix de Sam : (1) demande et Buy Box tirées de nos relevés, (2) prix plancher + repricer gratuit d'Amazon + alerte, (3) vue multi-pays UE, (4) éligibilité en masse + guide d'approbation, (5) bon de commande envoyé au fournisseur puis envoi FBA par l'API.

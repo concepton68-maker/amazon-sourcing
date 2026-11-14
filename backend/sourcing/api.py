@@ -1207,6 +1207,19 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             sortie.append(_analyse_json(a, jeton))
         return {"analyses": sortie}
 
+    @app.post("/api/analyse/pays")
+    def analyse_pays(d: DemandeAnalyse, c: str = Depends(compte)):
+        """[RM-AMZ-117] Le même produit dans chaque pays européen du vendeur."""
+        from . import multipays as MP
+        fx = sources(c)
+        if not fx.catalogue:
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        p = params(c)
+        if d.port_fournisseur is not None:
+            from dataclasses import replace as _remplacer
+            p = _remplacer(p, port_fournisseur=d.port_fournisseur)
+        return {"pays": MP.comparer(d.code.strip().upper(), d.prix_achat, fx, p, d.achat_ttc, d.taux_tva)}
+
     @app.post("/api/lots", status_code=201)
     def creer_lot(d: DemandeLot, c: str = Depends(compte)):
         """[RM-AMZ-029] La prévision vient de l'analyse gardée côté serveur, jamais du navigateur."""

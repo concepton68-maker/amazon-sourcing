@@ -50,6 +50,8 @@ FR: dict[str, str] = {
     "HYP_STOCKAGE_CALCULE": "Stockage calculé : colis {volume} L × {mois} mois, tarif {categorie} (grille Amazon du 2 nov. 2026)",
     "HYP_STOCKAGE_SAISI": "Stockage : montant saisi (dimensions du colis inconnues)",
     "HYP_CARBURANT": "Supplément carburant {taux:.1%} des frais FBA actif (réglage dans Paramètres)",
+    "HYP_STOCK_PAYS": "Frais pour un stock dans ce pays ; stock resté en France : frais transfrontaliers (EFN) en plus, non calculés",
+    "HYP_STOCK_PAYS_UK": "Royaume-Uni : stock séparé obligatoire (pas d'expédition FBA entre l'UE et le Royaume-Uni)",
     "HYP_FRAIS_NON_INCLUS": "Non inclus : frais de faible stock (Pan-EU), frais de retour au-delà du seuil, stock ancien",
     # données non vérifiées
     "NV_SOURCE_ERREUR": "{source} : {detail}",
