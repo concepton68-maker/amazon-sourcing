@@ -26,7 +26,7 @@ Postgres local de test (conteneur cloud) : données dans `/var/lib/postgresql/am
 
 ## Interface
 
-`cd frontend && npm install && npm run build`, puis `cd backend && AMZ_MODE=dev python -m sourcing serveur` (http://127.0.0.1:8820, données fictives, sans connexion). `AMZ_MODE=prod` exige `AMZ_DATABASE_URL` et la connexion (D-AMZ-019) ; premier utilisateur : `python -m sourcing creer-utilisateur --courriel … --compte …` (mot de passe demandé sur le serveur, jamais dans le chat). Captures de preuve : `docs/captures/<version>/` avec `LISEZ-MOI.md`.
+`cd frontend && npm install && npm run build`, puis `cd backend && AMZ_MODE=dev python -m sourcing serveur` (http://127.0.0.1:8820, données fictives, sans connexion). `AMZ_MODE=prod` exige `AMZ_DATABASE_URL` et la connexion (D-AMZ-019) ; premier utilisateur : `python -m sourcing creer-utilisateur --courriel … --compte …` (mot de passe demandé sur le serveur, jamais dans le chat). Captures de preuve : `docs/captures/<version>/` avec `LISEZ-MOI.md`, **ordinateur seulement** (D-AMZ-025 : le téléphone est repris après validation sur ordinateur).
 
 ## Repères
 
