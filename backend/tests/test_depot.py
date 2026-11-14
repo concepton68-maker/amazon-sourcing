@@ -238,6 +238,22 @@ class ContratDepot:
         self.d.ajouter_opportunites(A, "FOURNISSEUR:f", "FR", [x])
         self.assertEqual(next(y for y in self.d.opportunites(A) if y.asin == "B04").prevision, prev)
 
+    def test_envois_bon_depot(self):
+        """[RM-AMZ-131] Tentatives en ajout seul, une par génération, propres au compte."""
+        from sourcing import achats as Ach
+        from sourcing.messagerie import Tentative
+        f = Ach.nouveau_fournisseur(A, "Grossiste M")
+        self.d.enregistrer_fournisseur(A, f)
+        b = Ach.nouveau_bon(A, 7, f)
+        self.d.enregistrer_bon(A, b)
+        t = Tentative(b.id, 1, "v@x.fr", "Bon BC-0007", "a" * 64, 1200, "INCERTAIN", "DELAI_DEPASSE", expediteur="s@x.fr")
+        self.d.ajouter_envoi_bon(A, t)
+        with self.assertRaises(ValueError):
+            self.d.ajouter_envoi_bon(A, t)
+        r = self.d.envois_bon(A, b.id)
+        self.assertEqual([(x.generation, x.etat, x.cause, x.empreinte) for x in r], [(1, "INCERTAIN", "DELAI_DEPASSE", "a" * 64)])
+        self.assertEqual(self.d.envois_bon(B, b.id), [])
+
     def test_alertes_prix_depot(self):
         """[RM-AMZ-124] Alertes remplacées à chaque contrôle ; propres au compte."""
         self.d.enregistrer_alertes_prix(A, [{"marketplace": "FR", "sku": "S1", "asin": "B01", "prix": 10.0, "plancher": 12.5}])

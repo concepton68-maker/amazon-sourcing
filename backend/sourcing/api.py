@@ -8,6 +8,7 @@ textes = codes traduits par l'interface.
 from __future__ import annotations
 
 import os
+import hashlib
 import pathlib
 import uuid
 from collections import OrderedDict
@@ -16,7 +17,7 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -195,6 +196,10 @@ class DemandePlan(BaseModel):
     lignes: list[ChoixPlan] = Field(max_length=500)
 
 
+class DemandeEnvoi(BaseModel):
+    apres: int = Field(ge=0)
+
+
 class DemandeQuantite(BaseModel):
     quantite: int
 
@@ -343,7 +348,7 @@ class DemandeConnexion(BaseModel):
 def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool = True, demo: bool = False,
               fournisseurs: Optional[Fournisseurs] = None, seuils: Optional[Seuils] = None,
               traitement_en_fond: bool = True, auth: Optional[Authentification] = None,
-              cookie_secure: bool = True, fabrique_spapi=None) -> FastAPI:
+              cookie_secure: bool = True, fabrique_spapi=None, fabrique_microsoft=None) -> FastAPI:
     """`auth` absent : un seul compte fixe (`compte_demo`), mode démonstration. `auth` présent : sessions."""
     if auth is None and not compte_demo:
         raise ValueError("compte_demo requis sans authentification")
@@ -924,6 +929,147 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         if not depot.supprimer_connexion(c, source):
             raise HTTPException(404, "CONNEXION_INTROUVABLE")
         return {"source": source, "retiree": True}
+
+    # ------------------------------------------------------------- messagerie Microsoft [RM-AMZ-129 à 131]
+    from . import messagerie as MS
+    etats_ms, verrous_ms = MS.Etats(), MS.Verrous()
+
+    def _adresse_retour(request: Request) -> str:
+        base = os.environ.get("AMZ_URL_PUBLIQUE")
+        if not base:                     # derrière Caddy : HTTPS obligatoire hors poste local (exigence Microsoft)
+            hote = request.headers.get("host") or request.url.netloc
+            local = hote.split(":")[0] in ("localhost", "127.0.0.1")
+            schema = request.headers.get("x-forwarded-proto") or ("http" if local else "https")
+            base = f"{schema}://{hote}"
+        return base.rstrip("/") + "/api/messagerie/microsoft/retour"
+
+    def _lire_cx(c: str, source: str) -> Optional[dict]:
+        cx, cle = depot.connexions(c), CX.cle_serveur()
+        if source not in cx or not cle:
+            return None
+        try:
+            return CX.dechiffrer(cle, c, source, cx[source].chiffre)
+        except Exception:
+            return None
+
+    def _ecrire_cx(c: str, source: str, valeurs: dict) -> None:
+        depot.enregistrer_connexion(c, source, CX.chiffrer(CX.cle_serveur(), c, source, valeurs))
+
+    def _client_ms(c: str):
+        app_ms = _lire_cx(c, "MICROSOFT")
+        if not app_ms:
+            raise HTTPException(409, "MESSAGERIE_NON_CONFIGUREE")
+        return (fabrique_microsoft or (lambda i, s: MS.Microsoft(i, s)))(app_ms["client_id"], app_ms["client_secret"])
+
+    @app.get("/api/messagerie")
+    def etat_messagerie(request: Request, c: str = Depends(compte)):
+        m = _lire_cx(c, "MESSAGERIE")
+        return {"configuree": _lire_cx(c, "MICROSOFT") is not None, "adresse_retour": _adresse_retour(request),
+                "connexion": None if not m else {k: m.get(k) for k in ("adresse", "nom", "etat", "connecte_le")}}
+
+    @app.post("/api/messagerie/microsoft/demarrer")
+    def demarrer_messagerie(request: Request, c: str = Depends(compte)):
+        app_ms = _lire_cx(c, "MICROSOFT")
+        if not app_ms:
+            raise HTTPException(409, "MESSAGERIE_NON_CONFIGUREE")
+        state, verif = etats_ms.creer(c)
+        return {"url": MS.url_autorisation(app_ms["client_id"], _adresse_retour(request), state, verif)}
+
+    @app.get("/api/messagerie/microsoft/retour", include_in_schema=False)
+    def retour_messagerie(request: Request, state: str = "", code: str = "", error: str = "",
+                          c: str = Depends(compte)):
+        def fin(cause: Optional[str]):
+            q = "messagerie=ok" if cause is None else f"messagerie=erreur&cause={cause}"
+            return RedirectResponse(f"/?{q}#parametres/connexions", status_code=303)
+        try:
+            verif = etats_ms.consommer(state, c)
+        except MS.ErreurMessagerie:
+            return fin("expiree")
+        if error or not code:
+            return fin("refus" if error == "access_denied" else "microsoft")
+        try:
+            ms = _client_ms(c)
+            j = ms.echanger(code, _adresse_retour(request), verif)
+            adresse, nom = ms.adresse(j["access_token"])
+            _ecrire_cx(c, "MESSAGERIE", {"refresh_token": j["refresh_token"], "adresse": adresse, "nom": nom,
+                                         "etat": "CONNECTEE", "connecte_le": datetime.now(timezone.utc).isoformat()})
+        except MS.ErreurMessagerie as e:
+            return fin(e.args[0].lower())
+        except HTTPException:
+            return fin("non_configuree")
+        return fin(None)
+
+    @app.delete("/api/messagerie")
+    def deconnecter_messagerie(c: str = Depends(compte)):
+        return {"retiree": depot.supprimer_connexion(c, "MESSAGERIE")}
+
+    def _envoi_prepare(c: str, bon_id: str):
+        from . import bon_document as BD
+        b = _bon(c, bon_id)
+        f = _fournisseurs(c).get(b.fournisseur_id)
+        societe = params(c).societe
+        pdf = BD.pdf(b, f, societe) if f else b""
+        m = _lire_cx(c, "MESSAGERIE")
+        try:
+            MS.controler(b, f, pdf, bool(m and m.get("etat") == "CONNECTEE"))
+        except MS.ErreurMessagerie as e:
+            raise HTTPException(409, e.args[0]) from None
+        return b, f, societe, pdf, m
+
+    def _tentative_json(x) -> dict:
+        return {"generation": x.generation, "a": x.a, "objet": x.objet, "taille": x.taille, "etat": x.etat,
+                "cause": x.cause, "le": x.le.isoformat(), "expediteur": x.expediteur}
+
+    @app.post("/api/bons/{bon_id}/envoi-messagerie/apercu")
+    def apercu_envoi(bon_id: str, c: str = Depends(compte)):
+        """[RM-AMZ-130] Ce qui partira ; rien n'est envoyé."""
+        b, f, societe, pdf, m = _envoi_prepare(c, bon_id)
+        msg = MS.message_bon(b, f, societe, pdf)
+        return {"a": f.courriel, "objet": msg["subject"], "texte": msg["body"]["content"],
+                "piece": {"nom": f"{b.reference}.pdf", "taille": len(pdf)}, "expediteur": m.get("adresse"),
+                "repondre_a": societe.get("courriel"), "envois": len(depot.envois_bon(c, b.id))}
+
+    @app.post("/api/bons/{bon_id}/envoi-messagerie")
+    def envoyer_par_messagerie(bon_id: str, d: DemandeEnvoi, c: str = Depends(compte)):
+        """[RM-AMZ-130, 131] Une tentative = une trace ; un envoi incertain n'est jamais repris seul."""
+        b, f, societe, pdf, m = _envoi_prepare(c, bon_id)
+        if not verrous_ms.prendre(b.id):
+            raise HTTPException(409, "ENVOI_EN_COURS")
+        try:
+            faits = depot.envois_bon(c, b.id)
+            if d.apres != len(faits):                       # l'écran n'a pas vu la dernière tentative
+                return {"rejoue": True, "tentative": _tentative_json(faits[-1]) if faits else None,
+                        "bon": _bon_json(b, _fournisseurs(c))}
+            msg = MS.message_bon(b, f, societe, pdf)
+            ms = _client_ms(c)
+            etat, cause = MS.ECHEC, None
+            try:
+                j = ms.actualiser(m["refresh_token"])
+                if j.get("refresh_token"):
+                    m = {**m, "refresh_token": j["refresh_token"]}
+                    _ecrire_cx(c, "MESSAGERIE", m)
+                etat, cause, statut = ms.envoyer(j["access_token"], msg)
+                if cause == "JETON":                         # 401 : jeton renouvelé une fois
+                    j = ms.actualiser(m["refresh_token"])
+                    etat, cause, statut = ms.envoyer(j["access_token"], msg)
+            except MS.ErreurMessagerie as e:
+                cause = e.args[0]
+                if cause == "A_RECONNECTER":
+                    _ecrire_cx(c, "MESSAGERIE", {**m, "etat": "A_RECONNECTER"})
+            t = MS.Tentative(b.id, len(faits) + 1, f.courriel, msg["subject"], hashlib.sha256(pdf).hexdigest(),
+                             len(pdf), etat, cause, expediteur=m.get("adresse"))
+            depot.ajouter_envoi_bon(c, t)
+            if etat == MS.ENVOYE and b.statut == A.BROUILLON:
+                b = A.envoyer(b, t.le)
+                depot.enregistrer_bon(c, b)
+            return {"rejoue": False, "tentative": _tentative_json(t), "bon": _bon_json(b, _fournisseurs(c))}
+        finally:
+            verrous_ms.rendre(b.id)
+
+    @app.get("/api/bons/{bon_id}/envois-messagerie")
+    def envois_messagerie(bon_id: str, c: str = Depends(compte)):
+        b = _bon(c, bon_id)
+        return [_tentative_json(x) for x in depot.envois_bon(c, b.id)]
 
     # ------------------------------------------------------------- travaux de nuit lancés à la main [RM-AMZ-115]
     @app.get("/api/synchro/manuelle")

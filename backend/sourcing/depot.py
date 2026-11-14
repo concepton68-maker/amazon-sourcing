@@ -196,6 +196,17 @@ class DepotMemoire:
     def supprimer_connexion(self, compte_id: str, source: str) -> bool:
         return self._connexions.pop((compte_id, source), None) is not None
 
+    # -------------------------------------------------------------- envois de bons [RM-AMZ-131]
+    def ajouter_envoi_bon(self, compte_id: str, t) -> None:
+        l = self.__dict__.setdefault("_envois_bon", {}).setdefault(compte_id, [])
+        if any(x.bon_id == t.bon_id and x.generation == t.generation for x in l):
+            raise ValueError("GENERATION_EXISTE")
+        l.append(t)
+
+    def envois_bon(self, compte_id: str, bon_id: str) -> list:
+        return sorted((x for x in self.__dict__.get("_envois_bon", {}).get(compte_id, []) if x.bon_id == bon_id),
+                      key=lambda x: x.generation)
+
     # -------------------------------------------------------------- synchronisation de nuit [RM-AMZ-080]
     def curseur_synchro(self, compte_id: str, tache: str) -> Optional[datetime]:
         return self._curseurs.get((compte_id, tache))

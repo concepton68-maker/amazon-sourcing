@@ -487,7 +487,14 @@ textarea { background: var(--carte); color: var(--encre); }
 .marque-connexion { color: var(--encre); }
 .marque-connexion svg { height: 30px; width: auto; display: block; margin: 0 auto 6px; }
 .theme-bascule { display: inline-flex; padding: 2px; gap: 2px; border: 1px solid var(--bord); border-radius: 9px; background: var(--carte); }
-.theme-bascule button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--doux); font: 500 12.5px Inter, system-ui, sans-serif; cursor: pointer; }
+.theme-bascule button { display: inline-flex; align-items: center; justify-content: center; min-height: 30px; min-width: 32px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: var(--doux); font: 500 12.5px Inter, system-ui, sans-serif; cursor: pointer; }
 .theme-bascule button:hover { color: var(--encre); }
 .theme-bascule button[aria-pressed="true"] { background: var(--encre); color: var(--carte); }
 .table-rent td:nth-child(2) { min-width: 240px; }
+/* Envoi par la messagerie [RM-AMZ-130] */
+.envoi-messagerie { display: grid; gap: 10px; justify-items: start; }
+.apercu-envoi { width: 100%; border: 1px solid var(--bord); border-radius: 10px; padding: 12px 14px; display: grid; gap: 10px; }
+.texte-envoi { margin: 0; white-space: pre-wrap; font: 13.5px Inter, system-ui, sans-serif; color: var(--encre-2); background: var(--survol); border-radius: 8px; padding: 10px 12px; }
+.liste-envois { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
+.liste-envois li.ENVOYE strong { color: var(--positif); } .liste-envois li.ECHEC strong { color: var(--rouge-texte); } .liste-envois li.INCERTAIN strong { color: var(--negatif-texte); }
+.code-copie { display: inline-flex; gap: 8px; align-items: center; min-width: 0; } .code-copie code { font: 12px var(--chiffre); overflow-wrap: anywhere; }

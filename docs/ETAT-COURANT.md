@@ -44,7 +44,9 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 
 | (lot plan-achat) | Chantier concurrence 5/5, partie 1 : plan d'achat depuis les produits rentables (sélection groupée → bon brouillon par fournisseur), quantité proposée et modifiable, Paramètres › Société, bon en PDF et Excel. **Correctif** : l'ajout des produits rentables au fil de l'eau était refusé par la base depuis la PR #42 (droit manquant), corrigé par la migration 0020 | RM-AMZ-125 à 128 | 1.18 |
 
-Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 128) · décisions `docs/decisions/registre.md`
+| (lot messagerie) | Chantier 5/5, partie 2 : envoi du bon depuis la messagerie Microsoft du vendeur (connexion par code + PKCE, envoi seul, aperçu puis envoi, traces en ajout seul, incertain jamais repris) ; bascule jour / nuit en icônes seules | RM-AMZ-129 à 131 | 1.20 |
+
+Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 131) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 032).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)
@@ -87,7 +89,9 @@ puis suit commande, réception, envoi à Amazon et encaissement. Courriels depui
 
 ## 6. En attente
 
-- **Chantier 5 (suite)** : partie 2 = envoi du bon depuis la messagerie Microsoft du vendeur (étude `2026-11-14-messagerie-microsoft.md` : Mail.Send seul, PDF sous 3 Mo ; Sam devra ajouter l'adresse de retour de Syllig Vente à l'application « Syllig » chez Microsoft et coller une clé dans le site) ; partie 3 = envoi FBA par l'API (étude `2026-11-14-envoi-fba-api-inbound.md` : transporteur partenaire en France incertain, deux confirmations payantes à valider à la main).
+- **Messagerie : action de Sam** (guide `docs/guides/microsoft-messagerie.md`) : ajouter l'adresse de retour à l'application « Syllig » chez Microsoft, créer une clé, la coller dans Paramètres › Connexions, connecter sa boîte, faire un premier envoi vers sa propre adresse.
+- **Vision « pilote automatique »** (Sam, 14/11) : objectifs + garde-fous + niveaux d'autonomie 0 à 3 par étape, validation humaine aux étapes qui engagent de l'argent ; scan code-barres au téléphone demandé (exception à D-AMZ-025, accord à confirmer) ; recherche des fonctions Amazon et de leurs API en cours (`docs/recherches/2026-11-14-passerelle-amazon-sp-api.md`), feuille de route à proposer.
+- **Chantier 5 (suite)** : partie 3 = envoi FBA par l'API (étude `2026-11-14-envoi-fba-api-inbound.md` : transporteur partenaire en France incertain, deux confirmations payantes à valider à la main).
 - **Nom : Syllig Pilot** (D-AMZ-031, 14/11). Marques à vérifier à la main (TMview, INPI, classes 9, 35, 42). **Logo posé** (piste 1, D-AMZ-032) : mot-symbole « syllig pilot » à repère orange, favicon, mode Jour · Nuit · Auto (captures 1.19). L'adresse reste vente.concepton.fr (changement d'adresse : décision à part).
 - **Chantier « réponse à la concurrence » lancé par Sam le 14/11** (ordre) : 1 multi-pays (fait), 2 demande et Buy Box tirées de nos relevés (fait), 3 éligibilité en masse + lien de demande d'autorisation (fait), 4 prix plancher + repricer gratuit d'Amazon + alerte (fait, non essayé sur une vraie offre), 5 bon de commande envoyé au fournisseur puis envoi FBA par l'API.
 - (Ancien) choix parmi les 7 pistes d'efficacité proposées le 14/11 : ajustement automatique des
