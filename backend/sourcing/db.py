@@ -515,19 +515,20 @@ class DepotPostgres:
     def enregistrer_releves(self, compte_id: str, releves) -> None:
         c = _uuid(compte_id)
         self._executer_lignes(compte_id, """INSERT INTO amz.releves (compte_id, marketplace, asin, jour, prix_buybox,
-            nb_fba, nb_fbm, amazon_vend, buybox_amazon, prix_bas_fba, bsr, categorie)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (compte_id, marketplace, asin, jour) DO UPDATE SET
+            nb_fba, nb_fbm, amazon_vend, buybox_amazon, prix_bas_fba, bsr, categorie, buybox_moi)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (compte_id, marketplace, asin, jour) DO UPDATE SET
             prix_buybox = EXCLUDED.prix_buybox, nb_fba = EXCLUDED.nb_fba, nb_fbm = EXCLUDED.nb_fbm,
             amazon_vend = EXCLUDED.amazon_vend, buybox_amazon = EXCLUDED.buybox_amazon,
-            prix_bas_fba = EXCLUDED.prix_bas_fba, bsr = EXCLUDED.bsr, categorie = EXCLUDED.categorie""",
+            prix_bas_fba = EXCLUDED.prix_bas_fba, bsr = EXCLUDED.bsr, categorie = EXCLUDED.categorie,
+            buybox_moi = EXCLUDED.buybox_moi""",
             [(c, r.marketplace, r.asin, r.jour, r.prix_buybox, r.nb_fba, r.nb_fbm, r.amazon_vend, r.buybox_amazon,
-              r.prix_bas_fba, r.bsr, r.categorie) for r in releves])
+              r.prix_bas_fba, r.bsr, r.categorie, r.buybox_moi) for r in releves])
 
     def releves(self, compte_id: str, marketplace: str, asins: Optional[list[str]] = None,
                 depuis: Optional[date] = None) -> list:
         from .historique import Releve
         rows = self._executer(compte_id, """SELECT marketplace, asin, jour, prix_buybox, nb_fba, nb_fbm, amazon_vend,
-            buybox_amazon, prix_bas_fba, bsr, categorie FROM amz.releves WHERE marketplace = %s
+            buybox_amazon, prix_bas_fba, bsr, categorie, buybox_moi FROM amz.releves WHERE marketplace = %s
             AND (%s::text[] IS NULL OR asin = ANY(%s::text[])) AND (%s::date IS NULL OR jour >= %s)
             ORDER BY asin, jour""", (marketplace, asins, asins, depuis, depuis))
         return [Releve(*r) for r in rows]

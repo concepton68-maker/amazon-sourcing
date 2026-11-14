@@ -766,5 +766,14 @@
   "pays.relancer": "Recalculer",
   "pays.en_cours": "Calcul pays par pays…",
   "pays.pays": "Pays",
-  "pays.meilleur": "Meilleur"
+  "pays.meilleur": "Meilleur",
+  "demande.titre": "Demande et Buy Box (nos relevés, 30 jours)",
+  "demande.non_suivi": "non suivi",
+  "demande.jours": "{n} jours mesurés",
+  "demande.suivre_info": "Ce produit n'est pas encore relevé chaque nuit.",
+  "demande.stabilite": "Variation du prix",
+  "demande.ecart": "plus haut − plus bas",
+  "demande.bb_amazon": "Buy Box Amazon",
+  "demande.bb_moi": "Buy Box à vous",
+  "demande.moyenne": "moyenne"
 }

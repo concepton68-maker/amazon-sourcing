@@ -38,6 +38,7 @@ class InfosOffres:
     nb_offres_fba: Optional[int] = None
     nb_offres_fbm: Optional[int] = None
     prix_plus_bas_fba: Optional[float] = None
+    vendeur_buybox: Optional[str] = None     # SellerId de l'offre IsBuyBoxWinner [RM-AMZ-118]
 
 
 @dataclass
