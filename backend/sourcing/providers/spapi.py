@@ -228,7 +228,7 @@ class ClientSPAPI:
             return etapes
         base = SPAPI_ENDPOINTS[mp.region]
 
-        def essai(etape, chemin, params):
+        def essai(etape, chemin, params, resume=None):
             try:
                 r = self.session.get(base + chemin, params=params, timeout=30,
                                      headers={"x-amz-access-token": jeton, "content-type": "application/json"})
@@ -236,7 +236,8 @@ class ClientSPAPI:
                 ligne(etape, False, None, f"réseau : {e}")
                 return None
             ok = r.status_code < 400
-            ligne(etape, ok, r.status_code, "" if ok else r.text, r.headers.get("x-amzn-RequestId"))
+            msg = r.text if not ok else (resume(r.json()) if resume else "")
+            ligne(etape, ok, r.status_code, msg, r.headers.get("x-amzn-RequestId"))
             return r.json() if ok else None
 
         compte = essai("COMPTE", "/sellers/v1/marketplaceParticipations", {})
@@ -256,8 +257,14 @@ class ClientSPAPI:
                     {"marketplaceIds": mp.marketplace_id, "keywords": "gourde", "pageSize": "1"})
         asin = ((cat or {}).get("items") or [{}])[0].get("asin")
         if asin:
+            def resume(j):
+                p = j.get("payload", j) if isinstance(j, dict) else {}
+                s = p.get("Summary") or {}
+                return (f"{asin} : statut {p.get('status')}, total {s.get('TotalOfferCount')}, par canal "
+                        f"{[(n.get('condition'), n.get('fulfillmentChannel'), n.get('OfferCount')) for n in s.get('NumberOfOffers') or []]}, "
+                        f"détail {len(p.get('Offers') or [])} offre(s), clés {sorted(p)[:8]}")
             essai("OFFRES", f"/products/pricing/v0/items/{asin}/offers",
-                  {"MarketplaceId": mp.marketplace_id, "ItemCondition": "New"})
+                  {"MarketplaceId": mp.marketplace_id, "ItemCondition": "New"}, resume)
         else:
             ligne("OFFRES", None, None, "aucun ASIN pour tester")
         essai("STOCK", "/fba/inventory/v1/summaries",
@@ -296,7 +303,11 @@ class ClientSPAPI:
             statut = etat.get("processingStatus")
             if statut == "DONE":
                 break
-            if statut in ("CANCELLED", "FATAL"):
+            if statut == "CANCELLED":
+                # Modèle officiel Reports 2021-06-30 : « automatic cancellation if there is no data to return » ;
+                # l'outil n'annule jamais lui-même un rapport → rapport vide.
+                return ""
+            if statut == "FATAL":
                 raise ErreurFournisseur(f"Rapport {type_rapport} : {statut}")
             if ecoule >= delai_max:
                 raise ErreurFournisseur(f"Rapport {type_rapport} : délai dépassé")

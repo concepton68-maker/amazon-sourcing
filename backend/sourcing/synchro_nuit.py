@@ -79,7 +79,7 @@ def executer(comptes: list[tuple[str, dict]], depot, maintenant: datetime, fabri
         from .providers.spapi import ClientSPAPI
 
         def fabrique(v):
-            return ClientSPAPI(client_id=v["client_id"], client_secret=v["client_secret"],
+            return ClientSPAPI(client_id=v["client_id"], client_secret=v["client_secret"], seller_id=v.get("seller_id"),
                                refresh_tokens={v["region"]: v["refresh_token"]})
     tout = {}
     for compte_id, v in comptes:

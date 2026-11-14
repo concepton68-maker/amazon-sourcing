@@ -27,7 +27,8 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
                 <select value={v.region} onChange={(e) => setV({ ...v, region: e.target.value })}>
                   {regions.map((r) => <option key={r} value={r}>{t(`connexion.region.${r}`)}</option>)}</select></label>
             : <label key={c} className="ligne-reglage">{t(`connexion.champ.${c}`)}
-                <input type="password" autoComplete="new-password" spellCheck={false} maxLength={2000} required={!s.enregistree_le}
+                <input type={c === "seller_id" ? "text" : "password"} autoComplete="new-password" spellCheck={false} maxLength={2000}
+                  required={!s.enregistree_le && c !== "seller_id"}
                   placeholder={s.enregistree_le ? t("connexion.inchange") : undefined}
                   value={v[c]} onChange={(e) => setV({ ...v, [c]: e.target.value })} /></label>)}
           <div className="formulaire nu">
@@ -47,7 +48,7 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
         <li key={e.etape} className={e.ok === null ? "neutre" : e.ok ? "ok" : "ko"}>
           <strong>{e.ok === null ? "—" : e.ok ? "✓" : "✗"} {t(`connexion.etape.${e.etape}`)}</strong>
           {e.ok === false && <div className="meta">{e.statut ?? ""} {e.message}{e.requete ? ` · ${t("connexion.requete")} ${e.requete}` : ""}</div>}
-          {e.ok === null && e.message && <div className="meta">{e.message}</div>}
+          {e.ok !== false && e.message && <div className="meta">{e.message}</div>}
         </li>))}</ul>}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
     </div>

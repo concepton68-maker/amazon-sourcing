@@ -14,7 +14,8 @@ from typing import Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-SOURCES = {"SPAPI": ("client_id", "client_secret", "refresh_token", "region"), "KEEPA": ("cle",)}
+SOURCES = {"SPAPI": ("client_id", "client_secret", "refresh_token", "region", "seller_id"), "KEEPA": ("cle",)}
+FACULTATIFS = {"SPAPI": ("seller_id",)}
 REGIONS = ("EU", "NA", "FE")
 MAX = 2000
 
@@ -44,13 +45,16 @@ def valider(source: str, brut: dict, ancien: Optional[dict] = None) -> dict:
     En remplacement (`ancien`), un champ absent ou vide garde la valeur enregistrée."""
     if source not in SOURCES:
         raise ConnexionInvalide("SOURCE_INCONNUE", "source")
-    if not isinstance(brut, dict) or set(brut) - set(SOURCES[source]) or (ancien is None and set(brut) != set(SOURCES[source])):
+    obligatoires = set(SOURCES[source]) - set(FACULTATIFS.get(source, ()))
+    if not isinstance(brut, dict) or set(brut) - set(SOURCES[source]) or (ancien is None and not obligatoires <= set(brut)):
         raise ConnexionInvalide("SAISIE_INVALIDE", "champs")
     propre = {}
     for k in SOURCES[source]:
         v = brut.get(k)
         if ancien and (v is None or (isinstance(v, str) and not v.strip())):
             v = ancien.get(k)
+        if k in FACULTATIFS.get(source, ()) and (v is None or (isinstance(v, str) and not v.strip())):
+            continue
         if not isinstance(v, str) or not v.strip():
             raise ConnexionInvalide("CHAMP_OBLIGATOIRE", k)
         if len(v) > MAX:
@@ -85,7 +89,7 @@ def fournisseurs_du_compte(connexions: dict[str, dict]):
     f = Fournisseurs()
     sp = connexions.get("SPAPI")
     if sp:
-        c = ClientSPAPI(client_id=sp["client_id"], client_secret=sp["client_secret"],
+        c = ClientSPAPI(client_id=sp["client_id"], client_secret=sp["client_secret"], seller_id=sp.get("seller_id"),
                         refresh_tokens={sp["region"]: sp["refresh_token"]})
         f.catalogue.append(c)
         f.offres = f.frais = f.restrictions = c
