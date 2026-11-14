@@ -10,7 +10,9 @@ const FRAIS = ["carburant_taux", "duree_stock_mois", "stockage"] as const;
 const STOCK = ["delai_fournisseur", "delai_reception", "marge_securite", "seuil_rupture", "seuil_surstock"] as const;
 type Cle = (typeof SEUILS)[number] | (typeof COUTS)[number] | (typeof FRAIS)[number] | (typeof STOCK)[number];
 const TOUS = [...SEUILS, ...COUTS, ...FRAIS, ...STOCK];
-const RUBRIQUES = ["objectifs", "couts", "frais", "stock", "tva", "connexions"] as const;
+const RUBRIQUES = ["objectifs", "couts", "frais", "stock", "tva", "societe", "connexions"] as const;
+const SOCIETE = ["raison_sociale", "adresse", "adresse_livraison", "tva_intra", "courriel", "telephone"] as const;
+const LONGS = new Set(["adresse", "adresse_livraison"]);
 type Rubrique = (typeof RUBRIQUES)[number];
 const rubriqueDepuisAdresse = (): Rubrique => {
   const r = window.location.hash.split("/")[1] as Rubrique;
@@ -27,6 +29,7 @@ export function ParametresVue() {
   const [tva, setTva] = useState<Record<string, string>>({});
   const [etat, setEtat] = useState<string | null>(null);
   const [carburantActif, setCarburantActif] = useState(true);
+  const [societe, setSociete] = useState<Params["societe"]>({});
   const [rubrique, setRubrique] = useState<Rubrique>(rubriqueDepuisAdresse());
   useEffect(() => {
     const suivre = () => setRubrique(rubriqueDepuisAdresse());
@@ -38,7 +41,7 @@ export function ParametresVue() {
   useEffect(() => {
     listerPlaces().then(setPlaces).catch(() => setErreur("chargement"));
     lireParametres().then((x) => {
-      setP(x); setTva(x.tva); setCarburantActif(x.carburant_actif === 1);
+      setP(x); setTva(x.tva); setCarburantActif(x.carburant_actif === 1); setSociete(x.societe ?? {});
       setSaisie(Object.fromEntries(TOUS.map((k) => [k, versSaisie(k, x[k])])));
     }).catch((e) => setErreur(e.message));
   }, []);
@@ -48,7 +51,7 @@ export function ParametresVue() {
     setErreur(null); setEtat(null);
     const valeurs = Object.fromEntries(TOUS.map((k) => [k, depuisSaisie(k, saisie[k] ?? "0")])) as Record<Cle, number>;
     try {
-      const r = await ecrireParametres({ ...valeurs, carburant_actif: carburantActif ? 1 : 0, tva: Object.fromEntries(Object.entries(tva).filter(([, v]) => v !== "hors_taxe")) });
+      const r = await ecrireParametres({ ...valeurs, carburant_actif: carburantActif ? 1 : 0, societe, tva: Object.fromEntries(Object.entries(tva).filter(([, v]) => v !== "hors_taxe")) });
       setP(r); setEtat(t("parametres.enregistre", { v: r.versions }));
     } catch (x) { setErreur((x as Error).message); }
   };
@@ -87,6 +90,14 @@ export function ParametresVue() {
                 {champ("duree_stock_mois")}{champ("stockage")}
               </>}
               {rubrique === "stock" && STOCK.map(champ)}
+              {rubrique === "societe" && SOCIETE.map((k) => (                 /* [RM-AMZ-127] */
+                <label key={k} className="ligne-reglage">{t(`societe.${k}`)}
+                  {LONGS.has(k)
+                    ? <textarea rows={3} maxLength={500} value={societe[k] ?? ""} placeholder={k === "adresse_livraison" ? t("societe.comme_adresse") : undefined}
+                        onChange={(e) => setSociete({ ...societe, [k]: e.target.value })} />
+                    : <input type={k === "courriel" ? "email" : "text"} maxLength={300} value={societe[k] ?? ""}
+                        onChange={(e) => setSociete({ ...societe, [k]: e.target.value })} />}
+                </label>))}
               {rubrique === "tva" && <div className="liste-tva">
                 {places.map((pl) => (
                   <label key={pl.code} className="ligne-reglage">{pl.domaine}

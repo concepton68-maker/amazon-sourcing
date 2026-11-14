@@ -46,6 +46,7 @@ class Opportunite:
     analyse_le: Optional[datetime] = None
     rotation: Optional[int] = None           # [RM-AMZ-108] calculée à la lecture, jamais stockée
     historique_court: bool = True
+    prevision: Optional[dict] = None         # [RM-AMZ-125] prévision par lot vendu, figée à l'analyse
     extra: dict = field(default_factory=dict)
 
 

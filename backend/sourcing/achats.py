@@ -121,6 +121,8 @@ class LigneBon:
     prevision: Prevision                 # figée à l'ajout de la ligne [RM-AMZ-050]
     quantite_recue: Optional[int] = None
     lot_id: Optional[str] = None
+    code: Optional[str] = None           # référence du fournisseur (code-barres ou sa référence) [RM-AMZ-125]
+    unites_lot: int = 1                  # unités du fournisseur par lot vendu sur Amazon [RM-AMZ-126]
 
 
 @dataclass(frozen=True)
@@ -157,7 +159,8 @@ def prevision_au_prix(base: Prevision, prix_unitaire: Decimal) -> Prevision:
 
 
 def ajouter_ligne(bon: BonCommande, asin: str, marketplace: str, quantite: int, prix_unitaire, prevision: Prevision,
-                  designation: Optional[str] = None, devise_fournisseur: Optional[str] = None) -> BonCommande:
+                  designation: Optional[str] = None, devise_fournisseur: Optional[str] = None,
+                  code: Optional[str] = None, unites_lot: int = 1) -> BonCommande:
     """[RM-AMZ-050]"""
     if bon.statut != BROUILLON:
         raise ErreurAchat("BON_NON_MODIFIABLE")
@@ -168,8 +171,25 @@ def ajouter_ligne(bon: BonCommande, asin: str, marketplace: str, quantite: int, 
         raise ErreurAchat("PRIX_INVALIDE")
     if devise_fournisseur and prevision.devise != devise_fournisseur:
         raise ErreurAchat("DEVISE_DIFFERENTE")
-    l = LigneBon(str(uuid.uuid4()), asin, marketplace, designation, quantite, prix, prevision_au_prix(prevision, prix))
+    if not isinstance(quantite, int) or quantite > QUANTITE_MAX:
+        raise ErreurAchat("QUANTITE_INVALIDE")
+    l = LigneBon(str(uuid.uuid4()), asin, marketplace, designation, quantite, prix, prevision_au_prix(prevision, prix),
+                 code=code, unites_lot=max(1, int(unites_lot or 1)))
     return replace(bon, lignes=bon.lignes + (l,))
+
+
+QUANTITE_MAX = 100_000
+
+
+def modifier_quantite(bon: BonCommande, ligne_id: str, quantite: int) -> BonCommande:
+    """[RM-AMZ-126] Tant que le bon est un brouillon, entier de 1 à 100 000."""
+    if bon.statut != BROUILLON:
+        raise ErreurAchat("BON_NON_MODIFIABLE")
+    if isinstance(quantite, bool) or not isinstance(quantite, int) or not (1 <= quantite <= QUANTITE_MAX):
+        raise ErreurAchat("QUANTITE_INVALIDE")
+    if not any(l.id == ligne_id for l in bon.lignes):
+        raise ErreurAchat("LIGNE_INCONNUE")
+    return replace(bon, lignes=tuple(replace(l, quantite=quantite) if l.id == ligne_id else l for l in bon.lignes))
 
 
 def retirer_ligne(bon: BonCommande, ligne_id: str) -> BonCommande:

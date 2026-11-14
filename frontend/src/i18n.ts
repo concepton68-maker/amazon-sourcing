@@ -7,7 +7,8 @@ const locale = "fr-FR";
 
 export function t(cle: string, params: Record<string, string | number> = {}): string {
   const brut = langues[langue][cle] ?? cle;
-  return brut.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? `{${k}}`));
+  // pluriel français : « {n|ligne|lignes} » (0 et 1 au singulier)
+  return brut.replace(/\{(\w+)\|([^|}]*)\|([^}]*)\}/g, (_, k, un, plusieurs) => (Math.abs(Number(params[k] ?? 0)) >= 2 ? plusieurs : un)).replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? `{${k}}`));
 }
 
 export function monnaie(valeur: string | null, devise: string, signe = false): string {

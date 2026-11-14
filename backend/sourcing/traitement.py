@@ -54,6 +54,7 @@ class ResultatLigne:
     bsr: Optional[int] = None
     nb_vendeurs: Optional[int] = None
     amazon_vend: Optional[bool] = None
+    prevision: Optional[dict] = None             # [RM-AMZ-125]
 
 
 @dataclass
@@ -136,6 +137,9 @@ def _ligne(l: LigneFournisseur, mp: Marketplace, asin: str, f: Fournisseurs, reg
     r.titre, r.verdict, r.prix_vente = a.catalogue.titre, a.verdict, a.prix_vente_retenu
     if a.rentabilite:
         r.profit, r.roi = a.rentabilite.profit_net, a.rentabilite.roi
+        from .lots import prevision_depuis_analyse
+        from .achats_serial import prevision_vers_dict
+        r.prevision = prevision_vers_dict(prevision_depuis_analyse(a.rentabilite, couts, mp.devise, ["analyse:" + (a.origine_prix or "")]))
         r.marge, r.prix_achat_max = a.rentabilite.marge, a.rentabilite.prix_achat_max_pour_roi
     from .opportunites import vendabilite
     r.vendabilite, r.motif = vendabilite(a.restrictions)
@@ -159,7 +163,7 @@ def opportunite(origine: tuple[str, str], mp_code: str, r: ResultatLigne):
     return Opportunite(origine[0], origine[1], mp_code, r.code, r.asin, r.titre, r.designation, float(r.prix_unitaire),
                        r.unites_lot, None if r.cout_achat is None else float(r.cout_achat), r.prix_vente, r.profit,
                        r.roi, r.marge, r.prix_achat_max, r.verdict, r.vendabilite, r.motif, r.bsr, r.nb_vendeurs,
-                       r.amazon_vend, datetime.now(timezone.utc))
+                       r.amazon_vend, datetime.now(timezone.utc), prevision=r.prevision)
 
 
 def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs, depot,

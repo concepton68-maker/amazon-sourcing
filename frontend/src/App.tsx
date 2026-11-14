@@ -218,7 +218,7 @@ export function App() {
         </form>
       </header>
       {vue === "tableau" ? <main className="contenu-plein"><TableauVue /></main>
-        : vue === "rentables" ? <main className="contenu-plein contenu-large"><RentablesVue analyser={analyser} /></main>
+        : vue === "rentables" ? <main className="contenu-plein contenu-large"><RentablesVue analyser={analyser} voirBon={ouvrirBon} /></main>
         : vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
         : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue key={traitementInitial ?? "s"} analyser={analyser} traitementInitial={traitementInitial} /></main>
         : vue === "parametres" ? <main className="contenu-plein"><ParametresVue /></main>

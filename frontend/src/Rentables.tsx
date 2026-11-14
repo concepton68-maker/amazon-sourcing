@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activite, EtatCorrespondance, ListeRentables, lireActivite, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
+import { Activite, ajouterAuPlan, EtatCorrespondance, ResultatPlan, ListeRentables, lireActivite, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
 import { FiltreMultiple } from "./Filtre";
 import { monnaie, pourcent, t } from "./i18n";
 
@@ -19,10 +19,15 @@ function Entete({ cle, tri, ordre, trier, num = true }: { cle: string; tri: stri
   );
 }
 
-function Ligne({ p, analyser, nouveau }: { p: ProduitRentable; analyser: (code: string, prix: number) => void; nouveau: boolean }) {
+const cle = (p: ProduitRentable) => `${p.origine}|${p.marketplace}|${p.code}|${p.asin}`;
+
+function Ligne({ p, analyser, nouveau, coche, basculer }: { p: ProduitRentable; analyser: (code: string, prix: number) => void;
+  nouveau: boolean; coche: boolean; basculer: () => void }) {
   return (
-    <tr className={nouveau ? "arrivee" : undefined}>
-      <td><button type="button" className="lien produit" onClick={() => analyser(p.asin, p.cout_achat ?? 0)}>{p.titre ?? p.designation ?? p.asin}</button>
+    <tr className={`cliquable ${nouveau ? "arrivee" : ""} ${coche ? "choisie" : ""}`} onClick={basculer}>
+      <td className="case"><input type="checkbox" checked={coche} onChange={basculer} onClick={(e) => e.stopPropagation()}
+        aria-label={t("rent.choisir", { p: p.titre ?? p.asin })} /></td>
+      <td><button type="button" className="lien produit" onClick={(e) => { e.stopPropagation(); analyser(p.asin, p.cout_achat ?? 0); }}>{p.titre ?? p.designation ?? p.asin}</button>
         {nouveau && <span className="nouveau">{t("vendable.nouveau")}</span>}
         <div className="meta">{p.asin} · {p.origine_nom}{p.unites_lot > 1 ? ` · ${t("rent.lot", { n: p.unites_lot })}` : ""}</div></td>
       <td className="num">{eur(p.cout_achat)}</td>
@@ -41,8 +46,10 @@ function Ligne({ p, analyser, nouveau }: { p: ProduitRentable; analyser: (code: 
   );
 }
 
-export function RentablesVue({ analyser }: { analyser: (code: string, prix: number) => void }) {
+export function RentablesVue({ analyser, voirBon }: { analyser: (code: string, prix: number) => void; voirBon: (id: string) => void }) {
   const [l, setL] = useState<ListeRentables | null>(null);
+  const [choix, setChoix] = useState<Set<string>>(new Set());
+  const [plan, setPlan] = useState<ResultatPlan | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [corr, setCorr] = useState<EtatCorrespondance | null>(null);
   const [ouverture] = useState(() => new Date().toISOString());
@@ -82,6 +89,16 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
   }, []);
   const chercher = () => { setErreur(null); lancerCorrespondance().then(lireCorr).catch((x) => setErreur((x as Error).message)); };
   const trier = (c: string) => { if (c === tri) setOrdre(ordre === "desc" ? "asc" : "desc"); else { setTri(c); setOrdre("desc"); } };
+  const visibles = l?.produits ?? [];
+  const tous = visibles.length > 0 && visibles.every((p) => choix.has(cle(p)));
+  const basculer = (k: string) => setChoix((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const toutBasculer = () => setChoix((s) => { const n = new Set(s); visibles.forEach((p) => (tous ? n.delete(cle(p)) : n.add(cle(p)))); return n; });
+  const choisis = visibles.filter((p) => choix.has(cle(p)));
+  const versPlan = () => {                                             // [RM-AMZ-125]
+    setErreur(null); setPlan(null);
+    ajouterAuPlan(choisis.map((p) => ({ origine: p.origine, marketplace: p.marketplace, code: p.code, asin: p.asin })))
+      .then((r) => { setPlan(r); setChoix(new Set()); }).catch((x) => setErreur((x as Error).message));
+  };
   const e = (c: string, num = true) => <Entete cle={c} tri={tri} ordre={ordre} trier={trier} num={num} />;
   return (
     <div className="vue">
@@ -98,6 +115,18 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
       {corr?.bilan && !corr.en_cours && <p className="meta">{corr.bilan.erreur ? t("corr.erreur")
         : t("corr.bilan", { c: corr.bilan.candidats ?? 0, n: corr.bilan.correspondances ?? 0, f: corr.bilan.fournisseurs ?? 0 })}</p>}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
+      {plan && <div className="bandeau-plan" role="status">
+        <span>{t("plan.resultat", { n: plan.ajoutees, b: plan.bons.length })}{plan.deja ? ` · ${t("plan.deja", { n: plan.deja })}` : ""}</span>
+        {plan.bons.length > 0 && <button type="button" className="lien" onClick={() => voirBon(plan.bons[0])}>{t("plan.voir")}</button>}
+        {plan.refus.length > 0 && <span className="meta">{t("plan.refus", { n: plan.refus.length })} :{" "}
+          {Object.entries(plan.refus.reduce<Record<string, number>>((a, r) => ({ ...a, [r.motif]: (a[r.motif] ?? 0) + 1 }), {}))
+            .map(([m, n]) => `${t(`plan.motif.${m}`)} (${n})`).join(" · ")}</span>}
+      </div>}
+      {choisis.length > 0 && <div className="barre-selection" role="region" aria-label={t("rent.selection")}>
+        <span>{t("rent.choisis", { n: choisis.length })}</span>
+        <button type="button" className="principal" onClick={versPlan}>{t("plan.ajouter")}</button>
+        <button type="button" className="lien" onClick={() => setChoix(new Set())}>{t("rent.tout_decocher")}</button>
+      </div>}
       <div className="barre-filtres-rent">
         <FiltreMultiple libelle={t("rent.vendabilite")} changer={setNiveaux}
           options={NIVEAUX.map((n) => ({ code: n, libelle: `${t(`vend.${n}`)} (${l?.compteurs[n] ?? 0})`, coche: niveaux.includes(n) }))} />
@@ -113,11 +142,14 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
       <section className="carte">
         {!l ? null : l.total === 0 ? <p className="meta">{t("rent.vide")} <a href="#fournisseurs">{t("nav.fournisseurs")}</a></p>
           : <div className="defile"><table className="table-rent">
-            <thead><tr><th scope="col">{t("rent.col.produit")}</th>{e("prix_achat")}{e("prix_vente")}{e("profit")}{e("roi")}{e("marge")}
+            <thead><tr><th scope="col" className="case"><input type="checkbox" checked={tous} onChange={toutBasculer}
+              aria-label={tous ? t("rent.tout_decocher") : t("rent.tout_cocher")} title={tous ? t("rent.tout_decocher") : t("rent.tout_cocher")} /></th>
+              <th scope="col">{t("rent.col.produit")}</th>{e("prix_achat")}{e("prix_vente")}{e("profit")}{e("roi")}{e("marge")}
               <th scope="col" className="num">{t("rent.col.achat_max")}</th>{e("rotation")}{e("bsr")}
               <th scope="col" className="num">{t("rent.col.vendeurs")}</th><th scope="col">{t("rent.col.vendabilite")}</th>
               <th scope="col">{t("rent.col.verdict")}</th></tr></thead>
-            <tbody>{l.produits.map((p) => <Ligne key={`${p.origine}|${p.asin}|${p.code}`} p={p} analyser={analyser} nouveau={!!p.analyse_le && p.analyse_le > ouverture} />)}</tbody>
+            <tbody>{l.produits.map((p) => <Ligne key={cle(p)} p={p} analyser={analyser} nouveau={!!p.analyse_le && p.analyse_le > ouverture}
+              coche={choix.has(cle(p))} basculer={() => basculer(cle(p))} />)}</tbody>
           </table></div>}
       </section>
     </div>

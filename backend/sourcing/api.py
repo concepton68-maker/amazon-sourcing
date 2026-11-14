@@ -182,6 +182,22 @@ class DemandeBon(BaseModel):
     fournisseur_id: str
 
 
+class ChoixPlan(BaseModel):
+    origine: str = Field(max_length=200)
+    marketplace: str = Field(max_length=4)
+    code: str = Field(max_length=100)
+    asin: str = Field(max_length=20)
+    quantite: Optional[int] = Field(default=None, ge=1, le=100000)
+
+
+class DemandePlan(BaseModel):
+    lignes: list[ChoixPlan] = Field(max_length=500)
+
+
+class DemandeQuantite(BaseModel):
+    quantite: int
+
+
 class DemandeLigne(BaseModel):
     jeton_analyse: Optional[str] = None
     asin: Optional[str] = Field(default=None, max_length=20)
@@ -225,7 +241,8 @@ def _bon_json(b: "A.BonCommande", fournisseurs: dict) -> dict:
                     "quantite": l.quantite, "prix_unitaire": _num(l.prix_unitaire),
                     "montant": _num(l.prix_unitaire * l.quantite),
                     "roi_prevu": None if l.prevision.roi is None else float(round(l.prevision.roi, 4)),
-                    "quantite_recue": l.quantite_recue, "lot_id": l.lot_id} for l in b.lignes],
+                    "quantite_recue": l.quantite_recue, "lot_id": l.lot_id, "code": l.code,
+                    "unites_lot": l.unites_lot} for l in b.lignes],
     }
 
 
@@ -726,6 +743,39 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         except A.ErreurAchat as e:
             raise _erreur_achat(e) from None
         return _sauver(c, b)
+
+    @app.patch("/api/bons/{bon_id}/lignes/{ligne_id}")
+    def modifier_ligne_bon(bon_id: str, ligne_id: str, d: DemandeQuantite, c: str = Depends(compte)):
+        """[RM-AMZ-126]"""
+        try:
+            return _sauver(c, A.modifier_quantite(_bon(c, bon_id), ligne_id, d.quantite))
+        except A.ErreurAchat as e:
+            raise _erreur_achat(e) from None
+
+    @app.post("/api/plan-achat")
+    def plan_achat(d: DemandePlan, c: str = Depends(compte)):
+        """[RM-AMZ-125] Lignes choisies → brouillon du fournisseur de chacune."""
+        from . import plan_achat as PA
+        return PA.ajouter(depot, c, [x.model_dump() for x in d.lignes])
+
+    @app.get("/api/bons/{bon_id}/document.{fmt}")
+    def document_bon(bon_id: str, fmt: str, c: str = Depends(compte)):
+        """[RM-AMZ-128] PDF ou Excel du bon."""
+        from . import bon_document as BD
+        if fmt not in ("pdf", "xlsx"):
+            raise HTTPException(404, "FORMAT_INCONNU")
+        b = _bon(c, bon_id)
+        f = _fournisseurs(c).get(b.fournisseur_id)
+        if f is None:
+            raise HTTPException(404, "FOURNISSEUR_INCONNU")
+        societe = params(c).societe
+        if fmt == "pdf":
+            contenu, type_ = BD.pdf(b, f, societe), "application/pdf"
+        else:
+            contenu = BD.excel(b, f, societe)
+            type_ = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        return Response(contenu, media_type=type_,
+                        headers={"Content-Disposition": f'attachment; filename="{b.reference}.{fmt}"'})
 
     @app.delete("/api/bons/{bon_id}/lignes/{ligne_id}")
     def retirer_ligne_bon(bon_id: str, ligne_id: str, c: str = Depends(compte)):

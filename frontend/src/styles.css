@@ -456,3 +456,6 @@ tr.arrivee td { background: #f2fbf6; }
 a.lien-externe { margin-left: 10px; font-weight: 600; font-size: 13px; color: var(--accent); text-decoration: none; white-space: nowrap; }
 a.lien-externe:hover { text-decoration: underline; }
 .mini-saisie { min-height: 34px; width: 100px; font-size: 13.5px; }
+/* Plan d'achat [RM-AMZ-125] */
+th.case, td.case { width: 34px; padding-right: 0; }
+.bandeau-plan { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 12px; border: 1px solid var(--accent-doux); border-radius: 10px; font-size: 14px; }

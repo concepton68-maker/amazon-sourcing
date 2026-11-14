@@ -230,6 +230,13 @@ class ContratDepot:
         r = sorted((x.origine, x.asin, x.profit) for x in self.d.opportunites(A))
         self.assertEqual(r, [("FICHIER:x.csv", "B01", 3.0), ("FOURNISSEUR:f", "B03", 2.0)])
         self.assertEqual(self.d.opportunites(B), [])
+        # [RM-AMZ-125] la prévision figée suit la ligne, ajout au fil de l'eau compris
+        prev = {"devise": "EUR", "prix_vente_ht": "20.75", "frais_amazon": "7", "cout_achat": "8.5", "retours": "0",
+                "stockage": "0", "autres": "0", "sources": ["analyse:BUYBOX"]}
+        x = o("B04", 4.0)
+        x.prevision = prev
+        self.d.ajouter_opportunites(A, "FOURNISSEUR:f", "FR", [x])
+        self.assertEqual(next(y for y in self.d.opportunites(A) if y.asin == "B04").prevision, prev)
 
     def test_alertes_prix_depot(self):
         """[RM-AMZ-124] Alertes remplacées à chaque contrôle ; propres au compte."""
