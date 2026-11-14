@@ -22,6 +22,8 @@ class InfosCatalogue:
     categorie: Optional[str] = None
     bsr: Optional[int] = None
     nb_unites_lot: Optional[int] = None   # « Pack of 6 » -> 6 si connu
+    classification: Optional[str] = None  # itemClassification du catalogue [RM-AMZ-082]
+    nb_variantes: Optional[int] = None
 
 
 @dataclass

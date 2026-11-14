@@ -143,7 +143,7 @@ class ClientSPAPI:
         data = self._appel(
             mp, "GET", f"/catalog/2022-04-01/items/{asin}",
             params={"marketplaceIds": mp.marketplace_id,
-                    "includedData": "summaries,salesRanks,attributes"},
+                    "includedData": "summaries,salesRanks,attributes,relationships"},
         )
         return parser_catalogue(asin, mp, data)
 
@@ -257,14 +257,8 @@ class ClientSPAPI:
                     {"marketplaceIds": mp.marketplace_id, "keywords": "gourde", "pageSize": "1"})
         asin = ((cat or {}).get("items") or [{}])[0].get("asin")
         if asin:
-            def resume(j):
-                p = j.get("payload", j) if isinstance(j, dict) else {}
-                s = p.get("Summary") or {}
-                return (f"{asin} : statut {p.get('status')}, total {s.get('TotalOfferCount')}, par canal "
-                        f"{[(n.get('condition'), n.get('fulfillmentChannel'), n.get('OfferCount')) for n in s.get('NumberOfOffers') or []]}, "
-                        f"détail {len(p.get('Offers') or [])} offre(s), clés {sorted(p)[:8]}")
             essai("OFFRES", f"/products/pricing/v0/items/{asin}/offers",
-                  {"MarketplaceId": mp.marketplace_id, "ItemCondition": "New"}, resume)
+                  {"MarketplaceId": mp.marketplace_id, "ItemCondition": "New"})
         else:
             ligne("OFFRES", None, None, "aucun ASIN pour tester")
         essai("STOCK", "/fba/inventory/v1/summaries",
@@ -368,6 +362,7 @@ def parser_catalogue(asin: str, mp: Marketplace, data: dict) -> InfosCatalogue:
             info.marque = s.get("brand") or s.get("brandName")
             bc = s.get("browseClassification") or {}
             info.categorie = bc.get("displayName")
+            info.classification = s.get("itemClassification")
             break
     for sr in data.get("salesRanks", []):
         if sr.get("marketplaceId") not in (None, mp.marketplace_id):
@@ -378,6 +373,13 @@ def parser_catalogue(asin: str, mp: Marketplace, data: dict) -> InfosCatalogue:
             if not info.categorie:
                 info.categorie = rangs[0].get("title")
         break
+    for rel in data.get("relationships", []) or []:            # [RM-AMZ-082]
+        if rel.get("marketplaceId") not in (None, mp.marketplace_id):
+            continue
+        enfants = {a for r in rel.get("relationships", []) or [] if r.get("type") == "VARIATION"
+                   for a in r.get("childAsins", []) or []}
+        if enfants:
+            info.nb_variantes = len(enfants)
     attrs = data.get("attributes") or {}
     for cle in ("number_of_items", "item_package_quantity"):
         vals = attrs.get(cle)
