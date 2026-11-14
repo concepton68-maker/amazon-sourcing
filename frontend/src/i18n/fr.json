@@ -712,5 +712,18 @@
   "vend.motif.APPROBATION": "Approbation possible",
   "vend.motif.INTERDIT": "Interdit",
   "erreur.VENDABILITE_INCONNUE": "Niveau de vendabilité inconnu",
-  "erreur.TRI_INCONNU": "Tri inconnu"
+  "erreur.TRI_INCONNU": "Tri inconnu",
+  "revente.court.AUTORISEE": "Autorisée",
+  "revente.court.A_VERIFIER": "À vérifier",
+  "revente.court.INTERDITE": "Interdite",
+  "annuaire.masquer_ajoutes": "Masquer les fournisseurs déjà ajoutés",
+  "annuaire.date": "Conditions lues le {date}",
+  "annuaire.selection": "Sélection",
+  "annuaire.selectionnes": "{n} sélectionnés",
+  "annuaire.ajouter_selection": "Ajouter à mes fournisseurs ({n})",
+  "annuaire.vider": "Tout désélectionner",
+  "annuaire.tout": "Tout sélectionner",
+  "annuaire.familles": "Familles",
+  "annuaire.bilan": "{n} fournisseurs ajoutés à « Mes fournisseurs »",
+  "connexion.court.FICHIER": "Fichier"
 }

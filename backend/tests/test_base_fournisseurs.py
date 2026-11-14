@@ -60,6 +60,15 @@ class TestBaseFournisseurs(unittest.TestCase):
         self.assertEqual(cl.post("/api/annuaire/INCONNU/ajouter").status_code, 404)
         self.assertTrue([x for x in cl.get("/api/annuaire").json() if x["code"] == "QOGITA"][0]["ajoute"])
 
+    def test_ajout_groupe_annuaire(self):
+        """[RM-AMZ-101] Ajout groupé : déjà présents ignorés ; code inconnu refusé."""
+        d, c, cl = client()
+        cl.post("/api/annuaire/QOGITA/ajouter")
+        r = cl.post("/api/annuaire/ajouter", json={"codes": ["QOGITA", "BIGBUY", "PUCKATOR", "BIGBUY"]}).json()
+        self.assertEqual((r["ajoutes"], r["ignores"]), (["BIGBUY", "PUCKATOR"], ["QOGITA"]))
+        self.assertEqual(cl.post("/api/annuaire/ajouter", json={"codes": ["ZZZ"]}).status_code, 404)
+        self.assertEqual(sum(1 for x in cl.get("/api/annuaire").json() if x["ajoute"]), 3)
+
     def test_catalogue_fournisseur(self):
         """[RM-AMZ-102] Lignes contrôlées, doublons et rejets comptés ; un nouveau fichier remplace le catalogue."""
         d, c, cl = client()

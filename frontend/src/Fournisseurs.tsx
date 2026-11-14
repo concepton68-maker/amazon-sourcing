@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Bon, Colonnes, Fichier, FournisseurBilan, Place, Reference, actionBon, ajouterLigneBon, ajouterReference,
+import { FiltreMultiple } from "./Filtre";
+import { Bon, Colonnes, Fichier, FournisseurBilan, Place, Reference, actionBon, ajouterLigneBon, ajouterReferences,
   analyserTarif, creerBon, creerFournisseur, deposerTarif, enregistrerTarif, lireAnnuaire, listerBons,
   listerFournisseurs, listerPlaces, modifierFournisseur, recevoirBon, retirerLigneBon } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
@@ -76,8 +77,15 @@ function DetailBon({ b, maj, voirLot }: { b: Bon; maj: (b: Bon) => void; voirLot
 const ROLES = ["code", "prix", "designation", "colisage", "minimum"];
 const REVENTE_TON: Record<string, string> = { AUTORISEE: "v", INTERDITE: "r", A_VERIFIER: "a" };
 
-function Revente({ r, extrait }: { r: string; extrait?: boolean }) {
-  return <span className={`pill ${REVENTE_TON[r]}`}>{t(`revente.${r}`)}{extrait ? ` · ${t("revente.a_relire")}` : ""}</span>;
+function Revente({ r, extrait, source }: { r: string; extrait?: boolean; source?: string | null }) {
+  const info = [extrait ? t("revente.a_relire") : null, source].filter(Boolean).join(" · ");
+  return (
+    <span className="statut-point">
+      <i className={`point ${REVENTE_TON[r]}`} aria-hidden="true" />{t(`revente.court.${r}`)}
+      {info && (source ? <a href={source} target="_blank" rel="noreferrer" className="info-mini" title={info}>ⓘ</a>
+        : <abbr className="info-mini" title={info}>ⓘ</abbr>)}
+    </span>
+  );
 }
 
 // [RM-AMZ-102, 103] catalogue par fichier, colonnes mémorisées, analyse
@@ -149,7 +157,7 @@ function Fiche({ f, changer, analyser }: { f: FournisseurBilan; changer: () => v
     <section className="carte fiche-fournisseur" aria-label={f.nom}>
       <header className="detail-tete"><div><h2>{f.nom}</h2>
         <p className="meta">{[f.pays, f.reference ? t("fiche.depuis_annuaire") : null].filter(Boolean).join(" · ")}</p></div>
-        <Revente r={f.revente} /></header>
+        <Revente r={f.revente} source={f.revente_source} /></header>
       <form className="grille-fiche" onSubmit={enregistrer}>
         {champ("pays")}{champ("site", "url")}{champ("courriel", "email")}{champ("delai", "number")}{champ("port")}
         <label>{t("fiche.revente")}<select value={v.revente} onChange={(e) => setV({ ...v, revente: e.target.value as FournisseurBilan["revente"] })}>
@@ -165,31 +173,66 @@ function Fiche({ f, changer, analyser }: { f: FournisseurBilan; changer: () => v
   );
 }
 
-// [RM-AMZ-101] annuaire
+// [RM-AMZ-101] annuaire : sélection groupée, filtres, lignes compactes
 function Annuaire({ ajoute }: { ajoute: () => void }) {
   const [refs, setRefs] = useState<Reference[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [choix, setChoix] = useState<string[]>([]);
+  const [cherche, setCherche] = useState("");
+  const [reventes, setReventes] = useState<string[]>(["AUTORISEE", "A_VERIFIER", "INTERDITE"]);
+  const [masquerAjoutes, setMasquerAjoutes] = useState(false);
+  const [bilan, setBilan] = useState<string | null>(null);
   const lire = () => lireAnnuaire().then(setRefs).catch((e) => setErreur(e.message));
   useEffect(() => { lire(); }, []);
+  const q = cherche.trim().toLowerCase();
+  const visibles = refs.filter((r) => reventes.includes(r.revente) && !(masquerAjoutes && r.ajoute)
+    && (!q || `${r.nom} ${r.pays} ${r.categories.map((c) => t(`rayon.${c}`)).join(" ")} ${r.note}`.toLowerCase().includes(q)));
+  const cochables = visibles.filter((r) => !r.ajoute).map((r) => r.code);
+  const tous = cochables.length > 0 && cochables.every((c) => choix.includes(c));
+  const ajouter = () => ajouterReferences(choix).then((r) => {
+    setBilan(t("annuaire.bilan", { n: r.ajoutes.length })); setChoix([]); lire(); ajoute();
+  }).catch((e) => setErreur(e.message));
   return (
-    <section className="carte">
-      <p className="meta">{t("annuaire.intro", { date: refs[0] ? dateCourte(refs[0].date_lecture) : "" })}</p>
+    <section className="carte annuaire">
+      <div className="barre-filtres-rent">
+        <input type="search" className="cherche" placeholder={t("filtre.chercher")} aria-label={t("filtre.chercher")}
+          value={cherche} onChange={(e) => setCherche(e.target.value)} />
+        <FiltreMultiple libelle={t("fiche.revente")} changer={setReventes}
+          options={["AUTORISEE", "A_VERIFIER", "INTERDITE"].map((r) => ({ code: r, libelle: t(`revente.court.${r}`), coche: reventes.includes(r) }))} />
+        <label className="case-filtre"><input type="checkbox" checked={masquerAjoutes} onChange={(e) => setMasquerAjoutes(e.target.checked)} />
+          {t("annuaire.masquer_ajoutes")}</label>
+        <span className="meta pousse">{t("annuaire.date", { date: refs[0] ? dateCourte(refs[0].date_lecture) : "" })}</span>
+      </div>
+      {choix.length > 0 && (
+        <div className="barre-selection" role="region" aria-label={t("annuaire.selection")}>
+          <span>{t("annuaire.selectionnes", { n: choix.length })}</span>
+          <button type="button" className="principal" onClick={ajouter}>{t("annuaire.ajouter_selection", { n: choix.length })}</button>
+          <button type="button" className="lien" onClick={() => setChoix([])}>{t("annuaire.vider")}</button>
+        </div>)}
+      {bilan && <p role="status" className="succes">{bilan}</p>}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
-      <div className="defile"><table>
-        <thead><tr><th scope="col">{t("fournisseurs.nom")}</th><th scope="col">{t("fiche.revente")}</th>
-          <th scope="col">{t("annuaire.connexion")}</th><th scope="col">{t("annuaire.acces")}</th><th scope="col" /></tr></thead>
-        <tbody>{refs.map((r) => (
-          <tr key={r.code}>
-            <td><a className="produit" href={r.site} target="_blank" rel="noreferrer">{r.nom}</a>
-              <div className="meta">{[r.pays, ...r.categories.map((c) => t(`rayon.${c}`))].join(" · ")}</div>
-              <div className="meta">{r.note}</div></td>
-            <td><Revente r={r.revente} extrait={r.verification === "EXTRAIT"} />
-              {r.source && <div><a className="meta" href={r.source} target="_blank" rel="noreferrer">{t("annuaire.source")}</a></div>}</td>
-            <td>{t(`connexion.mode.${r.connexion}`)}{r.api ? <div className="meta">{t("annuaire.api_a_brancher")}</div> : null}</td>
-            <td className="meta">{r.acces}</td>
-            <td>{r.ajoute ? <span className="meta">✓ {t("annuaire.ajoute")}</span>
-              : <button type="button" className="secondaire" onClick={() => ajouterReference(r.code).then(() => { lire(); ajoute(); })
-                .catch((e) => setErreur(e.message))}>{t("annuaire.ajouter")}</button>}</td>
+      <div className="defile"><table className="table-compacte">
+        <thead><tr>
+          <th scope="col" className="case-suivi"><input type="checkbox" aria-label={t("annuaire.tout")} checked={tous}
+            disabled={cochables.length === 0}
+            onChange={(e) => setChoix(e.target.checked ? [...new Set([...choix, ...cochables])] : choix.filter((c) => !cochables.includes(c)))} /></th>
+          <th scope="col">{t("fournisseurs.nom")}</th><th scope="col">{t("annuaire.familles")}</th>
+          <th scope="col">{t("fiche.revente")}</th><th scope="col">{t("annuaire.connexion")}</th><th scope="col">{t("annuaire.acces")}</th>
+        </tr></thead>
+        <tbody>{visibles.map((r) => (
+          <tr key={r.code} className={choix.includes(r.code) ? "choisie" : undefined}>
+            <td className="case-suivi">{r.ajoute ? <span className="positif" title={t("annuaire.ajoute")}>✓</span>
+              : <input type="checkbox" aria-label={r.nom} checked={choix.includes(r.code)}
+                onChange={() => setChoix(choix.includes(r.code) ? choix.filter((c) => c !== r.code) : [...choix, r.code])} />}</td>
+            <td><a className="produit" href={r.site} target="_blank" rel="noreferrer">{r.nom}</a> <span className="meta">{r.pays}</span>
+              <div className="meta tronque" title={r.note}>{r.note}</div></td>
+            <td className="meta" title={r.categories.map((c) => t(`rayon.${c}`)).join(", ")}>
+              {r.categories.slice(0, 2).map((c) => t(`rayon.${c}`)).join(", ") || "—"}{r.categories.length > 2 ? ` +${r.categories.length - 2}` : ""}</td>
+            <td><Revente r={r.revente} extrait={r.verification === "EXTRAIT"} source={r.source || null} /></td>
+            <td className="sans-retour">{r.connexion === "FICHIER" && <span className="etiquette">{t("connexion.court.FICHIER")}</span>}
+              {r.api && <span className="etiquette" title={t("annuaire.api_a_brancher")}>API</span>}
+              {r.connexion !== "FICHIER" && !r.api && <span className="meta">—</span>}</td>
+            <td className="meta tronque" title={r.acces}>{r.acces}</td>
           </tr>))}</tbody>
       </table></div>
     </section>
@@ -236,7 +279,7 @@ export function FournisseursVue({ bonInitial, voirLot, analyserTraitement }: { b
               <tr key={f.id} className={fiche === f.id ? "choisie" : undefined}>
                 <td><button type="button" className="lien produit" onClick={() => setFiche(fiche === f.id ? null : f.id)}>{f.nom}</button>
                   <div className="meta">{[f.pays, t("fournisseurs.lots", { n: f.lots }), t("jours", { n: f.delai_jours })].filter(Boolean).join(" · ")}</div></td>
-                <td><Revente r={f.revente} /></td>
+                <td><Revente r={f.revente} source={f.revente_source} /></td>
                 <td className="meta">{f.catalogue ? t("catalogue.court", { n: f.catalogue.lignes, date: dateCourte(f.catalogue.maj) }) : "—"}</td>
                 <td className="num">{monnaie(n(f.achete_12_mois), f.devise)}</td>
                 <td className="num">{pourcent(n(f.roi_prevu))} → <span className={f.roi_reel !== null && f.roi_prevu !== null && f.roi_reel < f.roi_prevu ? "negatif" : ""}>{pourcent(n(f.roi_reel))}</span></td>
