@@ -21,7 +21,7 @@ OBLIGATOIRES = ("code", "prix")
 
 # [RM-AMZ-031] synonymes d'en-têtes, comparés sans accents ni ponctuation.
 SYNONYMES: dict[str, tuple[str, ...]] = {
-    "code": ("ean", "ean13", "gtin", "codebarre", "codebarres", "barcode", "upc", "asin", "isbn", "refean", "codeean"),
+    "code": ("code", "codeproduit", "codearticle", "ean", "ean13", "gtin", "codebarre", "codebarres", "barcode", "upc", "asin", "isbn", "refean", "codeean"),
     "prix": ("prix", "prixht", "puht", "pu", "prixunitaire", "prixachat", "tarif", "tarifht", "price", "unitprice",
              "cost", "netprice", "prixnet"),
     "designation": ("designation", "designationarticle", "libelle", "description", "produit", "article", "nom",
@@ -104,7 +104,10 @@ def proposer_colonnes(entetes: list[str]) -> dict[str, Optional[int]]:
 
 def lire_prix(brut: str) -> Optional[Decimal]:
     """[RM-AMZ-032] « 1 234,56 € », « 1.234,56 », « 1,234.56 », « 12.5 » → Decimal ; sinon None."""
-    s = re.sub(r"[^\d,.\-]", "", str(brut).replace(" ", "").replace(" ", ""))
+    reste = re.sub(r"(?i)\b(eur|usd|gbp|ht|ttc)\b|[€$£\d,.\-\s\u00a0\u202f]", "", str(brut))
+    if reste:                     # du texte dans la cellule : on n'en extrait jamais un nombre [RM-AMZ-032]
+        return None
+    s = re.sub(r"[^\d,.\-]", "", str(brut))
     if not s or s in "-.,":
         return None
     if "," in s and "." in s:
