@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { HistoriqueProduit, LigneMarche, Marche, Tendance, choisirFamilles, historiqueProduit, lireMarche, neplusSuivre,
   suivreProduit } from "./api";
 import { monnaie, pourcent, t } from "./i18n";
+import { FiltreMultiple } from "./Filtre";
 
 // Suivi de marché [RM-AMZ-086 à 090] : familles choisies, liste suivie, historique relevé chaque nuit.
 const nb = (v: number | null | undefined) => (v === null || v === undefined ? "—" : v.toLocaleString("fr-FR"));
@@ -106,10 +107,7 @@ export function MarcheVue({ analyser }: { analyser: (code: string) => void }) {
   const lire = () => lireMarche(groupe).then(setM).catch((x) => setErreur((x as Error).message));
   useEffect(() => { setChoisi(null); lire(); }, [groupe]);
   const suivies = m?.familles.filter((f) => f.suivie).map((f) => f.code) ?? [];
-  const basculerFamille = (code: string) => {
-    const l = suivies.includes(code) ? suivies.filter((c) => c !== code) : [...suivies, code];
-    choisirFamilles(l).then(lire).catch((x) => setErreur((x as Error).message));
-  };
+  const choisir = (l: string[]) => choisirFamilles(l).then(lire).catch((x) => setErreur((x as Error).message));
   const groupes = ["SUIVI", "ANALYSE", ...suivies];
   return (
     <div className="vue">
@@ -118,24 +116,19 @@ export function MarcheVue({ analyser }: { analyser: (code: string) => void }) {
         <span className="meta">{t("sm.prochain")}</span>
       </div>
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
-      <div className="onglets" role="tablist">
-        {groupes.map((g) => (
-          <button key={g} type="button" role="tab" aria-selected={g === groupe} className={g === groupe ? "actif" : undefined}
-            onClick={() => setGroupe(g)}>{g === "SUIVI" || g === "ANALYSE" ? t(`sm.groupe.${g}`) : t(`rayon.${g}`)}
-            {g === "SUIVI" && m ? ` · ${m.suivis}` : ""}</button>))}
-      </div>
-      <details className="carte familles">
-        <summary>{t("sm.familles")} · {suivies.length}</summary>
-        <div className="puces">
-          {m?.familles.map((f) => (
-            <label key={f.code} className={f.suivie ? "puce active" : "puce"}>
-              <input type="checkbox" checked={f.suivie} onChange={() => basculerFamille(f.code)} />{t(`rayon.${f.code}`)}
-            </label>))}
+      <div className="barre-filtres">
+        <div className="onglets-ligne" role="tablist">
+          {groupes.map((g) => (
+            <button key={g} type="button" role="tab" aria-selected={g === groupe} onClick={() => setGroupe(g)}>
+              {g === "SUIVI" || g === "ANALYSE" ? t(`sm.groupe.${g}`) : t(`rayon.${g}`)}
+              {g === "SUIVI" && m ? <span className="compte">{m.suivis}</span> : null}</button>))}
         </div>
-      </details>
+        {m && <FiltreMultiple libelle={t("sm.familles")} changer={choisir}
+          options={m.familles.map((f) => ({ code: f.code, libelle: t(`rayon.${f.code}`), coche: f.suivie }))} />}
+      </div>
       {choisi && <Detail asin={choisi} analyser={analyser} changer={lire} />}
       <section className="carte" aria-label={t("sm.titre")}>
-        {!m ? null : m.produits.length === 0 ? <p className="meta">{t("sm.vide")}</p> : (
+        {!m ? null : m.produits.length === 0 ? <p className="meta">{groupe !== "SUIVI" && groupe !== "ANALYSE" ? t("sm.premier_releve") : t("sm.vide")}</p> : (
           <div className="defile"><table>
             <thead><tr>
               <th scope="col">{t("sm.produit")}</th><th scope="col" className="num">{t("sm.prix")}</th>

@@ -357,3 +357,32 @@ a.produit { color: var(--encre); text-decoration: none; } a.produit:hover { colo
   .kpis.quatre, .grille.deux-un, .grille.deux { grid-template-columns: 1fr; }
   .cascade li { grid-template-columns: 110px minmax(0, 1fr) 84px; }
 }
+/* Filtres et onglets discrets (Marché) */
+.barre-filtres { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--bord); }
+.onglets-ligne { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.onglets-ligne button { background: none; border: none; border-bottom: 2px solid transparent; padding: 10px 12px; font: 600 14px Inter, sans-serif; color: var(--doux); cursor: pointer; white-space: nowrap; margin-bottom: -1px; }
+.onglets-ligne button:hover { color: var(--encre); }
+.onglets-ligne button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.onglets-ligne .compte { margin-left: 6px; font: 600 11px Inter, sans-serif; color: var(--doux); background: #eef0f3; border-radius: 6px; padding: 1px 6px; }
+.filtre { position: relative; margin-bottom: 8px; }
+.filtre-bouton { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border: 1px solid var(--bord); border-radius: 8px; background: #fff; font: 600 13.5px Inter, sans-serif; color: var(--encre); cursor: pointer; }
+.filtre-bouton[aria-expanded="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-doux); }
+.filtre-compte { font: 500 12px var(--chiffre); color: var(--doux); }
+.filtre-panneau { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: 340px; background: #fff; border: 1px solid var(--bord); border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 23, 36, .12); padding: 10px; }
+.filtre-tete { display: flex; justify-content: space-between; border-bottom: 1px solid var(--bord); padding-bottom: 4px; margin-bottom: 6px; }
+.filtre-tete button.lien { min-height: 30px; font-size: 13px; }
+.filtre-cherche { min-height: 34px; margin-bottom: 6px; font-size: 13.5px; }
+.filtre-liste { display: grid; grid-template-columns: 1fr 1fr; max-height: 320px; overflow-y: auto; }
+.filtre-liste label { display: flex; align-items: center; gap: 8px; padding: 6px 6px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+.filtre-liste label:hover { background: #f3f5f8; }
+.filtre-liste input { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); margin: 0; }
+/* Sélecteurs segmentés compacts (remplacent les grosses pastilles) */
+.onglets { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; background: #eceff4; border-radius: 10px; align-self: flex-start; }
+.onglets button { min-height: 32px; padding: 0 12px; border: none; border-radius: 8px; background: none; font: 600 13px Inter, sans-serif; color: var(--doux); }
+.onglets button:hover { color: var(--encre); }
+.onglets button[aria-selected="true"], .onglets button[aria-pressed="true"] { background: #fff; color: var(--encre); box-shadow: 0 1px 2px rgba(15, 23, 36, .12); border: none; }
+.case-suivi { width: 36px; }
+.case-suivi input { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); }
+.barre-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.barre-actions .meta { margin: 0 auto 0 0; }
+.barre-actions button.secondaire, .barre-actions .bouton-lien { min-height: 36px; font-size: 13.5px; }

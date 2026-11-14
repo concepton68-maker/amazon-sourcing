@@ -583,5 +583,14 @@
   "synchro.EXPLORATION": "Sondage des rayons",
   "synchro.HISTORIQUE": "Historique de marché",
   "rayon.statut.APPROBATION": "Sur approbation",
-  "vendable.statut": "Statut"
+  "vendable.statut": "Statut",
+  "filtre.tout": "Tout cocher",
+  "filtre.aucun": "Tout décocher",
+  "filtre.chercher": "Rechercher…",
+  "vendable.suivre_rayon": "Suivre le rayon {rayon} dans Marché",
+  "vendable.suivre_tous": "Suivre tous les rayons",
+  "vendable.suivis": "{n} rayons suivis dans Marché",
+  "vendable.suivre_accessibles": "Suivre les rayons accessibles ({n})",
+  "vendable.voir_marche": "Voir le suivi de marché",
+  "sm.premier_releve": "Famille suivie : premier relevé cette nuit (vers 4 h 15)."
 }
