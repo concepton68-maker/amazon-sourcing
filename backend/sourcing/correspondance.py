@@ -139,6 +139,7 @@ def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
             depot.ajouter_opportunites(compte_id, origine[0], mp.code, [opportunite(origine, mp.code, r)])
     progression(len(analysables), len(analysables), "ANALYSE")
     return {"le": maintenant.isoformat(), "candidats": len(asins), "correspondances": len(trouves),
+            "catalogues_cherches": len({f.id for lst in idx.values() for f, _ in lst}),         # [RM-AMZ-132]
             "fournisseurs": len(par_f), "catalogues": len({f.id for _, f, _ in trouves})}
 
 

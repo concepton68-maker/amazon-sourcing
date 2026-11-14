@@ -337,7 +337,7 @@ export interface ProduitRentable { origine: string; origine_nom: string; marketp
   prix_vente: number | null; profit: number | null; roi: number | null; marge: number | null; prix_achat_max: number | null;
   verdict: string | null; vendabilite: string; motif: string | null; bsr: number | null; nb_vendeurs: number | null;
   amazon_vend: boolean | null; rotation: number | null; historique_court: boolean; analyse_le: string | null }
-export interface ListeRentables { total: number; nombre: number; compteurs: Record<string, number>;
+export interface ListeRentables { total: number; nombre: number; catalogues: number; compteurs: Record<string, number>;
   origines: { cle: string; nom: string }[]; produits: ProduitRentable[] }
 export const lireRentables = (q: Record<string, string>) =>
   lire<ListeRentables>(`/api/opportunites?${new URLSearchParams(q).toString()}`);
@@ -350,8 +350,9 @@ export interface OffreAchat { fournisseur_id: string; fournisseur: string; reven
 export const ouAcheter = (asin: string, marketplace: string) =>
   lire<{ asin: string; codes: string[]; offres: OffreAchat[] }>(`/api/produits/${encodeURIComponent(marketplace)}/${encodeURIComponent(asin)}/ou-acheter`);
 export interface EtatCorrespondance { en_cours: boolean; progression: [number, number] | null; phase: string | null;
-  bilan: null | { le?: string; candidats?: number; correspondances?: number; fournisseurs?: number; erreur?: string } }
+  bilan: null | { le?: string; candidats?: number; correspondances?: number; fournisseurs?: number; catalogues_cherches?: number; erreur?: string } }
 export const lireCorrespondance = () => lire<EtatCorrespondance>("/api/correspondance");
+export const analyserTousCatalogues = () => requete<{ total: number; sautes: string[] }>("POST", "/api/fournisseurs/analyser-tout", {});
 export const lancerCorrespondance = () => requete<{ lancee: boolean }>("POST", "/api/correspondance", {});
 
 // Travaux de nuit lancés à la main [RM-AMZ-115]
@@ -361,7 +362,7 @@ export const lireSynchroManuelle = () => lire<{ taches: string[]; etat: EtatManu
 export const lancerSynchroManuelle = (taches: string[]) => requete<{ lancee: boolean }>("POST", "/api/synchro/manuelle", { taches });
 
 // Activités en cours [RM-AMZ-116]
-export interface Activite { type: "ANALYSE" | "CORRESPONDANCE" | "NUIT_MANUELLE"; nom: string | null; faits: number; total: number; phase?: string }
+export interface Activite { type: "ANALYSE" | "ANALYSE_TOUT" | "CORRESPONDANCE" | "NUIT_MANUELLE"; nom: string | null; faits: number; total: number; phase?: string }
 export const lireActivite = () => lire<{ activites: Activite[] }>("/api/activite");
 
 // Comparaison entre pays européens [RM-AMZ-117]
