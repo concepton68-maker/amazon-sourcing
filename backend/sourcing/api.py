@@ -1028,6 +1028,8 @@ def app_depuis_environnement() -> FastAPI:
         depot, c = construire()
         historique_demo(depot, c, jour_paris(datetime.now(timezone.utc)))
         d = FournisseurDemo()
+        depot.enregistrer_exploration(c, EX.en_json(EX.sonder(get_marketplace("FR"), Fournisseurs([d], d, d, d, d),
+                                                             attendre=lambda s: None), "FR", datetime.now(timezone.utc)))
         return creer_app(depot, c, demo=True, fournisseurs=Fournisseurs([d], d, d, d, d))
     if mode == "prod":
         url = os.environ.get("AMZ_DATABASE_URL")
