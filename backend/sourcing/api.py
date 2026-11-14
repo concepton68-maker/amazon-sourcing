@@ -648,6 +648,12 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(422, "REGION_DIFFERENTE")
         return {"marketplace": mp.code, "etapes": client.tester(mp)}
 
+    @app.get("/api/synchro/journal")
+    def journal_synchro(c: str = Depends(compte)):
+        """[RM-AMZ-080] 20 dernières tâches de nuit du compte."""
+        j = sorted(depot.journal_synchro(c), key=lambda r: r.debut, reverse=True)[:20]
+        return [{"tache": r.tache, "le": r.fin.isoformat(), "ok": r.ok, "message": r.message} for r in j]
+
     @app.delete("/api/connexions/{source}")
     def retirer_connexion(source: str, c: str = Depends(compte)):
         if not depot.supprimer_connexion(c, source):

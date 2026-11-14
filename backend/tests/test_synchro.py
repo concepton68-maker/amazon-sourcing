@@ -85,6 +85,16 @@ class TestSynchro(unittest.TestCase):
         self.assertNotIn(c, str(j))
         self.assertNotIn("ventes", str(j).lower().replace("ventes\"", "").replace("'ventes'", ""))
 
+    def test_journal_dans_parametres(self):
+        """[RM-AMZ-080] Le compte voit ses dernières tâches, les plus récentes d'abord."""
+        d, c = construire()
+        SN.executer_compte(c, Faux(panne="STOCK"), "EU", d, NUIT, attendre=lambda s: None)
+        for r in SN.executer_compte(c, Faux(panne="STOCK"), "EU", d, NUIT, attendre=lambda s: None):
+            d.journaliser_synchro(c, r)
+        j = TestClient(creer_app(d, c, servir_interface=False)).get("/api/synchro/journal").json()
+        self.assertEqual([(x["tache"], x["ok"]) for x in j][:3], [("REMBOURSEMENTS", True), ("STOCK", False), ("VENTES", True)])
+        self.assertIn("403", j[1]["message"])
+
     @unittest.skipUnless(PG, "AMZ_TEST_PG absent")
     def test_synchro_journal_postgres(self):
         """Curseur et journal en base (rôle de l'application) ; comptes connectés (propriétaire) ; état sans compte."""

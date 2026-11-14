@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Connexions, EtapeTest, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
+import { Connexions, EtapeTest, TacheSynchro, lireJournalSynchro, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
 import { dateCourte, t } from "./i18n";
 
 function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; maj: () => void }) {
@@ -54,6 +54,23 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
   );
 }
 
+function JournalSynchro() {
+  const [j, setJ] = useState<TacheSynchro[] | null>(null);
+  useEffect(() => { lireJournalSynchro().then(setJ).catch(() => setJ([])); }, []);
+  if (!j) return null;
+  return (
+    <section className="carte" aria-label={t("synchro.titre")}>
+      <h3>{t("synchro.titre")}</h3>
+      {j.length === 0 ? <p className="meta">{t("synchro.vide")}</p> : (
+        <ul className="test-connexion">{j.map((x, i) => (
+          <li key={i} className={x.ok ? "ok" : "ko"}>
+            <strong>{x.ok ? "✓" : "✗"} {t(`synchro.${x.tache}`)}</strong> <span className="meta">{new Date(x.le).toLocaleString("fr-FR")}</span>
+            {x.message && <div className="meta">{x.message}</div>}
+          </li>))}</ul>)}
+    </section>
+  );
+}
+
 export function ConnexionsVue() {
   const [c, setC] = useState<Connexions | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -65,6 +82,7 @@ export function ConnexionsVue() {
     <section aria-label={t("connexion.titre")}>
       <h2>{t("connexion.titre")}</h2>
       {!c.chiffrement && <p role="alert" className="alerte">{t("erreur.CHIFFREMENT_NON_CONFIGURE")}</p>}
+      <JournalSynchro />
       <div className="grille trois">{c.sources.map((s) => <Source key={s.source + (s.enregistree_le ?? "")} s={s} regions={c.regions} maj={maj} />)}</div>
     </section>
   );
