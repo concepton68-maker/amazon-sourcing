@@ -143,7 +143,7 @@ class ClientSPAPI:
         data = self._appel(
             mp, "GET", f"/catalog/2022-04-01/items/{asin}",
             params={"marketplaceIds": mp.marketplace_id,
-                    "includedData": "summaries,salesRanks,attributes,relationships"},
+                    "includedData": "summaries,salesRanks,attributes,relationships,dimensions"},
         )
         return parser_catalogue(asin, mp, data)
 
@@ -397,6 +397,22 @@ def _montant(obj: Optional[dict]) -> Optional[float]:
     return None if v is None else float(v)
 
 
+_CM = {"centimeters": 1.0, "millimeters": 0.1, "meters": 100.0, "inches": 2.54}
+_KG = {"kilograms": 1.0, "grams": 0.001, "pounds": 0.45359237, "ounces": 0.028349523125}
+
+
+def _longueur_cm(d: Optional[dict]) -> Optional[float]:
+    if not d or d.get("value") is None or str(d.get("unit", "")).lower() not in _CM:
+        return None
+    return round(float(d["value"]) * _CM[str(d["unit"]).lower()], 2)
+
+
+def _poids_kg(d: Optional[dict]) -> Optional[float]:
+    if not d or d.get("value") is None or str(d.get("unit", "")).lower() not in _KG:
+        return None
+    return round(float(d["value"]) * _KG[str(d["unit"]).lower()], 4)
+
+
 def parser_catalogue(asin: str, mp: Marketplace, data: dict) -> InfosCatalogue:
     info = InfosCatalogue(asin=asin)
     for s in data.get("summaries", []):
@@ -410,6 +426,8 @@ def parser_catalogue(asin: str, mp: Marketplace, data: dict) -> InfosCatalogue:
     for sr in data.get("salesRanks", []):
         if sr.get("marketplaceId") not in (None, mp.marketplace_id):
             continue
+        if sr.get("displayGroupRanks"):
+            info.groupe_affichage = sr["displayGroupRanks"][0].get("websiteDisplayGroup")
         rangs = sr.get("displayGroupRanks") or sr.get("classificationRanks") or []
         if rangs:
             info.bsr = int(rangs[0]["rank"])
@@ -423,6 +441,15 @@ def parser_catalogue(asin: str, mp: Marketplace, data: dict) -> InfosCatalogue:
                    for a in r.get("childAsins", []) or []}
         if enfants:
             info.nb_variantes = len(enfants)
+    for dm in data.get("dimensions", []) or []:                   # [RM-AMZ-096] colis
+        if dm.get("marketplaceId") not in (None, mp.marketplace_id):
+            continue
+        pk = dm.get("package") or {}
+        cotes = [_longueur_cm(pk.get(k)) for k in ("length", "width", "height")]
+        if all(c is not None for c in cotes):
+            info.dimensions_cm = tuple(cotes)
+        info.poids_kg = _poids_kg(pk.get("weight"))
+        break
     attrs = data.get("attributes") or {}
     for cle in ("number_of_items", "item_package_quantity"):
         vals = attrs.get(cle)

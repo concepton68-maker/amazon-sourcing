@@ -35,7 +35,7 @@ export interface Analyse {
   verdict: "ACHETER" | "A_VERIFIER" | "PASSER"; origine_prix: string; prix_vente: number | null;
   rentabilite: null | { prix_vente_ht: number; tva_collectee: number; cout_achat_net: number; frais_amazon: number;
     tva_frais: number; autres: number; profit: number; roi: number | null; marge: number | null;
-    prix_achat_max: number | null; roi_cible: number; regime_tva: string; hypotheses: Msg[] };
+    prix_achat_max: number | null; roi_cible: number; regime_tva: string; hypotheses: Msg[]; detail: Record<string, number> };
   frais_source: string | null;
   prudent: null | { prix_vente: number; profit: number; roi: number | null };
   offres: null | { nb_fba: number | null; nb_fbm: number | null; amazon_vend: boolean | null; buybox_amazon: boolean | null };
@@ -46,6 +46,7 @@ export interface Analyse {
 }
 export interface DemandeAnalyse {
   code: string; marketplace: string; prix_achat: number; achat_ttc: boolean; regime_tva: string; taux_tva: number | null;
+  port_fournisseur?: number | null;
 }
 
 async function envoyer<T>(url: string, corps: unknown): Promise<T> {
@@ -101,6 +102,7 @@ export const deconnecter = () =>
 export interface Params {
   roi_min: number; profit_min: number; ventes_mois_min: number; part_ventes_min: number; ecart_prix_max: number;
   envoi: number; preparation: number; stockage: number; retours: number; tva: Record<string, string>; versions: number;
+  port_fournisseur: number; placement: number; duree_stock_mois: number; carburant_inclus: number;
   delai_fournisseur: number; delai_reception: number; marge_securite: number; seuil_rupture: number; seuil_surstock: number;
 }
 export const lireParametres = () => lire<Params>("/api/parametres");

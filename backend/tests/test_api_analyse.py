@@ -66,8 +66,8 @@ class TestApiAnalyse(unittest.TestCase):
         self.assertEqual(j.status_code, 200)
         (a,) = j.json()["analyses"]
         self.assertEqual((a["asin"], a["verdict"], a["devise"], a["origine_prix"]), ("B0DEMO0001", "ACHETER", "EUR", "BUYBOX"))
-        self.assertAlmostEqual(a["rentabilite"]["profit"], 4.36)
-        self.assertAlmostEqual(a["rentabilite"]["prix_achat_max"], 9.89)
+        self.assertAlmostEqual(a["rentabilite"]["profit"], 4.28)   # 4,36 − supplément carburant 2 % × 4,15 [RM-AMZ-097]
+        self.assertAlmostEqual(a["rentabilite"]["prix_achat_max"], 9.83)   # (A − 0,083) ÷ 1,3
         self.assertEqual(a["raisons"][0]["code"], "R_TOUT_OK")
         self.assertTrue(a["jeton_analyse"])
 

@@ -183,6 +183,40 @@ officielles demandent d'être connecté à Seller Central.
 | 9 | **Serveur en Europe**, avant le premier client | Données des clients européens |
 | 10 | Plus tard : BigBuy, multi-clients payants, marque blanche, accès par MCP, collecteur à part alimenté par des API autorisées hors Amazon (fournisseurs, autres places de marché, bases de produits), Keepa après avis juridique | Croissance |
 
+## 7 bis. Le copilote (vision de Sam, 14/11/2026)
+
+L'outil ne donne pas des chiffres en vrac : il dit **quoi vendre, à quel prix, avec quel ROI et quelle rotation**,
+quoi vendre plus, quoi vendre moins, et quoi arrêter.
+
+**1. Des données fiables et en quantité.** Les fournisseurs branchés par API ou par fichier de prix sont la base.
+
+**2. Une liste d'opportunités classable** par marge, ROI, profit par unité ou profit mensuel probable.
+Pour chaque produit :
+- prix de vente conseillé ;
+- prix d'achat maximum ;
+- quantité ;
+- délai de revente.
+
+**3. Le plan proposé par l'outil, validé par l'humain.**
+- L'outil cherche, sélectionne et rend les produits éligibles à la vente.
+- Il propose un plan d'achat.
+- Le vendeur valide (« OK pour ce plan »). **Rien ne part sans cette validation.**
+
+**4. L'exécution suivie, étape par étape.**
+- Commande au fournisseur et paiement depuis le logiciel. Le moyen de paiement reste à choisir et à sécuriser.
+- Réception, préparation des lots et envoi vers Amazon.
+- Suivi des ventes jusqu'à l'encaissement.
+- À chaque étape, l'outil dit quoi faire.
+
+**5. Les courriels partent de la messagerie du vendeur**, qu'il connecte lui-même, comme dans la suite Syllig :
+demandes de prix et commandes. Jamais d'un serveur de l'outil.
+
+Lots correspondants, après le lot 6 :
+- **lot 6 bis** : plan d'achat proposé et validé ;
+- **lot 7 bis** : commande fournisseur et suivi des étapes ;
+- **lot 7 ter** : messagerie connectée ;
+- **plus tard** : paiement intégré, avec une étude réglementaire avant.
+
 ## 8. Décisions demandées à Sam
 
 1. Valider ce plan et l'ordre des lots.

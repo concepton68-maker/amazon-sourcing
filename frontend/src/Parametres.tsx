@@ -5,7 +5,7 @@ import { ConnexionsVue } from "./Connexions";
 
 const POURCENT = new Set(["roi_min", "ecart_prix_max", "retours"]);
 const SEUILS = ["roi_min", "profit_min", "ventes_mois_min", "part_ventes_min", "ecart_prix_max"] as const;
-const COUTS = ["envoi", "preparation", "stockage", "retours"] as const;
+const COUTS = ["port_fournisseur", "envoi", "preparation", "placement", "duree_stock_mois", "stockage", "retours"] as const;
 const STOCK = ["delai_fournisseur", "delai_reception", "marge_securite", "seuil_rupture", "seuil_surstock"] as const;
 type Cle = (typeof SEUILS)[number] | (typeof COUTS)[number] | (typeof STOCK)[number];
 
@@ -18,12 +18,13 @@ export function ParametresVue() {
   const [saisie, setSaisie] = useState<Record<string, string>>({});
   const [tva, setTva] = useState<Record<string, string>>({});
   const [etat, setEtat] = useState<string | null>(null);
+  const [carburantInclus, setCarburantInclus] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
     listerPlaces().then(setPlaces).catch(() => setErreur("chargement"));
     lireParametres().then((x) => {
-      setP(x); setTva(x.tva);
+      setP(x); setTva(x.tva); setCarburantInclus(x.carburant_inclus === 1);
       setSaisie(Object.fromEntries([...SEUILS, ...COUTS, ...STOCK].map((k) => [k, versSaisie(k, x[k])])));
     }).catch((e) => setErreur(e.message));
   }, []);
@@ -33,7 +34,7 @@ export function ParametresVue() {
     setErreur(null); setEtat(null);
     const valeurs = Object.fromEntries([...SEUILS, ...COUTS, ...STOCK].map((k) => [k, depuisSaisie(k, saisie[k] ?? "0")])) as Record<Cle, number>;
     try {
-      const r = await ecrireParametres({ ...valeurs, tva: Object.fromEntries(Object.entries(tva).filter(([, v]) => v !== "hors_taxe")) });
+      const r = await ecrireParametres({ ...valeurs, carburant_inclus: carburantInclus ? 1 : 0, tva: Object.fromEntries(Object.entries(tva).filter(([, v]) => v !== "hors_taxe")) });
       setP(r); setEtat(t("parametres.enregistre", { v: r.versions }));
     } catch (x) { setErreur((x as Error).message); }
   };
@@ -57,6 +58,9 @@ export function ParametresVue() {
       <div className="grille trois">
         <div className="carte"><h3>{t("parametres.seuils")}</h3>{SEUILS.map(champ)}</div>
         <div className="carte"><h3>{t("parametres.couts")}</h3>{COUTS.map(champ)}
+          <label className="ligne-reglage case-reglage"><span>{t("champ.carburant_inclus")}
+            <abbr title={t("champ.carburant_info")}> ⓘ</abbr></span>
+            <input type="checkbox" checked={carburantInclus} onChange={(e) => setCarburantInclus(e.target.checked)} /></label>
           <h3 className="sous-titre">{t("parametres.stock")}</h3>{STOCK.map(champ)}</div>
         <div className="carte"><h3>{t("parametres.tva")}</h3>
           <div className="liste-tva">

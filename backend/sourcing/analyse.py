@@ -6,9 +6,11 @@ Raisons, alertes et données non vérifiées sont des messages codés [RM-AMZ-02
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
+from datetime import date
 from typing import Any, Optional
 
+from . import frais_fba as FF
 from .marketplaces import Marketplace
 from .messages import Message, m
 from .profit import FraisAmazon, ParametresCout, ResultatRentabilite, calculer_rentabilite, estimer_frais
@@ -93,6 +95,9 @@ def analyser_asin(
     seuils: Seuils = Seuils(),
     prix_vente_force: Optional[float] = None,
     taux_tva_vente: Optional[float] = None,
+    duree_stock_mois: Optional[float] = None,
+    carburant_inclus: bool = False,
+    jour: Optional[date] = None,
 ) -> AnalyseProduit:
     nv: list[Message] = []
     alertes: list[Message] = []
@@ -130,12 +135,34 @@ def analyser_asin(
         prix, origine = hist.prix_buybox_moy90, "MOYENNE_90J"
 
     frais = rent = rent_prudente = None
+    # Coût complet [RM-AMZ-096] : stockage calculé si les dimensions du colis sont connues
+    jour = jour or date.today()
+    hyp_cout: list[Message] = []
+    if duree_stock_mois is not None:
+        st = FF.stockage(mp.code, cat.dimensions_cm, cat.poids_kg, cat.groupe_affichage, jour, duree_stock_mois)
+        if st is not None:
+            couts = replace(couts, stockage_estime=st["montant"])
+            hyp_cout.append(m("HYP_STOCKAGE_CALCULE", volume=round(st["volume_m3"] * 1000, 2), mois=duree_stock_mois,
+                              categorie=FF.LIBELLES[st["categorie"]], devise=mp.devise))
+        elif duree_stock_mois > 0:
+            hyp_cout.append(m("HYP_STOCKAGE_SAISI"))
+        if mp.code in FF.PLACES_EURO_M3:
+            hyp_cout.append(m("HYP_FRAIS_NON_INCLUS"))
+    taux_carb = FF.taux_carburant(mp.code, jour)
+
+    def avec_carburant(fr: FraisAmazon) -> FraisAmazon:          # [RM-AMZ-097]
+        if taux_carb and not carburant_inclus and fr.fba:
+            return replace(fr, carburant=round(fr.fba * taux_carb, 4))
+        return fr
+    if taux_carb:
+        hyp_cout.append(m("HYP_CARBURANT_INCLUS" if carburant_inclus else "HYP_CARBURANT", taux=taux_carb))
     if prix:
         if f.frais:
             frais = _essayer(lambda: f.frais.frais(mp, asin, prix), nv, "FRAIS")
         if frais is None:
             frais = estimer_frais(prix)
             nv.append(m("NV_FRAIS_ESTIMES"))
+        frais = avec_carburant(frais)
         rent = calculer_rentabilite(mp, prix, frais, couts, regime_tva, taux_tva_vente=taux_tva_vente,
                                     roi_cible=seuils.roi_min)
         moy = hist.prix_buybox_moy90 if hist else None
@@ -146,8 +173,12 @@ def analyser_asin(
             if frais_p is None:  # mise à l'échelle de la commission
                 ratio = moy / prix
                 frais_p = FraisAmazon(frais.commission * ratio, frais.fba, frais.cloture, frais.autres, frais.source)
+            frais_p = avec_carburant(replace(frais_p, carburant=0.0))
             rent_prudente = calculer_rentabilite(mp, moy, frais_p, couts, regime_tva,
                                                  taux_tva_vente=taux_tva_vente, roi_cible=seuils.roi_min)
+        rent.hypotheses.extend(hyp_cout)
+        if rent_prudente:
+            rent_prudente.hypotheses.extend(hyp_cout)
     else:
         nv.append(m("NV_PAS_DE_PRIX"))
 

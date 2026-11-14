@@ -47,6 +47,11 @@ FR: dict[str, str] = {
     "HYP_TVA_FRAIS_COUT": "TVA sur frais Amazon {taux:.1%} comptée comme coût",
     "HYP_FRAIS_NON_CONFIRMES": "Frais Amazon non confirmés par l'API ({source})",
     "HYP_PROVISION_RETOURS": "Provision retours {taux:.1%} du prix de vente",
+    "HYP_STOCKAGE_CALCULE": "Stockage calculé : colis {volume} L × {mois} mois, tarif {categorie} (grille Amazon du 2 nov. 2026)",
+    "HYP_STOCKAGE_SAISI": "Stockage : montant saisi (dimensions du colis inconnues)",
+    "HYP_CARBURANT": "Supplément carburant {taux:.0%} des frais FBA ajouté (inclusion dans l'estimation Amazon non vérifiée)",
+    "HYP_CARBURANT_INCLUS": "Supplément carburant {taux:.0%} supposé déjà inclus dans les frais Amazon",
+    "HYP_FRAIS_NON_INCLUS": "Non inclus : frais de faible stock (Pan-EU), frais de retour au-delà du seuil, stock ancien",
     # données non vérifiées
     "NV_SOURCE_ERREUR": "{source} : {detail}",
     "NV_PAS_SOURCE_OFFRES": "Offres et Buy Box non vérifiées",

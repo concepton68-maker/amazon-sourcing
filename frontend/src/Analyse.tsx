@@ -49,13 +49,18 @@ function Suivre({ asin, marketplace }: { asin: string; marketplace: string }) {
     onClick={() => suivreProduit(asin, marketplace).then(() => setFait(true))}>{fait ? `✓ ${t("sm.suivi")}` : `+ ${t("sm.suivre")}`}</button>;
 }
 
+const LIGNES = ["achat", "port_fournisseur", "envoi", "preparation", "placement", "commission", "fba", "cloture",
+  "frais_autres", "carburant", "tva_frais", "stockage", "retours", "autres"];
+
+// [RM-AMZ-095] coût complet ligne par ligne
 function Cascade({ a }: { a: Analyse }) {
   const r = a.rentabilite!, d = a.devise;
   const lignes: [string, number, string][] = [[t("calc.prix_ttc"), a.prix_vente ?? 0, "plus"]];
   if (r.tva_collectee) lignes.push([t("calc.tva"), -r.tva_collectee, "moins"]);
-  lignes.push([t("calc.frais"), -r.frais_amazon, "moins"], [t("calc.achat"), -r.cout_achat_net, "moins"]);
-  if (r.tva_frais) lignes.push([t("calc.tva_frais"), -r.tva_frais, "moins"]);
-  if (r.autres) lignes.push([t("calc.autres"), -r.autres, "moins"]);
+  for (const k of LIGNES) {
+    const v = r.detail?.[k] ?? 0;
+    if (v) lignes.push([t(k === "autres" ? "calc.autres_couts" : `calc.${k}`), -v, "moins"]);
+  }
   const max = Math.max(...lignes.map((l) => Math.abs(l[1])), Math.abs(r.profit), 0.01);
   return (
     <ul className="cascade">
@@ -146,6 +151,7 @@ export function AnalyseVue({ lotCree, initial }: { lotCree: (id: string) => void
   const [ttc, setTtc] = useState(false);
   const [regime, setRegime] = useState("assujetti");
   const [taux, setTaux] = useState("");
+  const [port, setPort] = useState("");
   const [analyses, setAnalyses] = useState<Analyse[]>([]);
   const [choix, setChoix] = useState(0);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -170,7 +176,8 @@ export function AnalyseVue({ lotCree, initial }: { lotCree: (id: string) => void
     setErreur(null); setEncours(true); setAnalyses([]);
     try {
       const r = await analyser({ code: code.trim(), marketplace: place, prix_achat: Number(prix.replace(",", ".")),
-        achat_ttc: ttc, regime_tva: regime, taux_tva: taux ? Number(taux.replace(",", ".")) / 100 : null });
+        achat_ttc: ttc, regime_tva: regime, taux_tva: taux ? Number(taux.replace(",", ".")) / 100 : null,
+        port_fournisseur: port ? Number(port.replace(",", ".")) : null });
       setAnalyses(r.analyses); setChoix(0);
     } catch (x) { setErreur((x as Error).message); }
     finally { setEncours(false); }
@@ -196,6 +203,9 @@ export function AnalyseVue({ lotCree, initial }: { lotCree: (id: string) => void
           <select value={regime} onChange={(e) => setRegime(e.target.value)}>
             {REGIMES.map((r) => <option key={r} value={r}>{t(`regime.${r}`)}</option>)}
           </select></label>
+        <label className="etroit">{t("analyse.port")}
+          <input type="text" inputMode="decimal" placeholder={params ? String(params.port_fournisseur).replace(".", ",") : ""}
+            value={port} onChange={(e) => setPort(e.target.value)} /></label>
         <label className="etroit">{t("analyse.taux")}
           <input type="text" inputMode="decimal" value={taux} onChange={(e) => setTaux(e.target.value)} /></label>
         <button type="submit" className="principal" disabled={encours}>{encours ? t("analyse.en_cours") : t("analyse.lancer")}</button>
