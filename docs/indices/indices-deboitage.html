@@ -99,17 +99,18 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
 
 <script type="application/json" id="donnees">
 {
-  "maj": "14/11/2026, 15 h 40 (Paris)",
+  "maj": "14/11/2026, 16 h 00 (Paris)",
   "strates": [
     {"id": "s0", "nom": "Avant le chantier (estimé)", "date": "14/11 matin"},
     {"id": "s1", "nom": "Chantier concurrence 1 à 4 (PR #45 à #48)", "date": "14/11"},
     {"id": "s2", "nom": "Plan d'achat, bon PDF (PR #49)", "date": "14/11"},
-    {"id": "s3", "nom": "Bon envoyé depuis la messagerie (PR #53)", "date": "14/11"}
+    {"id": "s3", "nom": "Bon envoyé depuis la messagerie (PR #53)", "date": "14/11"},
+    {"id": "s4", "nom": "Analyse de tous les catalogues, avancement en direct (PR #57, #58)", "date": "14/11"}
   ],
   "domaines": [
     {"nom": "Éligibilité", "notes": {"s0": 7, "s1": 8.5}, "eux": 8, "qui": "Seller Assistant (outil tiers) ; Boxem (outil tiers, États-Unis seulement)",
      "fait": "Sondage de nuit avec alerte « débloqué », vérification en masse, lien « Demander l'autorisation ».", "manque": "Aucun automatisme d'approbation (pas d'API chez Amazon)."},
-    {"nom": "Trouver des produits", "notes": {"s0": 4}, "eux": 9, "qui": "SmartScout, Helium 10, Keepa",
+    {"nom": "Trouver des produits", "notes": {"s0": 4, "s4": 4.5}, "eux": 9, "qui": "SmartScout, Helium 10, Keepa",
      "fait": "Suivi de marché, produits rentables, exploration de nuit, analyse de tous les catalogues en un geste.", "manque": "Recherche par marque et par vitrine ; pas de Keepa (choix)."},
     {"nom": "Fournisseurs", "notes": {"s0": 8}, "eux": 7, "qui": "Seller Assistant, Tactical Arbitrage (outils tiers)",
      "fait": "Annuaire UE sourcé, catalogues, « Où l'acheter », correspondance de nuit.", "manque": "Aucun fournisseur branché par API."},
@@ -125,7 +126,7 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
      "fait": "Prix plancher, envoi au repricer gratuit d'Amazon avec validation, contrôle de nuit.", "manque": "Pas essayé sur une vraie offre ; alertes Buy Box en temps réel."},
     {"nom": "Après-vente", "notes": {"s0": 6.5, "s1": 7}, "eux": 8, "qui": "sellerboard, Helium 10",
      "fait": "Profit réel, FIFO, réassort, remboursements, conformité, alerte sous plancher.", "manque": "Alertes temps réel ; demande d'avis automatique."},
-    {"nom": "Autonomie et temps réel", "notes": {"s0": 8}, "eux": 6, "qui": "sellerboard, Seller Assistant (outils tiers)",
+    {"nom": "Autonomie et temps réel", "notes": {"s0": 8, "s4": 8.5}, "eux": 6, "qui": "sellerboard, Seller Assistant (outils tiers)",
      "fait": "Travaux de nuit relançables avec avancement réel, résultats au fil de l'eau.", "manque": "Objectifs, journal du pilote, plan d'achat proposé chaque matin, notifications Amazon."},
     {"nom": "Confiance et conformité", "notes": {"s0": 9}, "eux": 5, "qui": "Outils adossés à Keepa ou à des bases aspirées",
      "fait": "Données du compte seulement, sans aspiration ni revente, valeurs sourcées.", "manque": "Serveur en Europe avant le premier client."}
@@ -138,6 +139,7 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
     {"quoi": "Premier fournisseur branché par API (Qogita)", "effet": "Fournisseurs 8 → 9"}
   ],
   "historique": [
+    {"strate": "s4", "quoi": "Trouver 4 → 4,5 et Autonomie 8 → 8,5 : analyse de tous les catalogues en un geste, avancement en direct des travaux (rapport n sur 3, dernière nouvelle), mise à jour du site qui attend la fin d'un travail."},
     {"strate": "s3", "quoi": "Acheter 7 → 8 : bon envoyé depuis la messagerie Microsoft, traces, jamais de renvoi incertain (PR #53)."},
     {"strate": "s2", "quoi": "Acheter 6 → 7 : plan d'achat et bon de commande en PDF et Excel (PR #49)."},
     {"strate": "s1", "quoi": "Chantier 1 à 4 : multi-pays, demande et Buy Box, éligibilité en masse, prix plancher."},

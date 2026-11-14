@@ -12,6 +12,14 @@ cd "$DOSSIER" || exit 1
 git fetch -q origin main || { log "fetch impossible"; exit 1; }
 AVANT=$(git rev-parse HEAD); APRES=$(git rev-parse origin/main)
 [ "$AVANT" = "$APRES" ] && exit 0
+# [RM-AMZ-135] un travail tourne : la mise à jour attend (3 h au plus)
+REPORT="$DOSSIER/deploy/etat/report-maj.txt"
+if curl -fsS http://127.0.0.1:8830/api/occupe 2>/dev/null | grep -q '"occupe":true'; then
+  [ -f "$REPORT" ] || date -u +%s > "$REPORT"
+  if [ $(( $(date -u +%s) - $(cat "$REPORT") )) -lt 10800 ]; then log "mise à jour reportée : un travail tourne"; exit 0; fi
+  log "mise à jour forcée après 3 h de report"
+fi
+rm -f "$REPORT"
 repond() { for i in $(seq 1 40); do curl -fsS http://127.0.0.1:8830/api/sante >/dev/null 2>&1 && return 0; sleep 3; done; return 1; }
 log "nouvelle version $APRES (était $AVANT)"
 git checkout -q --detach "$APRES"

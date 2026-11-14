@@ -446,6 +446,17 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         """Contrôle de santé (Docker, surveillance) : public, ne révèle rien."""
         return {"ok": True}
 
+    @app.get("/api/occupe")
+    def occupe():
+        """[RM-AMZ-135] Un travail tourne-t-il ? (lu par la mise à jour automatique ; ne dit ni qui ni quoi)."""
+        actifs = (any(e.get("en_cours") for e in manuelles.etats.values())
+                  or any(t.statut == "EN_COURS" for t in list(traitements._t.values()))
+                  or bool(correspondances.en_cours) or bool(explorations.en_cours)
+                  or any(e.get("en_cours") for e in list(verifications.etats.values()))
+                  or any(e.get("en_cours") for e in list(analyses_globales.values()))
+                  or bool(verrous_ms._en_cours))
+        return {"occupe": bool(actifs)}
+
     # ------------------------------------------------------------- session [RM-AMZ-037, 038]
     @app.post("/api/session")
     def connexion(d: DemandeConnexion):
