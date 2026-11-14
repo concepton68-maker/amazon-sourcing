@@ -1,6 +1,6 @@
 # Syllig Vente — état courant (à lire EN PREMIER à chaque reprise)
 
-Mis à jour le 14/11/2026, 12 h 20 (heure de Paris). **À mettre à jour dans la même livraison que chaque changement**
+Mis à jour le 14/11/2026, 13 h 05 (heure de Paris). **À mettre à jour dans la même livraison que chaque changement**
 (D-AMZ-029). Aucun secret ici.
 
 ## 1. Où en est le site
@@ -42,7 +42,7 @@ Mis à jour le 14/11/2026, 12 h 20 (heure de Paris). **À mettre à jour dans la
 | (lot prix-plancher) | Chantier concurrence 4/5 : prix plancher (analyse), repricer gratuit d'Amazon depuis Stock (validation obligatoire), tâche de nuit PRIX et alerte sous plancher | RM-AMZ-122 à 124 | — (pas d'offre en ligne pour l'essayer) |
 
 Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 124) · décisions `docs/decisions/registre.md`
-(D-AMZ-001 à 029).
+(D-AMZ-001 à 030).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)
 
@@ -71,6 +71,9 @@ Index : `docs/recherches/README.md`.
   ne peut pas vendre, avec une indication claire (vendable sûr / probable / improbable / non vendable sûr / inconnu).
 - **Pas d'aspiration de pages** (D-AMZ-027), **pas de Keepa pour Sam** (D-AMZ-026), **pas de revente de données
   Amazon** (règlement SP-API 4.3 et 4.4).
+- **Indices de déboîtage** (D-AMZ-030, pour Sam seul, hors application) : https://claude.ai/artifact/UjiGRcjK2FnL99xcVUFbL8 ,
+  source `docs/indices/indices-deboitage.html`. **À republier à la même adresse dans chaque livraison qui change une note**
+  (bloc `donnees` : note, fait, manque, gains, historique).
 - **Traçabilité** : chaque recherche est enregistrée dans `docs/recherches/`, chaque livraison dans ce fichier.
 
 ## 5. Vision (plan `docs/strategie/plan-action.md`, section 7 bis « copilote »)
