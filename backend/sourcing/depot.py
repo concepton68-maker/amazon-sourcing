@@ -237,6 +237,15 @@ class DepotMemoire:
     def enregistrer_opportunites(self, compte_id: str, origine: str, origine_nom: str, marketplace: str, ops) -> None:
         self._opportunites[(compte_id, origine, marketplace)] = list(ops)
 
+    def vider_opportunites(self, compte_id: str, origine: str, marketplace: str) -> None:
+        self._opportunites.pop((compte_id, origine, marketplace), None)
+
+    def ajouter_opportunites(self, compte_id: str, origine: str, marketplace: str, ops) -> None:
+        """[RM-AMZ-116] Ajout au fil de l'eau (même produit : remplacé)."""
+        l = self._opportunites.setdefault((compte_id, origine, marketplace), [])
+        cles = {(o.code, o.asin) for o in ops}
+        l[:] = [o for o in l if (o.code, o.asin) not in cles] + list(ops)
+
     def opportunites(self, compte_id: str) -> list:
         return [o for (c, _, _), l in self._opportunites.items() if c == compte_id for o in l]
 

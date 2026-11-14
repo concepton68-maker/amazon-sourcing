@@ -168,6 +168,13 @@ def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs,
     seuils = seuils or Seuils()
     t.rejets, t.doublons = prep.rejets, prep.doublons
     maintenant = datetime.now(timezone.utc)
+    direct = bool(t.origine) and hasattr(depot, "ajouter_opportunites")        # [RM-AMZ-116]
+    if direct:
+        depot.vider_opportunites(t.compte_id, t.origine[0], mp.code)
+
+    def ranger(r):
+        if direct and r.statut == "ANALYSEE" and r.asin:
+            depot.ajouter_opportunites(t.compte_id, t.origine[0], mp.code, [opportunite(t.origine, mp.code, r)])
     try:
         for l in prep.lignes:
             try:
@@ -183,9 +190,10 @@ def executer(t: Traitement, prep: Preparation, mp: Marketplace, f: Fournisseurs,
                                                  statut="INTROUVABLE"))
             for asin in asins:                    # un code peut donner plusieurs listings (lots, variantes)
                 t.resultats.append(_ligne(l, mp, asin, f, regime, seuils, achat_ttc, parametres))
+                ranger(t.resultats[-1])
             t.faits += 1
         t.statut = "TERMINE"
-        if t.origine and hasattr(depot, "enregistrer_opportunites"):          # [RM-AMZ-105]
+        if t.origine and not direct and hasattr(depot, "enregistrer_opportunites"):   # [RM-AMZ-105]
             depot.enregistrer_opportunites(t.compte_id, t.origine[0], t.origine[1], mp.code,
                                            [opportunite(t.origine, mp.code, r) for r in t.resultats
                                             if r.statut == "ANALYSEE" and r.asin])
@@ -221,6 +229,9 @@ class Traitements:
             travail()
         except Exception:
             pass  # le statut ERREUR est déjà posé sur le traitement
+
+    def en_cours(self, compte_id: str) -> list[Traitement]:
+        return [t for t in self._t.values() if t.compte_id == compte_id and t.statut == "EN_COURS"]
 
     def obtenir(self, compte_id: str, tid: str) -> Optional[Traitement]:
         t = self._t.get(tid)

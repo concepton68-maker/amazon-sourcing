@@ -459,6 +459,23 @@ class DepotPostgres:
                                   o.prix_achat_max, o.verdict, o.vendabilite, o.motif, o.bsr, o.nb_vendeurs,
                                   o.amazon_vend, o.analyse_le) for o in ops])
 
+    def vider_opportunites(self, compte_id: str, origine: str, marketplace: str) -> None:
+        self._executer(compte_id, "DELETE FROM amz.opportunites WHERE origine = %s AND marketplace = %s",
+                       (origine, marketplace))
+
+    def ajouter_opportunites(self, compte_id: str, origine: str, marketplace: str, ops) -> None:
+        """[RM-AMZ-116] Ajout au fil de l'eau (même produit : remplacé)."""
+        c = _uuid(compte_id)
+        cols = self._COLS_OP.replace(" ", "").split(",")
+        maj = ", ".join(f"{k} = EXCLUDED.{k}" for k in cols if k not in ("origine", "marketplace", "code", "asin"))
+        self._executer_lignes(compte_id, f"INSERT INTO amz.opportunites (compte_id, {self._COLS_OP}) VALUES "
+                              "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                              f"ON CONFLICT (compte_id, origine, marketplace, code, asin) DO UPDATE SET {maj}",
+                              [(c, origine, o.origine_nom, marketplace, o.code, o.asin, o.titre, o.designation,
+                                o.prix_achat, o.unites_lot, o.cout_achat, o.prix_vente, o.profit, o.roi, o.marge,
+                                o.prix_achat_max, o.verdict, o.vendabilite, o.motif, o.bsr, o.nb_vendeurs,
+                                o.amazon_vend, o.analyse_le) for o in ops])
+
     def opportunites(self, compte_id: str) -> list:
         from .opportunites import Opportunite
         rows = self._executer(compte_id, f"SELECT {self._COLS_OP} FROM amz.opportunites")

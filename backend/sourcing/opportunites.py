@@ -85,3 +85,22 @@ def filtrer_trier(ops: list[Opportunite], c: Criteres) -> list[Opportunite]:
     sans = [o for o in gardes if getattr(o, c.tri) is None]
     avec.sort(key=lambda o: (getattr(o, c.tri), o.asin), reverse=c.decroissant)
     return avec + sans
+
+
+def _date(o: Opportunite) -> datetime:
+    from datetime import timezone
+    d = o.analyse_le or datetime.min.replace(tzinfo=timezone.utc)
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
+def sans_doublon(ops: list[Opportunite]) -> list[Opportunite]:
+    """[RM-AMZ-105] Même fournisseur, même code, même ASIN, même place : le plus récent seulement."""
+    def cle(o):
+        f = o.origine.split(":", 1)[1] if o.origine.startswith(("FOURNISSEUR:", "CORRESPONDANCE:")) else o.origine
+        return (f, o.marketplace, o.code, o.asin)
+    garde: dict = {}
+    for o in ops:
+        k = cle(o)
+        if k not in garde or _date(o) > _date(garde[k]):
+            garde[k] = o
+    return list(garde.values())

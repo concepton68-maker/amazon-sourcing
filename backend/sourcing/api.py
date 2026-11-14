@@ -913,13 +913,27 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             raise HTTPException(409, "CORRESPONDANCE_EN_COURS")
         return {"lancee": True}
 
+    # ------------------------------------------------------------- activités en cours [RM-AMZ-116]
+    @app.get("/api/activite")
+    def activite(c: str = Depends(compte)):
+        out = []
+        for t in traitements.en_cours(c):
+            out.append({"type": "ANALYSE", "nom": t.origine[1] if t.origine else None, "faits": t.faits, "total": t.total})
+        prog = correspondances.en_cours.get(c)
+        if prog:
+            out.append({"type": "CORRESPONDANCE", "nom": None, "faits": prog[0], "total": prog[1], "phase": prog[2]})
+        e = manuelles.etats.get(c)
+        if e and e.get("en_cours"):
+            out.append({"type": "NUIT_MANUELLE", "nom": e.get("courante"), "faits": len(e["terminees"]), "total": len(e["taches"])})
+        return {"activites": out}
+
     # ------------------------------------------------------------- produits rentables [RM-AMZ-105 à 108]
     @app.get("/api/opportunites")
     def opportunites(tri: str = "profit", ordre: str = "desc", vendabilite: Optional[str] = None,
                      roi_min: Optional[float] = None, profit_min: Optional[float] = None,
                      marge_min: Optional[float] = None, origine: Optional[str] = None, verdict: Optional[str] = None,
                      amazon_absent: bool = False, c: str = Depends(compte)):
-        ops = depot.opportunites(c)
+        ops = OP.sans_doublon(depot.opportunites(c))
         jour = H.jour_paris(datetime.now(timezone.utc))
         par_place: dict[str, list] = {}
         for o in ops:

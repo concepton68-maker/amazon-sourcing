@@ -127,14 +127,16 @@ def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
     par_f: dict[str, list] = {}
     seuils = parametres.seuils() if parametres else Seuils()
     analysables = [(a, f, l) for a, f, l in trouves if A.analysable(f)]
+    for fid in {f.id for lst in idx.values() for f, _ in lst}:          # l'ancienne correspondance est retirée
+        depot.vider_opportunites(compte_id, f"CORRESPONDANCE:{fid}", mp.code)
     for k, (a, f, l) in enumerate(analysables):                      # [RM-AMZ-114] rangés au fil de l'eau
         progression(k, len(analysables), "ANALYSE")
         r = _ligne(LigneFournisseur(l.numero, l.code, l.prix_unitaire, l.designation, l.colisage, l.minimum), mp, a,
                    fx, regime, seuils, False, _parametres_fournisseur(parametres, f))
-        par_f.setdefault(f.id, []).append(r)
         origine = (f"CORRESPONDANCE:{f.id}", f"{f.nom} · correspondance Amazon")
-        depot.enregistrer_opportunites(compte_id, origine[0], origine[1], mp.code,
-                                       [opportunite(origine, mp.code, x) for x in par_f[f.id] if x.statut == "ANALYSEE"])
+        par_f.setdefault(f.id, []).append(r)
+        if r.statut == "ANALYSEE":
+            depot.ajouter_opportunites(compte_id, origine[0], mp.code, [opportunite(origine, mp.code, r)])
     progression(len(analysables), len(analysables), "ANALYSE")
     return {"le": maintenant.isoformat(), "candidats": len(asins), "correspondances": len(trouves),
             "fournisseurs": len(par_f), "catalogues": len({f.id for _, f, _ in trouves})}

@@ -754,5 +754,9 @@
   "manuel.en_cours_n": "En cours {f}/{t}…",
   "manuel.fini": "Dernier lancement manuel terminé le {date}",
   "erreur.TACHE_INCONNUE": "Choisissez au moins une tâche",
-  "erreur.SYNCHRO_EN_COURS": "Des travaux sont déjà en cours"
+  "erreur.SYNCHRO_EN_COURS": "Des travaux sont déjà en cours",
+  "activite.ANALYSE": "Analyse du catalogue {nom} : {f}/{t}",
+  "activite.CORRESPONDANCE": "Recherche chez vos fournisseurs : {f}/{t}",
+  "activite.NUIT_MANUELLE": "Travaux lancés à la main ({nom}) : {f}/{t}",
+  "activite.direct": "Les produits trouvés s'ajoutent à la liste en direct."
 }

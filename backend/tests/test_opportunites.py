@@ -67,10 +67,10 @@ class TestOpportunites(unittest.TestCase):
             "EAN;Prix HT\n3700000000017;8,50\n".encode()), "text/csv")}).json()
         cl.post(f"/api/fournisseurs/{fid}/catalogue", json={"fichier_id": f["fichier_id"], "colonnes": f["colonnes"]})
         cl.post(f"/api/fournisseurs/{fid}/analyse", json={})
-        cat = lambda: [p for p in cl.get("/api/opportunites").json()["produits"] if p["origine"].startswith("FOURNISSEUR:")]  # noqa: E731
+        cat = lambda: [o for o in d.opportunites(c) if o.origine.startswith("FOURNISSEUR:")]  # noqa: E731
         self.assertEqual(len(cat()), 1)
         charger(cl, "Grossiste P2")
-        self.assertEqual((len(cat()), len({p["origine"] for p in cat()})), (4, 2))
+        self.assertEqual((len(cat()), len({o.origine for o in cat()})), (4, 2))
 
     def test_tri_filtres(self):
         """[RM-AMZ-107] Tri dans les deux sens, valeurs absentes en dernier ; filtres cumulés ; rien caché par défaut."""
@@ -94,6 +94,16 @@ class TestOpportunites(unittest.TestCase):
         self.assertEqual(cl.get("/api/opportunites?vendabilite=PEUT_ETRE").status_code, 422)
         self.assertEqual(cl.get("/api/opportunites?tri=couleur").status_code, 422)
 
+    def test_sans_doublon_fournisseur(self):
+        """[RM-AMZ-105] Catalogue et correspondance du même fournisseur : une seule ligne, la plus récente."""
+        from datetime import datetime, timezone
+        t1, t2 = datetime(2026, 11, 14, 9, tzinfo=timezone.utc), datetime(2026, 11, 14, 10, tzinfo=timezone.utc)
+        a = OP.Opportunite("FOURNISSEUR:f1", "F", "FR", "370", "B01", profit=3.0, analyse_le=t1)
+        b = OP.Opportunite("CORRESPONDANCE:f1", "F · corr", "FR", "370", "B01", profit=4.0, analyse_le=t2)
+        autre = OP.Opportunite("FOURNISSEUR:f2", "G", "FR", "370", "B01", profit=2.0, analyse_le=t1)
+        r = OP.sans_doublon([a, b, autre])
+        self.assertEqual(sorted((o.origine, o.profit) for o in r), [("CORRESPONDANCE:f1", 4.0), ("FOURNISSEUR:f2", 2.0)])
+
     def test_rotation_opportunites(self):
         """[RM-AMZ-108] Rotation affichée seulement avec au moins 7 relevés."""
         d, c, cl = client()
@@ -112,3 +122,41 @@ class TestOpportunites(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTempsReel(unittest.TestCase):
+    def test_temps_reel_traitement(self):
+        """[RM-AMZ-116] Chaque produit analysé est rangé aussitôt ; l'ancien résultat de l'origine est retiré au départ."""
+        d, c, cl = client()
+        fid = charger(cl)
+        vus = []
+        ajout = d.ajouter_opportunites
+        d.ajouter_opportunites = lambda *a: (vus.append(len([o for o in d.opportunites(c) if o.origine == a[1]])), ajout(*a))[1]
+        cl.post(f"/api/fournisseurs/{fid}/analyse", json={})
+        self.assertEqual(vus, [0, 1, 2])                    # vidé au départ, puis un par un
+
+    def test_activite(self):
+        """[RM-AMZ-116] Ce qui tourne est visible pendant l'exécution, puis disparaît."""
+        import threading
+        import time as _t
+        d, c = construire()
+        d.enregistrer_connexion(c, "SPAPI", b"factice")
+        attente, entre = threading.Event(), threading.Event()
+
+        class Bloque:
+            def participations(self, mp):
+                entre.set()
+                attente.wait(5)
+                return []
+        cl = TestClient(creer_app(d, c, servir_interface=False, traitement_en_fond=True, fabrique_spapi=lambda v: Bloque()))
+        self.assertEqual(cl.get("/api/activite").json()["activites"], [])
+        self.assertEqual(cl.post("/api/synchro/manuelle", json={"taches": ["VENTES", "STOCK"]}).status_code, 202)
+        self.assertTrue(entre.wait(5))
+        a = cl.get("/api/activite").json()["activites"]
+        self.assertEqual((a[0]["type"], a[0]["total"]), ("NUIT_MANUELLE", 2))
+        attente.set()
+        for _ in range(50):
+            if not cl.get("/api/activite").json()["activites"]:
+                break
+            _t.sleep(0.05)
+        self.assertEqual(cl.get("/api/activite").json()["activites"], [])
