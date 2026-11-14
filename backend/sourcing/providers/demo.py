@@ -42,6 +42,16 @@ class FournisseurDemo:
     def catalogue(self, mp, asin):
         return _PRODUITS[asin]["cat"]
 
+    def rechercher(self, mp, mots, taille=20):
+        """Démo [RM-AMZ-084] : produits fictifs générés à partir des mots-clés."""
+        out = []
+        for k in range(taille):
+            code = "200" + str(int(hashlib.sha256(f"{mots}:{k}".encode()).hexdigest(), 16) % 10**9).zfill(9) + "0"
+            p = _genere(code)
+            _PRODUITS.setdefault(p["cat"].asin, p)
+            out.append(p["cat"])
+        return out
+
     def offres(self, mp, asin):
         return _PRODUITS[asin]["off"]
 

@@ -185,6 +185,14 @@ class ContratDepot:
         self.assertTrue(self.d.supprimer_connexion(A, "KEEPA"))
         self.assertEqual(self.d.connexions(A), {})
 
+    def test_exploration_par_compte(self):
+        """[RM-AMZ-085] Dernier sondage relu, remplacé, propre au compte."""
+        self.assertIsNone(self.d.exploration(A))
+        self.d.enregistrer_exploration(A, {"le": "2026-11-14", "rayons": [{"code": "CUISINE"}]})
+        self.d.enregistrer_exploration(A, {"le": "2026-11-15", "rayons": []})
+        self.assertEqual(self.d.exploration(A)["le"], "2026-11-15")
+        self.assertIsNone(self.d.exploration(B))
+
 
 class TestDepotMemoire(ContratDepot, unittest.TestCase):
     def setUp(self):

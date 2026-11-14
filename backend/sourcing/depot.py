@@ -40,6 +40,7 @@ class DepotMemoire:
         self._connexions: dict[tuple[str, str], object] = {}
         self._curseurs: dict[tuple[str, str], datetime] = {}
         self._journal: list[tuple[str, object]] = []
+        self._explorations: dict[str, dict] = {}
 
     # -------------------------------------------------------------- écriture
     def creer_compte(self, compte_id: str, nom: str) -> None:
@@ -210,6 +211,13 @@ class DepotMemoire:
                 out[r.tache] = (r.fin, r.ok)
         return out
 
+    # -------------------------------------------------------------- exploration [RM-AMZ-085]
+    def enregistrer_exploration(self, compte_id: str, resultat: dict) -> None:
+        self._explorations[compte_id] = resultat
+
+    def exploration(self, compte_id: str) -> Optional[dict]:
+        return self._explorations.get(compte_id)
+
     # -------------------------------------------------------------- retrait d'autorisation
     def revoquer(self, compte_id: str, jour: date) -> date:
         """Enregistre le retrait (la première date compte) ; renvoie la date limite de suppression."""
@@ -239,5 +247,6 @@ class DepotMemoire:
             self._connexions = {k: v for k, v in self._connexions.items() if k[0] != c}
             self._curseurs = {k: v for k, v in self._curseurs.items() if k[0] != c}
             self._journal = [x for x in self._journal if x[0] != c]
+            self._explorations.pop(c, None)
             del self._revocations[c]
         return purges
