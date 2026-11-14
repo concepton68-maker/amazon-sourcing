@@ -110,7 +110,7 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
 
 <script type="application/json" id="donnees">
 {
-  "maj": "14/11/2026, 13 h 00 (Paris)",
+  "maj": "14/11/2026, 14 h 40 (Paris)",
   "domaines": [
     {"id": "elig", "nom": "Éligibilité", "nous": 8.5, "eux": 8, "qui": "Seller Assistant (20 000 ASIN d'un coup), Boxem (ungating auto, US)",
      "fait": "Sondage de nuit des rayons avec alerte « débloqué » (introuvable chez les 14 outils lus), vérification en masse sur fichier, lien « Demander l'autorisation » d'Amazon (PR #40, #47).",
@@ -127,9 +127,9 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
     {"id": "demande", "nom": "Demande, historique, Buy Box", "nous": 4, "eux": 9, "qui": "Keepa (ventes/mois, historique), SmartScout (Buy Box Map)",
      "fait": "Relevés de nuit maison : baisses de BSR, stabilité du prix, présence d'Amazon, détenteur de la Buy Box, profondeur affichée (PR #29, #46).",
      "manque": "Historique ancien impossible sans Keepa ; il se construit nuit après nuit."},
-    {"id": "acheter", "nom": "Acheter", "nous": 6, "eux": 7, "qui": "Seller Assistant (bon de commande en un clic, PDF/XLSX)",
-     "fait": "Bons de commande, lots, prévu/réel par lot (exclusif dans le panel).",
-     "manque": "Envoi du bon au fournisseur depuis la messagerie connectée (chantier 5)."},
+    {"id": "acheter", "nom": "Acheter", "nous": 7, "eux": 7, "qui": "Seller Assistant (bon de commande en un clic, PDF/XLSX)",
+     "fait": "Plan d'achat depuis les produits rentables (un bon par fournisseur, quantité proposée), bon en PDF et Excel, lots, prévu/réel par lot (exclusif dans le panel) (PR #49).",
+     "manque": "Envoi du bon au fournisseur depuis la messagerie connectée (chantier 5, partie 2)."},
     {"id": "fba", "nom": "Envoi chez Amazon", "nous": 0, "eux": 7, "qui": "Seller Assistant (bon → prep → envoi FBA) ; InventoryLab, Boxem (US seulement)",
      "fait": "Rien encore.",
      "manque": "Création d'envoi par l'API Inbound 2024-03-20, étiquettes, placement réel repris dans le profit (chantier 5)."},
@@ -147,13 +147,14 @@ ul.liste li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-i
      "manque": "Serveur à déplacer en Europe avant le premier client."}
   ],
   "gains": [
-    {"quoi": "Chantier 5 : bon envoyé au fournisseur, envoi FBA par l'API", "effet": "Envoi chez Amazon 0 → 6 · Acheter 6 → 8"},
+    {"quoi": "Chantier 5, suite : bon envoyé depuis la messagerie, envoi FBA par l'API", "effet": "Acheter 7 → 8 · Envoi chez Amazon 0 → 6"},
     {"quoi": "Prix plancher essayé sur une vraie offre", "effet": "Vendre et prix 5 → 6"},
     {"quoi": "Alertes Buy Box et nouveaux vendeurs sur le stock", "effet": "Après-vente 7 → 8 · Vendre 6 → 7"},
     {"quoi": "Premier fournisseur branché par API (Qogita)", "effet": "Fournisseurs 8 → 9"},
     {"quoi": "Découverte par marque depuis nos relevés", "effet": "Trouver des produits 4 → 5"}
   ],
   "historique": [
+    {"date": "14/11", "quoi": "Acheter 6 → 7 : plan d'achat et bon de commande en PDF et Excel (PR #49)."},
     {"date": "14/11", "quoi": "Création. Chantier concurrence 1 à 4 livrés (multi-pays, demande et Buy Box, éligibilité en masse, prix plancher)."}
   ]
 }
