@@ -247,3 +247,33 @@ class TestArret(unittest.TestCase):
         r = SN.executer_compte(c, Faux(), "EU", d, NUIT, attendre=lambda s: None, taches={"REMBOURSEMENTS"},
                                arret=iter([False, True, True, True, True]).__next__)
         self.assertEqual(r[0].message, "arrêtée")
+
+
+class TestArretLongue(unittest.TestCase):
+    def test_arret_historique_en_cours(self):
+        """[RM-AMZ-134, 136] Une longue tâche donne des nouvelles et s'arrête à la pause suivante."""
+        d, c = construire()
+        d.enregistrer_familles(c, ["SPORT"])
+        for a in ("B0X1", "B0X2", "B0X3"):
+            d.ajouter_suivi(c, "FR", a)
+        details, pauses = [], {"n": 0}
+
+        def arret():
+            return pauses["n"] >= 1
+        def attendre(s):
+            pauses["n"] += 1
+        r = SN.executer_compte(c, FauxHistorique(), "EU", d, NUIT, attendre=attendre, taches={"HISTORIQUE"},
+                               detail=lambda t, x: details.append(x), arret=arret)
+        self.assertEqual(r[0].message, "arrêtée")
+        self.assertTrue(details)
+
+
+class FauxHistorique(Faux):
+    def catalogue_par_paquet(self, mp, asins):
+        return {}
+
+    def offres_par_paquet(self, mp, asins):
+        return {}
+
+    def rechercher_page(self, *a, **k):
+        return [], None

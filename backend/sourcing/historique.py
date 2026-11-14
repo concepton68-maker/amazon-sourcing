@@ -107,18 +107,21 @@ def produits_famille(client, mp, mots: str, attendre: Callable[[float], None],
 
 # ------------------------------------------------------------------ relevé [RM-AMZ-087]
 def relever(client, mp, asins: list[str], connus: dict, jour: date, attendre: Callable[[float], None],
-            enregistrer: Callable[[list[Releve]], None]) -> tuple[int, int]:
+            enregistrer: Callable[[list[Releve]], None],
+            progression: Callable[[str], None] = lambda texte: None) -> tuple[int, int]:
     """Relève par paquets de 20 et enregistre au fil de l'eau. Renvoie (relevés, paquets en erreur)."""
     fiches, erreurs, n = dict(connus), 0, 0
     moi = getattr(client, "seller_id", None)
     manquants = [a for a in asins if a not in fiches]
     for i in range(0, len(manquants), PAQUET):
+        progression(f"{mp.code} · fiches produits {min(i + PAQUET, len(manquants))} sur {len(manquants)}")   # [RM-AMZ-134]
         try:
             fiches.update(client.catalogue_par_paquet(mp, manquants[i:i + PAQUET]))
         except Exception:
             erreurs += 1
         attendre(PAUSE_CATALOGUE)
     for i in range(0, len(asins), PAQUET):
+        progression(f"{mp.code} · offres et Buy Box {i} sur {len(asins)} produits ({n} enregistrés)")
         paquet = asins[i:i + PAQUET]
         try:
             offres = client.offres_par_paquet(mp, paquet)
@@ -141,7 +144,8 @@ def relever(client, mp, asins: list[str], connus: dict, jour: date, attendre: Ca
 
 
 def executer(compte_id: str, client, places: list, depot, maintenant: datetime,
-             attendre: Callable[[float], None] = time.sleep, plafond: int = PLAFOND) -> str:
+             attendre: Callable[[float], None] = time.sleep, plafond: int = PLAFOND,
+             progression: Callable[[str], None] = lambda texte: None) -> str:
     """Tâche de nuit « HISTORIQUE » [RM-AMZ-090]. Familles : amazon.fr seulement dans cette version."""
     jour = jour_paris(maintenant)
     budget, morceaux = plafond, []
@@ -154,6 +158,7 @@ def executer(compte_id: str, client, places: list, depot, maintenant: datetime,
         if mp.code == "FR":
             for code in depot.familles_suivies(compte_id):
                 if code in FAMILLES:
+                    progression(f"{mp.code} · produits les mieux classés : famille {code}")
                     try:
                         fam_items[code] = produits_famille(client, mp, FAMILLES[code], attendre)
                     except Exception:
@@ -167,7 +172,7 @@ def executer(compte_id: str, client, places: list, depot, maintenant: datetime,
             ProduitMarche(mp.code, a, getattr(connus.get(a), "titre", None), getattr(connus.get(a), "marque", None),
                           fam_de.get(a)) for a, _, _ in cibles])
         n, err = relever(client, mp, [a for a, _, _ in cibles], connus, jour, attendre,
-                         lambda lot: depot.enregistrer_releves(compte_id, lot))
+                         lambda lot: depot.enregistrer_releves(compte_id, lot), progression)
         budget -= n
         morceaux.append(f"{mp.code} {n} produits" + (f", {err + err_fam} erreurs" if err + err_fam else ""))
     effaces = depot.purger_releves(compte_id, limite_conservation(jour))
