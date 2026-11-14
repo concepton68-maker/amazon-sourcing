@@ -105,7 +105,7 @@ export interface Params {
   port_fournisseur: number; placement: number; duree_stock_mois: number; carburant_taux: number; carburant_actif: number;
   reference_carburant?: { taux: number; depuis: string };
   delai_fournisseur: number; delai_reception: number; marge_securite: number; seuil_rupture: number; seuil_surstock: number;
-  societe: Partial<Record<"raison_sociale" | "adresse" | "adresse_livraison" | "tva_intra" | "courriel" | "telephone", string>>;
+  societe: Partial<Record<"raison_sociale" | "adresse" | "adresse_livraison" | "tva_intra" | "courriel" | "telephone" | "expedition_rue" | "expedition_cp" | "expedition_ville" | "expedition_pays", string>>;
 }
 export const lireParametres = () => lire<Params>("/api/parametres");
 export async function ecrireParametres(p: Partial<Params>): Promise<Params> {
@@ -197,6 +197,22 @@ export const apercuEnvoi = (id: string) => envoyer<ApercuEnvoi>(`/api/bons/${id}
 export const envoyerParMessagerie = (id: string, apres: number) =>
   envoyer<{ rejoue: boolean; tentative: TentativeEnvoi | null; bon: Bon }>(`/api/bons/${id}/envoi-messagerie`, { apres });
 export const lireEnvois = (id: string) => lire<TentativeEnvoi[]>(`/api/bons/${id}/envois-messagerie`);
+// Envois FBA par l'API [RM-AMZ-137 à 139]
+export interface GroupeFBA { id: string; mskus: string[]; poids_min: number | null; poids_max: number | null }
+export interface OptionFBA { id: string; statut: string; expiration: string | null; groupes: string[];
+  frais: { value?: { amount?: number; code?: string }; description?: string; type?: string }[]; remises: unknown[];
+  poids: { minimum?: number; maximum?: number; unit?: string } | null }
+export interface ProblemeFBA { code: string | null; message: string | null; gravite: string | null }
+export interface EnvoiFBA { id: string; nom: string; marketplace: string; lignes: { msku: string; quantite: number; asin?: string | null }[];
+  etiquette: string; preparation: string; statut: string; plan_id: string | null; en_cours: boolean; cree_le: string; maj: string;
+  donnees: { options?: OptionFBA[]; groupes?: GroupeFBA[]; erreur?: string; [k: string]: unknown } }
+export interface CartonFBA { groupe: string; longueur: number; largeur: number; hauteur: number; poids: number; nombre: number; contenu: Record<string, number> }
+export const listerEnvoisFBA = () => lire<EnvoiFBA[]>("/api/envois-fba");
+export const lireEnvoiFBA = (id: string) => lire<EnvoiFBA>(`/api/envois-fba/${id}`);
+export const creerEnvoiFBA = (nom: string, lignes: { msku: string; quantite: number; asin?: string | null }[], etiquette: string, preparation: string) =>
+  requete<EnvoiFBA>("POST", "/api/envois-fba", { nom, lignes, etiquette, preparation, marketplace: "FR" });
+export const actionEnvoiFBA = (id: string, action: "creer-plan" | "confirmer-emballage" | "cartons" | "annuler", corps: unknown = {}) =>
+  requete<EnvoiFBA>("POST", `/api/envois-fba/${id}/${action}`, corps);
 export const bonDepuisStock = (fournisseur: string) => envoyer<Bon>("/api/bons/depuis-stock", { fournisseur });
 export async function retirerLigneBon(id: string, ligne: string): Promise<Bon> {
   const r = await fetch(`/api/bons/${id}/lignes/${ligne}`, { method: "DELETE", headers: ENTETE, credentials: "same-origin" });

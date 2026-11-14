@@ -500,3 +500,17 @@ textarea { background: var(--carte); color: var(--encre); }
 .code-copie { display: inline-flex; gap: 8px; align-items: center; min-width: 0; } .code-copie code { font: 12px var(--chiffre); overflow-wrap: anywhere; }
 .vide-action { display: grid; gap: 12px; justify-items: start; padding: 8px 0; } .vide-action p { margin: 0; max-width: 70ch; }
 .etat-tache { font-size: 13px; overflow-wrap: anywhere; } .etat-tache .point-pulse { vertical-align: middle; }
+.reglages-replies { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-block: 12px; font-size: 14px; }
+/* Envois FBA [RM-AMZ-137 à 139] */
+.etapes-fba { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0; font-size: 13px; }
+.etapes-fba li { padding: 4px 10px; border-radius: 999px; background: var(--neutre-doux); color: var(--doux); }
+.etapes-fba li.faite { background: var(--positif-doux); color: var(--positif); }
+.etapes-fba li.courante { background: var(--accent-doux); color: var(--accent); font-weight: 600; }
+.etapes-fba li.a-venir { background: transparent; border: 1px dashed var(--bord-fort); }
+.choix-option, .cartons-fba { display: grid; gap: 10px; justify-items: start; }
+.option-fba { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.groupe-fba { width: 100%; border: 1px solid var(--bord); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+.ligne-carton { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.ligne-carton label { display: grid; gap: 4px; font-size: 12px; color: var(--encre-2); }
+.ligne-carton input { width: 110px; min-height: 36px; }
+.confirmation { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; } .confirmation p { margin: 0; font-weight: 600; }

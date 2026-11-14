@@ -196,6 +196,25 @@ class DepotMemoire:
     def supprimer_connexion(self, compte_id: str, source: str) -> bool:
         return self._connexions.pop((compte_id, source), None) is not None
 
+    # -------------------------------------------------------------- envois FBA [RM-AMZ-137]
+    def enregistrer_envoi_fba(self, compte_id: str, e) -> None:
+        if e.compte_id != compte_id:
+            raise AccesRefuse("envoi d'un autre compte")
+        import copy
+        self.__dict__.setdefault("_envois_fba", {})[e.id] = copy.deepcopy(e)
+
+    def envois_fba(self, compte_id: str) -> list:
+        import copy
+        return sorted((copy.deepcopy(e) for e in self.__dict__.get("_envois_fba", {}).values() if e.compte_id == compte_id),
+                      key=lambda e: e.cree_le, reverse=True)
+
+    def envoi_fba(self, compte_id: str, envoi_id: str):
+        e = self.__dict__.get("_envois_fba", {}).get(envoi_id)
+        if e is None or e.compte_id != compte_id:
+            return None
+        import copy
+        return copy.deepcopy(e)
+
     # -------------------------------------------------------------- envois de bons [RM-AMZ-131]
     def ajouter_envoi_bon(self, compte_id: str, t) -> None:
         l = self.__dict__.setdefault("_envois_bon", {}).setdefault(compte_id, [])

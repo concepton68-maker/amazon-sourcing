@@ -52,8 +52,10 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 
 | (lot arreter) | Bouton « Arrêter » (travaux lancés à la main, analyses de catalogues, recherche chez les fournisseurs), à la prochaine étape sûre, déjà obtenu gardé ; pas de pause (arrêter puis relancer suffit) | RM-AMZ-136 | — |
 
-Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 136) · décisions `docs/decisions/registre.md`
-(D-AMZ-001 à 033).
+| (lot envoi-fba-1) | Envoi FBA par l'API, partie 1 : brouillon depuis le stock, plan chez Amazon, options d'emballage, confirmation (définitive, sur un clic), cartons, annulation ; adresse d'expédition dans Paramètres › Société ; réglages du sourcing repliés après lancement ; verdicts « À acheter / À vérifier / Ne pas acheter » | RM-AMZ-137 à 139 | 1.21 |
+
+Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 139) · décisions `docs/decisions/registre.md`
+(D-AMZ-001 à 034).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)
 

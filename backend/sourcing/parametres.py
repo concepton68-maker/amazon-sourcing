@@ -23,7 +23,9 @@ BORNES = {
 REGIMES_REGLABLES = ("assujetti", "non_assujetti")
 # [RM-AMZ-127] identité de l'acheteur reprise sur le bon de commande
 CHAMPS_SOCIETE = {"raison_sociale": 300, "adresse": 500, "adresse_livraison": 500, "tva_intra": 300,
-                  "courriel": 300, "telephone": 300}
+                  "courriel": 300, "telephone": 20,
+                  # adresse d'expédition des envois FBA [RM-AMZ-137]
+                  "expedition_rue": 180, "expedition_cp": 32, "expedition_ville": 30, "expedition_pays": 2}
 
 
 class ParametreInvalide(ValueError):
@@ -112,6 +114,10 @@ def valider(brut: dict) -> Parametres:
                 v = v.strip()
                 if len(v) > CHAMPS_SOCIETE[k]:
                     raise ParametreInvalide("TEXTE_TROP_LONG", f"societe.{k}")
+                if k == "expedition_pays" and v and not (len(v) == 2 and v.isalpha()):
+                    raise ParametreInvalide("PAYS_INVALIDE", "societe.expedition_pays")
+                if k == "expedition_pays":
+                    v = v.upper()
                 if k == "courriel" and v and "@" not in v:
                     raise ParametreInvalide("COURRIEL_INVALIDE", "societe.courriel")
                 if v:

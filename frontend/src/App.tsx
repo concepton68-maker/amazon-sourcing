@@ -11,6 +11,7 @@ import { ConformiteVue } from "./Conformite";
 import { VendableVue } from "./Vendable";
 import { MarcheVue } from "./Marche";
 import { TableauVue } from "./Tableau";
+import { EnvoisFBAVue } from "./EnvoisFBA";
 import { BasculeTheme, Marque } from "./Marque";
 import { RentablesVue } from "./Rentables";
 import { lireTableau } from "./api";
@@ -145,10 +146,10 @@ function LotsVue({ lotInitial, setDemo }: { lotInitial?: string; setDemo: (d: bo
   );
 }
 
-type Vue = "tableau" | "rentables" | "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "conformite" | "vendable" | "marche" | "parametres";
+type Vue = "tableau" | "rentables" | "analyse" | "sourcing" | "lots" | "stock" | "fournisseurs" | "remboursements" | "conformite" | "vendable" | "marche" | "envois" | "parametres";
 const vueDepuisAdresse = (): Vue => {
   const h = window.location.hash;
-  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h.startsWith("#parametres") ? "parametres" : h === "#stock" ? "stock" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : h === "#vendable" ? "vendable" : h === "#marche" ? "marche" : h === "#analyse" ? "analyse" : h === "#rentables" ? "rentables" : "tableau";
+  return h === "#lots" ? "lots" : h === "#sourcing" ? "sourcing" : h.startsWith("#parametres") ? "parametres" : h === "#stock" ? "stock" : h === "#envois" ? "envois" : h === "#fournisseurs" ? "fournisseurs" : h === "#remboursements" ? "remboursements" : h === "#conformite" ? "conformite" : h === "#vendable" ? "vendable" : h === "#marche" ? "marche" : h === "#analyse" ? "analyse" : h === "#rentables" ? "rentables" : "tableau";
 };
 
 export function App() {
@@ -203,7 +204,7 @@ export function App() {
         <h6>{t("nav.groupe.trouver")}</h6>
         {lien("tableau", "◧")}{lien("rentables", "€")}{lien("analyse", "⌕")}{lien("vendable", "✓")}{lien("marche", "↗")}{lien("sourcing", "⇪")}
         <h6>{t("nav.groupe.gerer")}</h6>
-        {lien("lots", "▣")}{lien("stock", "◫")}{lien("fournisseurs", "☰")}{lien("remboursements", "€")}{lien("conformite", "⚑")}
+        {lien("lots", "▣")}{lien("stock", "◫")}{lien("envois", "⇡")}{lien("fournisseurs", "☰")}{lien("remboursements", "€")}{lien("conformite", "⚑")}
         <div className="bas">
           {lien("parametres", "⚙")}
           {avecConnexion && <button type="button" className="sortie" onClick={sortir}>{t("connexion.sortir")}</button>}
@@ -224,6 +225,7 @@ export function App() {
         : vue === "analyse" ? <main className="contenu-plein"><AnalyseVue key={JSON.stringify(analyseInitiale ?? {})} lotCree={lotCree} initial={analyseInitiale} /></main>
         : vue === "sourcing" ? <main className="contenu-plein"><SourcingVue key={traitementInitial ?? "s"} analyser={analyser} traitementInitial={traitementInitial} /></main>
         : vue === "parametres" ? <main className="contenu-plein"><ParametresVue /></main>
+        : vue === "envois" ? <main className="contenu-plein"><EnvoisFBAVue /></main>
         : vue === "stock" ? <main className="contenu-plein"><StockVue ouvrirBon={ouvrirBon} /></main>
         : vue === "remboursements" ? <main className="contenu-plein"><RemboursementsVue /></main>
         : vue === "conformite" ? <main className="contenu-plein"><ConformiteVue /></main>
