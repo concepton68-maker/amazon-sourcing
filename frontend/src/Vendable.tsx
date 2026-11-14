@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Exploration, RayonSonde, choisirFamilles, lancerExploration, lireExploration, lireMarche, suivreProduit } from "./api";
+import { Exploration, RayonSonde, choisirFamilles, explorationVue, lancerExploration, lireExploration, lireMarche, suivreProduit } from "./api";
 import { t } from "./i18n";
 
 const affiche = (r: RayonSonde) => (r.statut === "FERME" && r.approbation > 0 ? "APPROBATION" : r.statut);
@@ -11,7 +11,8 @@ function SuivreProduit({ asin }: { asin: string }) {
     {fait ? `✓ ${t("sm.suivi")}` : `+ ${t("sm.suivre")}`}</button>;
 }
 
-function Rayon({ r, analyser, suivi, basculer }: { r: RayonSonde; analyser: (code: string) => void; suivi: boolean; basculer: () => void }) {
+function Rayon({ r, analyser, suivi, basculer, nouveau, nouveaux }: { r: RayonSonde; analyser: (code: string) => void; suivi: boolean;
+  basculer: () => void; nouveau: boolean; nouveaux: string[] }) {
   const [ouvert, setOuvert] = useState(false);
   const autorises = r.produits.filter((p) => p.statut === "AUTORISE");
   const part = r.testes ? r.autorises / r.testes : 0;
@@ -20,7 +21,7 @@ function Rayon({ r, analyser, suivi, basculer }: { r: RayonSonde; analyser: (cod
       <tr className={`cliquable ${suivi ? "choisie" : ""}`}
         onClick={(e) => { if (!(e.target as HTMLElement).closest("a, button, input")) basculer(); }}>
         <td className="case-suivi"><input type="checkbox" checked={suivi} onChange={basculer} aria-label={t("vendable.suivre_rayon", { rayon: t(`rayon.${r.code}`) })} /></td>
-        <td><strong>{t(`rayon.${r.code}`)}</strong></td>
+        <td><strong>{t(`rayon.${r.code}`)}</strong>{nouveau && <span className="nouveau">{t("vendable.nouveau")}</span>}</td>
         <td><span className={`statut-rayon ${affiche(r)}`}>{t(`rayon.statut.${affiche(r)}`)}</span></td>
         <td><div className="barre-part" title={`${r.autorises}/${r.testes}`}><div style={{ width: `${part * 100}%` }} /></div></td>
         <td className="num">{r.autorises} / {r.testes}</td>
@@ -31,7 +32,7 @@ function Rayon({ r, analyser, suivi, basculer }: { r: RayonSonde; analyser: (cod
       {ouvert && autorises.map((p) => (
         <tr key={p.asin} className="sous-ligne">
           <td />
-          <td colSpan={3}><div className="produit">{p.titre ?? p.asin}</div><div className="meta">{p.asin}{p.categorie ? ` · ${p.categorie}` : ""}</div></td>
+          <td colSpan={3}><div className="produit">{p.titre ?? p.asin}{nouveaux.includes(p.asin) && <span className="nouveau">{t("vendable.nouveau")}</span>}</div><div className="meta">{p.asin}{p.categorie ? ` · ${p.categorie}` : ""}</div></td>
           <td className="num meta">{p.bsr ? `BSR ${p.bsr.toLocaleString("fr-FR")}` : "—"}</td>
           <td colSpan={2}><button type="button" className="lien" onClick={() => analyser(p.asin)}>{t("vendable.analyser")}</button>
             <SuivreProduit asin={p.asin} /></td>
@@ -43,7 +44,12 @@ function Rayon({ r, analyser, suivi, basculer }: { r: RayonSonde; analyser: (cod
 export function VendableVue({ analyser }: { analyser: (code: string) => void }) {
   const [e, setE] = useState<Exploration | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
-  const lire = () => lireExploration().then(setE).catch((x) => setErreur((x as Error).message));
+  const [nouv, setNouv] = useState<{ rayons: string[]; produits: string[] } | null>(null);
+  const lire = () => lireExploration().then((x) => {
+    setE(x);
+    const n = x.resultat?.nouveautes;                                   // [RM-AMZ-113] affichées, puis marquées vues
+    if (n && !n.vu && (n.rayons.length || n.produits.length)) { setNouv(n); explorationVue().catch(() => undefined); }
+  }).catch((x) => setErreur((x as Error).message));
   const [suivies, setSuivies] = useState<string[]>([]);
   const lireSuivies = () => lireMarche("SUIVI").then((m) => setSuivies(m.familles.filter((f) => f.suivie).map((f) => f.code))).catch(() => undefined);
   const enregistrer = (l: string[]) => { setSuivies(l); choisirFamilles(l).catch((x) => { setErreur((x as Error).message); lireSuivies(); }); };
@@ -55,7 +61,8 @@ export function VendableVue({ analyser }: { analyser: (code: string) => void }) 
   }, [e]);
   const lancer = () => { setErreur(null); lancerExploration().then(lire).catch((x) => setErreur((x as Error).message)); };
   const res = e?.resultat;
-  const rayons = res ? [...res.rayons].sort((a, b) => b.autorises / (b.testes || 1) - a.autorises / (a.testes || 1)) : [];
+  const rayons = res ? [...res.rayons].sort((a, b) => Number(!!nouv?.rayons.includes(b.code)) - Number(!!nouv?.rayons.includes(a.code))
+    || b.autorises / (b.testes || 1) - a.autorises / (a.testes || 1)) : [];
   return (
     <div className="vue">
       <div className="entete-vue">
@@ -80,7 +87,7 @@ export function VendableVue({ analyser }: { analyser: (code: string) => void }) 
         const manquants = accessibles.filter((c) => !suivies.includes(c));
         return (
           <div className="barre-actions">
-            <span className="meta">{t("vendable.suivis", { n: suivies.length })}</span>
+            <span className="meta">{t(suivies.length === 1 ? "vendable.suivis_1" : "vendable.suivis", { n: suivies.length })}</span>
             {manquants.length > 0 && <button type="button" className="secondaire"
               onClick={() => enregistrer([...suivies, ...manquants])}>{t("vendable.suivre_accessibles", { n: accessibles.length })}</button>}
             {suivies.length > 0 && <a className="bouton-lien" href="#marche">{t("vendable.voir_marche")} →</a>}
@@ -96,6 +103,7 @@ export function VendableVue({ analyser }: { analyser: (code: string) => void }) 
               <th scope="col" className="num">{t("vendable.autorises")}</th><th scope="col" className="num">{t("vendable.approbation")}</th>
               <th scope="col"><span className="masque">{t("vendable.voir", { n: "" })}</span></th></tr></thead>
             <tbody>{rayons.map((r) => <Rayon key={r.code} r={r} analyser={analyser} suivi={suivies.includes(r.code)}
+              nouveau={!!nouv?.rayons.includes(r.code)} nouveaux={nouv?.produits ?? []}
               basculer={() => enregistrer(suivies.includes(r.code) ? suivies.filter((c) => c !== r.code) : [...suivies, r.code])} />)}</tbody>
           </table></div>)}
       </section>

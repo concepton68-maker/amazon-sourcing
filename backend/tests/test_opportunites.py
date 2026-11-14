@@ -67,10 +67,10 @@ class TestOpportunites(unittest.TestCase):
             "EAN;Prix HT\n3700000000017;8,50\n".encode()), "text/csv")}).json()
         cl.post(f"/api/fournisseurs/{fid}/catalogue", json={"fichier_id": f["fichier_id"], "colonnes": f["colonnes"]})
         cl.post(f"/api/fournisseurs/{fid}/analyse", json={})
-        self.assertEqual(cl.get("/api/opportunites").json()["total"], 1)
+        cat = lambda: [p for p in cl.get("/api/opportunites").json()["produits"] if p["origine"].startswith("FOURNISSEUR:")]  # noqa: E731
+        self.assertEqual(len(cat()), 1)
         charger(cl, "Grossiste P2")
-        j = cl.get("/api/opportunites").json()
-        self.assertEqual((j["total"], len(j["origines"])), (4, 2))
+        self.assertEqual((len(cat()), len({p["origine"] for p in cat()})), (4, 2))
 
     def test_tri_filtres(self):
         """[RM-AMZ-107] Tri dans les deux sens, valeurs absentes en dernier ; filtres cumulés ; rien caché par défaut."""

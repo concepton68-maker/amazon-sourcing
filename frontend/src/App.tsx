@@ -184,7 +184,8 @@ export function App() {
   useEffect(() => {
     if (etat !== "ok") return;
     lireTableau().then((x) => setPastilles({ stock: x.a_faire.recommander, remboursements: x.a_faire.remboursements,
-      conformite: x.a_faire.conformite })).catch(() => undefined);
+      conformite: x.a_faire.conformite,
+      vendable: x.a_faire.deblocages ? (x.a_faire.deblocages.rayons.length || x.a_faire.deblocages.produits) : 0 })).catch(() => undefined);
   }, [etat, vue]);
   const [recherche, setRecherche] = useState("");
 

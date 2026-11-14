@@ -65,6 +65,9 @@ export function TableauVue() {
           {tb.serie.length ? <Courbe serie={tb.serie} devise={d} /> : <p className="meta">{t("tb.aucune_vente")}</p>}</section>
         <section className="carte"><h3>{t("tb.a_faire")}</h3>
           <ul className="taches">
+            {af.deblocages && <Tache ton="v" icone="★" titre={af.deblocages.rayons.length === 1 ? t("tb.deblocage_1")
+              : af.deblocages.rayons.length ? t("tb.deblocages", { n: af.deblocages.rayons.length }) : t("tb.produits_debloques", { n: af.deblocages.produits })}
+              detail={af.deblocages.rayons.map((x) => t(`rayon.${x}`)).join(", ") || t("tb.produits_debloques", { n: af.deblocages.produits })} lien="#vendable" />}
             {af.carburant ? <Tache ton="a" icone="⛽" titre={t("tb.carburant", { taux: p(af.carburant) })} lien="#parametres/frais" /> : null}
             {af.recommander > 0 && <Tache ton="r" icone="!" titre={t(af.recommander === 1 ? "tb.recommander_1" : "tb.recommander", { n: af.recommander })} lien="#stock" />}
             {af.remboursements > 0 && <Tache ton="a" icone="€" titre={t(af.remboursements === 1 ? "tb.remboursements_1" : "tb.remboursements", { n: af.remboursements })}

@@ -593,8 +593,14 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         memo = {r: t[2].entetes[i] for r, i in colonnes.items() if i is not None}
         depot.enregistrer_fournisseur(c, A.modifier_fiche(f, colonnes=memo, connexion="FICHIER" if f.connexion == "AUCUNE"
                                                           else f.connexion))
+        fx = sources(c)                                                   # [RM-AMZ-114] correspondance aussitôt
+        lancee = False
+        if fx.catalogue and A.analysable(f):
+            p = params(c)
+            mp = get_marketplace("FR")
+            lancee = correspondances.lancer(c, mp, fx, depot, p, p.regime(mp.code))
         return {"lignes": len(prep.lignes), "rejets": [{"ligne": n, "message": x.to_dict()} for n, x in prep.rejets],
-                "doublons": len(prep.doublons)}
+                "doublons": len(prep.doublons), "correspondance_lancee": lancee}
 
     @app.get("/api/fournisseurs/{fid}/catalogue")
     def lire_tarif(fid: str, c: str = Depends(compte)):
@@ -837,6 +843,14 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         return {"en_cours": prog is not None, "progression": list(prog) if prog else None,
                 "resultat": depot.exploration(c), "rayons": [r for r, _ in EX.RAYONS]}
 
+    @app.post("/api/exploration/vu")
+    def exploration_vue(c: str = Depends(compte)):
+        """[RM-AMZ-113] Les nouveautés ont été vues : pastilles retirées."""
+        r = depot.exploration(c)
+        if r and r.get("nouveautes") and not r["nouveautes"].get("vu"):
+            depot.enregistrer_exploration(c, {**r, "nouveautes": {**r["nouveautes"], "vu": True}})
+        return {"vu": True}
+
     @app.post("/api/exploration", status_code=202)
     def lancer_exploration(c: str = Depends(compte)):
         fx = sources(c)
@@ -859,8 +873,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     @app.get("/api/correspondance")
     def lire_correspondance(c: str = Depends(compte)):
         prog = correspondances.en_cours.get(c)
-        return {"en_cours": prog is not None, "progression": list(prog) if prog else None,
-                "bilan": correspondances.bilans.get(c)}
+        return {"en_cours": prog is not None, "progression": list(prog[:2]) if prog else None,
+                "phase": prog[2] if prog else None, "bilan": correspondances.bilans.get(c)}
 
     @app.post("/api/correspondance", status_code=202)
     def lancer_correspondance(c: str = Depends(compte)):
@@ -911,6 +925,13 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
                          for o in liste[:2000]],
         }
 
+    def _deblocages(ex):
+        """[RM-AMZ-113] Nouveautés du dernier sondage, tant qu'elles n'ont pas été vues."""
+        n = (ex or {}).get("nouveautes")
+        if not n or n.get("vu") or not (n.get("rayons") or n.get("produits")):
+            return None
+        return {"rayons": n["rayons"], "produits": len(n["produits"]), "le": ex.get("le")}
+
     # ------------------------------------------------------------- tableau de bord [RM-AMZ-091 à 094]
     @app.get("/api/tableau")
     def tableau(c: str = Depends(compte)):
@@ -935,6 +956,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             "serie": [{"jour": s["jour"], "profit": _num(s["profit"])} for s in ch["serie"]],
             "ventes_non_rattachees": ch["ventes_non_rattachees"], "unites_sans_cout": ch["unites_sans_cout"],
             "a_faire": {**af, "carburant": p.carburant_taux if p.carburant_actif else None,
+                        "deblocages": _deblocages(depot.exploration(c)),
                         "valeur_remboursements": {k: _num(v) for k, v in af["valeur_remboursements"].items()}},
             "mouvements": [{**m, "prix": _num(m["prix"]), "titre": titres.get(m["asin"])} for m in mv],
         }
@@ -1255,8 +1277,13 @@ def app_depuis_environnement() -> FastAPI:
         historique_demo(depot, c, jour_paris(datetime.now(timezone.utc)))
         d = FournisseurDemo()
         opportunites_demo(depot, c, Fournisseurs([d], d, d, d, d))
-        depot.enregistrer_exploration(c, EX.en_json(EX.sonder(get_marketplace("FR"), Fournisseurs([d], d, d, d, d),
-                                                             attendre=lambda s: None), "FR", datetime.now(timezone.utc)))
+        sondage = EX.en_json(EX.sonder(get_marketplace("FR"), Fournisseurs([d], d, d, d, d), attendre=lambda s: None),
+                             "FR", datetime.now(timezone.utc))
+        veille = {**sondage, "le": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),   # démo : rayon débloqué
+                  "rayons": [{**r, "statut": "FERME", "autorises": 0, "approbation": r["testes"]} if r["code"] == "SPORT"
+                             else r for r in sondage["rayons"]]}
+        depot.enregistrer_exploration(c, veille)
+        EX.enregistrer(depot, c, sondage)
         return creer_app(depot, c, demo=True, fournisseurs=Fournisseurs([d], d, d, d, d))
     if mode == "prod":
         url = os.environ.get("AMZ_DATABASE_URL")

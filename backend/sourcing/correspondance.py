@@ -103,7 +103,7 @@ def candidats(depot, compte_id: str, mp_code: str, maintenant: datetime) -> list
 
 
 def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
-             progression: Callable[[int, int], None] = lambda f, t: None,
+             progression: Callable[..., None] = lambda f, t, phase="": None,
              attendre: Callable[[float], None] = time.sleep, maintenant: Optional[datetime] = None) -> dict:
     """[RM-AMZ-111] Amazon d'abord : codes par paquets, correspondances analysées, rangées par fournisseur."""
     from .traitement import _ligne, opportunite
@@ -113,7 +113,7 @@ def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
     paquet_src = next((s for s in fx.catalogue if hasattr(s, "catalogue_par_paquet")), None)
     trouves: list[tuple] = []                       # (asin, fournisseur, ligne)
     for i in range(0, len(asins), PAQUET):
-        progression(i, len(asins))
+        progression(i, len(asins), "CODES")
         morceau = asins[i:i + PAQUET]
         try:
             fiches = paquet_src.catalogue_par_paquet(mp, morceau) if paquet_src else {}
@@ -126,20 +126,16 @@ def executer(compte_id: str, mp, fx, depot, parametres, regime: str,
                 trouves.append((a, f, l))
     par_f: dict[str, list] = {}
     seuils = parametres.seuils() if parametres else Seuils()
-    for k, (a, f, l) in enumerate(trouves):
-        progression(len(asins), len(asins))
-        if not A.analysable(f):
-            continue
+    analysables = [(a, f, l) for a, f, l in trouves if A.analysable(f)]
+    for k, (a, f, l) in enumerate(analysables):                      # [RM-AMZ-114] rangés au fil de l'eau
+        progression(k, len(analysables), "ANALYSE")
         r = _ligne(LigneFournisseur(l.numero, l.code, l.prix_unitaire, l.designation, l.colisage, l.minimum), mp, a,
                    fx, regime, seuils, False, _parametres_fournisseur(parametres, f))
-        par_f.setdefault(f.id, []).append((f, r))
-    noms = {}
-    for fid, l in par_f.items():
-        f = l[0][0]
-        origine = (f"CORRESPONDANCE:{fid}", f"{f.nom} · correspondance Amazon")
-        noms[fid] = len(l)
+        par_f.setdefault(f.id, []).append(r)
+        origine = (f"CORRESPONDANCE:{f.id}", f"{f.nom} · correspondance Amazon")
         depot.enregistrer_opportunites(compte_id, origine[0], origine[1], mp.code,
-                                       [opportunite(origine, mp.code, r) for _, r in l if r.statut == "ANALYSEE"])
+                                       [opportunite(origine, mp.code, x) for x in par_f[f.id] if x.statut == "ANALYSEE"])
+    progression(len(analysables), len(analysables), "ANALYSE")
     return {"le": maintenant.isoformat(), "candidats": len(asins), "correspondances": len(trouves),
             "fournisseurs": len(par_f), "catalogues": len({f.id for _, f, _ in trouves})}
 
@@ -148,7 +144,7 @@ class Correspondances:
     """[RM-AMZ-112] Une à la fois par compte, en arrière-plan ; dernier bilan gardé en mémoire."""
 
     def __init__(self, en_fond: bool = True):
-        self.en_cours: dict[str, tuple[int, int]] = {}
+        self.en_cours: dict[str, tuple] = {}
         self.bilans: dict[str, dict] = {}
         self.en_fond = en_fond
         self._verrou = threading.Lock()
@@ -157,12 +153,12 @@ class Correspondances:
         with self._verrou:
             if compte_id in self.en_cours:
                 return False
-            self.en_cours[compte_id] = (0, 0)
+            self.en_cours[compte_id] = (0, 0, "CODES")
 
         def travail():
             try:
                 self.bilans[compte_id] = executer(compte_id, mp, fx, depot, parametres, regime,
-                                                  lambda f, t: self.en_cours.__setitem__(compte_id, (f, t)), attendre)
+                                                  lambda f, t, phase="": self.en_cours.__setitem__(compte_id, (f, t, phase)), attendre)
             except Exception as e:
                 self.bilans[compte_id] = {"erreur": f"{type(e).__name__}: {str(e)[:200]}"}
             finally:

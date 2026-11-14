@@ -734,10 +734,17 @@
   "acheter.minimum": "Minimum",
   "acheter.delai": "Délai",
   "corr.lancer": "Chercher chez mes fournisseurs",
-  "corr.en_cours": "Recherche {f}/{t}…",
+  "corr.en_cours": "Comparaison des codes {f}/{t}…",
   "corr.info": "Produits vendables sur Amazon (autorisés, suivis, familles suivies, analysés) cherchés dans tous vos catalogues par code-barres",
   "corr.bilan": "Dernière recherche : {c} produits Amazon comparés, {n} trouvés chez {f} fournisseurs.",
   "corr.erreur": "La dernière recherche a échoué.",
   "erreur.CORRESPONDANCE_EN_COURS": "Une recherche est déjà en cours",
-  "acheter.nombre_1": "1 offre"
+  "acheter.nombre_1": "1 offre",
+  "vendable.nouveau": "Nouveau",
+  "tb.deblocages": "Nouveau : {n} rayons débloqués sur Amazon",
+  "tb.produits_debloques": "{n} produits autorisés en plus",
+  "corr.analyse": "Analyse {f}/{t} · résultats en cours…",
+  "synchro.CORRESPONDANCE": "Correspondance fournisseurs",
+  "tb.deblocage_1": "Nouveau : 1 rayon débloqué sur Amazon",
+  "vendable.suivis_1": "1 rayon suivi dans Marché"
 }
