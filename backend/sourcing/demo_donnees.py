@@ -146,3 +146,29 @@ def historique_demo(d, c: str, jour: date) -> None:
             Decimal(str(round(prix * (1 + 0.06 * math.sin((n + k) / 5) - 0.002 * n * (k - 1)), 2))),
             3 + (n + k) % 3, k % 2, k == 2 and n % 3 == 0, k == 2 and n % 6 == 0, None,
             int(bsr * (1 + 0.25 * math.sin((n * (k + 2)) / 3))), "Cuisine") for n in range(40)])
+
+
+def opportunites_demo(d, c: str, fx) -> None:
+    """Catalogue FICTIF d'un grossiste de démonstration, analysé pour l'écran « Produits rentables »."""
+    import hashlib
+    from decimal import Decimal
+
+    from . import achats as A
+    from .fichier import LigneFournisseur, Preparation
+    from .marketplaces import get_marketplace
+    from .parametres import Parametres
+    from .traitement import Traitement, executer
+    f = A.nouveau_fournisseur(c, "Grossiste démo (fictif)", existants=d.fournisseurs(c))
+    f = A.modifier_fiche(f, revente="AUTORISEE", connexion="FICHIER", port_unitaire=0.3)
+    d.enregistrer_fournisseur(c, f)
+    lignes = []
+    for k in range(24):
+        code = "200" + str(int(hashlib.sha256(f"demo:{k}".encode()).hexdigest(), 16) % 10**9).zfill(9) + "0"
+        prix = Decimal(str(round(2 + (int(code[-4:-1]) % 90) / 10, 2)))
+        lignes.append(LigneFournisseur(k + 2, code, prix, f"Article démo {k + 1}"))
+    lignes += [LigneFournisseur(30, "3700000000017", Decimal("8.50"), "Gourde inox"),
+               LigneFournisseur(31, "3700000000024", Decimal("15.00"), "Jouet construction")]
+    d.enregistrer_catalogue(c, f.id, {"nom_fichier": "tarif-demo.csv", "lignes": len(lignes), "rejets": 0}, lignes)
+    p = Parametres(port_fournisseur=0.3)
+    t = Traitement("demo", c, "FR", len(lignes), origine=(f"FOURNISSEUR:{f.id}", f.nom))
+    executer(t, Preparation(lignes, [], []), get_marketplace("FR"), fx, d, parametres=p)

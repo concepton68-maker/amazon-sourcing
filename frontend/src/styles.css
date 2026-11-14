@@ -409,3 +409,16 @@ a.produit { color: var(--encre); text-decoration: none; } a.produit:hover { colo
 .colonnes-tarif { display: flex; flex-direction: column; gap: 10px; background: #f6f8fb; border-radius: 12px; padding: 14px; }
 .grille-roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
 .grille-roles label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
+/* Produits rentables */
+.contenu-large { max-width: none; }
+.barre-filtres-rent { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.barre-filtres-rent .filtre { margin: 0; }
+.barre-filtres-rent label.mini { display: flex; flex-direction: column; gap: 4px; font: 600 12px Inter, sans-serif; color: var(--doux); width: 110px; }
+.barre-filtres-rent label.mini.large { width: 200px; }
+.barre-filtres-rent label.mini input, .barre-filtres-rent label.mini select { min-height: 36px; font-size: 13.5px; }
+.case-filtre { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; font: 600 13px Inter, sans-serif; }
+.case-filtre input { width: 16px; height: 16px; min-height: 0; accent-color: var(--accent); }
+button.tri { background: none; border: none; padding: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; }
+button.tri.actif { color: var(--accent); }
+.table-rent td { vertical-align: top; }
+.table-rent .verdict { font-size: 12px; padding: 3px 10px; }

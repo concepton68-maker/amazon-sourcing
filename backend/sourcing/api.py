@@ -28,6 +28,7 @@ from . import historique as H
 from . import tableau as TB
 from . import frais_fba as FF
 from . import annuaire as AN
+from . import opportunites as OP
 from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
@@ -604,7 +605,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
             p = _remplacer(p, port_fournisseur=float(f.port_unitaire))
         prep = fich.Preparation(cat[1], [], [])
         t = traitements.lancer(c, prep, mp, fx, depot, p.regime(mp.code), d.achat_ttc, p.seuils(),
-                               en_fond=traitement_en_fond, parametres=p)
+                               en_fond=traitement_en_fond, parametres=p, origine=(f"FOURNISSEUR:{f.id}", f.nom))
         return {"traitement_id": t.id}
 
     @app.post("/api/fournisseurs", status_code=201)
@@ -822,6 +823,45 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         if not explorations.lancer(c, get_marketplace("FR"), fx, depot):
             raise HTTPException(409, "EXPLORATION_EN_COURS")
         return {"lancee": True}
+
+    # ------------------------------------------------------------- produits rentables [RM-AMZ-105 à 108]
+    @app.get("/api/opportunites")
+    def opportunites(tri: str = "profit", ordre: str = "desc", vendabilite: Optional[str] = None,
+                     roi_min: Optional[float] = None, profit_min: Optional[float] = None,
+                     marge_min: Optional[float] = None, origine: Optional[str] = None, verdict: Optional[str] = None,
+                     amazon_absent: bool = False, c: str = Depends(compte)):
+        ops = depot.opportunites(c)
+        jour = H.jour_paris(datetime.now(timezone.utc))
+        par_place: dict[str, list] = {}
+        for o in ops:
+            par_place.setdefault(o.marketplace, []).append(o.asin)
+        rel: dict[tuple, list] = {}
+        for mp_code, asins in par_place.items():                          # [RM-AMZ-108] rotation
+            for r in depot.releves(c, mp_code, list(dict.fromkeys(asins)), jour - timedelta(days=30)):
+                rel.setdefault((mp_code, r.asin), []).append(r)
+        for o in ops:
+            t = H.tendances(rel.get((o.marketplace, o.asin), []), jour, 30)
+            o.historique_court = t["court"]
+            o.rotation = None if t["court"] else t["jours_baisse_bsr"]
+        niveaux = None if not vendabilite else set(vendabilite.split(","))
+        if niveaux and not niveaux <= set(OP.NIVEAUX):
+            raise HTTPException(422, "VENDABILITE_INCONNUE")
+        try:
+            liste = OP.filtrer_trier(ops, OP.Criteres(tri, ordre != "asc", niveaux, roi_min, profit_min, marge_min,
+                                                      origine, verdict, amazon_absent))
+        except ValueError:
+            raise HTTPException(422, "TRI_INCONNU") from None
+        origines = sorted({(o.origine, o.origine_nom) for o in ops}, key=lambda x: x[1].lower())
+        return {
+            "total": len(ops), "nombre": len(liste),
+            "compteurs": {n: sum(1 for o in ops if o.vendabilite == n) for n in OP.NIVEAUX},
+            "origines": [{"cle": k, "nom": n} for k, n in origines],
+            "produits": [{k: getattr(o, k) for k in ("origine", "origine_nom", "marketplace", "code", "asin", "titre",
+                          "designation", "prix_achat", "unites_lot", "cout_achat", "prix_vente", "profit", "roi", "marge",
+                          "prix_achat_max", "verdict", "vendabilite", "motif", "bsr", "nb_vendeurs", "amazon_vend",
+                          "rotation", "historique_court")} | {"analyse_le": o.analyse_le.isoformat() if o.analyse_le else None}
+                         for o in liste[:2000]],
+        }
 
     # ------------------------------------------------------------- tableau de bord [RM-AMZ-091 à 094]
     @app.get("/api/tableau")
@@ -1114,7 +1154,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         except fich.FichierInvalide as e:
             raise HTTPException(422, e.args[0]) from None
         t = traitements.lancer(c, prep, mp, fx, depot, regime, d.achat_ttc, p.seuils(),
-                               en_fond=traitement_en_fond, parametres=p)
+                               en_fond=traitement_en_fond, parametres=p, origine=(f"FICHIER:{f[1]}", f[1]))
         return {"traitement_id": t.id}
 
     @app.get("/api/sourcing/traitements/{tid}")
@@ -1160,12 +1200,13 @@ def app_depuis_environnement() -> FastAPI:
     """D-AMZ-019 : `dev` = démonstration sans connexion ; `prod` = Postgres + connexion obligatoire."""
     mode = os.environ.get("AMZ_MODE")
     if mode == "dev":
-        from .demo_donnees import construire, historique_demo
+        from .demo_donnees import construire, historique_demo, opportunites_demo
         from .historique import jour_paris
         from .providers.demo import FournisseurDemo
         depot, c = construire()
         historique_demo(depot, c, jour_paris(datetime.now(timezone.utc)))
         d = FournisseurDemo()
+        opportunites_demo(depot, c, Fournisseurs([d], d, d, d, d))
         depot.enregistrer_exploration(c, EX.en_json(EX.sonder(get_marketplace("FR"), Fournisseurs([d], d, d, d, d),
                                                              attendre=lambda s: None), "FR", datetime.now(timezone.utc)))
         return creer_app(depot, c, demo=True, fournisseurs=Fournisseurs([d], d, d, d, d))
