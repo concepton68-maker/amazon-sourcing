@@ -11,5 +11,5 @@ NON VÉRIFIÉ). Toute nouvelle étude est ajoutée ici et dans `docs/ETAT-COURAN
 | 14/11/2026 | `2026-11-14-sources-fournisseurs.md` | 14 sources fournisseurs : API, accès, revente Amazon autorisée ou non |
 | 14/11/2026 | `2026-11-14-frais-fba-europe.md` | Grille FBA Europe 2/11/2026 : stockage, carburant 2 %, gabarits, faible stock, retours, dimensions catalogue |
 | 14/11/2026 | `2026-11-14-fournisseurs-api-approfondi.md` | 24 fournisseurs toutes familles, API et conditions ; Qogita : API acheteurs à demander |
-| 14/11/2026 | `2026-11-14-audit-coherence-concurrence.md` | Audit de cohérence face à 13 outils, étape par étape (en cours) |
+| 14/11/2026 | `2026-11-14-audit-coherence-concurrence.md` | Audit de cohérence face à 14 outils, sur les 8 étapes du parcours vendeur : niveau, écarts classés, exclusivités, 5 priorités |
 | — | `notes/` | Notes sourcées détaillées (conformité, API financière, remboursements, stock…) |

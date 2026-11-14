@@ -79,7 +79,7 @@ puis suit commande, réception, envoi à Amazon et encaissement. Courriels depui
 - **Décision de Sam** : choisir parmi les 7 pistes d'efficacité proposées le 14/11 : ajustement automatique des
   prix, arbitrage entre pays européens, assistant de demande d'autorisation, négociation fournisseur, alertes de
   risque sur le stock, plan de trésorerie, saisonnalité.
-- **Audit de cohérence face à la concurrence** en cours → `docs/recherches/2026-11-14-audit-coherence-concurrence.md`.
+- **Audit de cohérence face à la concurrence** fait (`docs/recherches/2026-11-14-audit-coherence-concurrence.md`). Résultat : devant sur fournisseurs UE, coût complet, éligibilité de nuit, prévu/réel ; derrière sur ventes/historique, rotation de Buy Box, repricing, multi-pays UE, envoi FBA, recherche par marque, éligibilité en masse, alertes stock. Priorités recommandées en attente de choix de Sam : (1) demande et Buy Box tirées de nos relevés, (2) prix plancher + repricer gratuit d'Amazon + alerte, (3) vue multi-pays UE, (4) éligibilité en masse + guide d'approbation, (5) bon de commande envoyé au fournisseur puis envoi FBA par l'API.
 - **Actions de Sam** : ouvrir ses comptes fournisseurs (Qogita, puis Puckator, BigBuy…), charger leurs fichiers de
   prix ; Qogita : demander la « Public API (Buyers) » à api@qogita.com (l'API actuelle s'arrête fin janvier 2027).
 - Lot « Annuaire » : remplacer le formulaire manuel « Nom, Délai, Ajouter » par un vrai formulaire de création.
