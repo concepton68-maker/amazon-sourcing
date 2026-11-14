@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activite, ajouterAuPlan, EtatCorrespondance, ResultatPlan, ListeRentables, lireActivite, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
+import { Activite, ajouterAuPlan, analyserTousCatalogues, EtatCorrespondance, ResultatPlan, ListeRentables, lireActivite, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
 import { FiltreMultiple } from "./Filtre";
 import { monnaie, pourcent, t } from "./i18n";
 
@@ -87,6 +87,8 @@ export function RentablesVue({ analyser, voirBon }: { analyser: (code: string, p
     const id = setInterval(tour, 3000);
     return () => { actif = false; clearInterval(id); };
   }, []);
+  const analyserTout = () => { setErreur(null); analyserTousCatalogues().then(() => setRafraichir((n) => n + 1)).catch((x) => setErreur((x as Error).message)); };
+  const occupe = activites.some((a) => a.type === "ANALYSE" || a.type === "ANALYSE_TOUT");
   const chercher = () => { setErreur(null); lancerCorrespondance().then(lireCorr).catch((x) => setErreur((x as Error).message)); };
   const trier = (c: string) => { if (c === tri) setOrdre(ordre === "desc" ? "asc" : "desc"); else { setTri(c); setOrdre("desc"); } };
   const visibles = l?.produits ?? [];
@@ -105,6 +107,8 @@ export function RentablesVue({ analyser, voirBon }: { analyser: (code: string, p
       <div className="entete-vue"><h1>{t("rent.titre")}</h1>
         <div className="actions">
           {l && <span className="meta">{t("rent.nombre", { n: l.nombre, total: l.total })}</span>}
+          {l && l.catalogues > 0 && l.total > 0 && <button type="button" className="secondaire" disabled={occupe} onClick={analyserTout}
+            title={t("rent.analyser_tout_info")}>{occupe ? t("rent.analyse_en_cours") : t("rent.analyser_tout")}</button>}
           <button type="button" className="principal" disabled={corr?.en_cours} onClick={chercher} title={t("corr.info")}>
             {corr?.en_cours ? t(corr.phase === "ANALYSE" ? "corr.analyse" : "corr.en_cours", { f: corr.progression?.[0] ?? 0, t: corr.progression?.[1] ?? 0 }) : t("corr.lancer")}</button>
         </div></div>
@@ -113,7 +117,8 @@ export function RentablesVue({ analyser, voirBon }: { analyser: (code: string, p
         {activites.map((a, i) => <span key={i}>{t(`activite.${a.type}`, { nom: a.nom ? t(`synchro.${a.nom}`) === `synchro.${a.nom}` ? a.nom : t(`synchro.${a.nom}`) : "", f: a.faits, t: a.total })}</span>)}
         <span className="meta">{t("activite.direct")}</span></div>}
       {corr?.bilan && !corr.en_cours && <p className="meta">{corr.bilan.erreur ? t("corr.erreur")
-        : t("corr.bilan", { c: corr.bilan.candidats ?? 0, n: corr.bilan.correspondances ?? 0, f: corr.bilan.fournisseurs ?? 0 })}</p>}
+        : t(corr.bilan.correspondances ? "corr.bilan" : "corr.bilan_vide", { c: corr.bilan.candidats ?? 0, n: corr.bilan.correspondances ?? 0,
+            f: corr.bilan.fournisseurs ?? 0, k: corr.bilan.catalogues_cherches ?? 0 })}</p>}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
       {plan && <div className="bandeau-plan" role="status">
         <span>{t("plan.resultat", { n: plan.ajoutees, b: plan.bons.length })}{plan.deja ? ` · ${t("plan.deja", { n: plan.deja })}` : ""}</span>
@@ -140,7 +145,10 @@ export function RentablesVue({ analyser, voirBon }: { analyser: (code: string, p
         <label className="case-filtre"><input type="checkbox" checked={sansAmazon} onChange={(x) => setSansAmazon(x.target.checked)} />{t("rent.sans_amazon")}</label>
       </div>
       <section className="carte">
-        {!l ? null : l.total === 0 ? <p className="meta">{t("rent.vide")} <a href="#fournisseurs">{t("nav.fournisseurs")}</a></p>
+        {!l ? null : l.total === 0 ? (l.catalogues > 0
+          ? <div className="vide-action"><p>{t("rent.vide_catalogues", { n: l.catalogues })}</p>
+              <button type="button" className="principal" disabled={occupe} onClick={analyserTout}>{occupe ? t("rent.analyse_en_cours") : t("rent.analyser_tout")}</button></div>
+          : <p className="meta">{t("rent.vide")} <a href="#fournisseurs">{t("nav.fournisseurs")}</a></p>)
           : <div className="defile"><table className="table-rent">
             <thead><tr><th scope="col" className="case"><input type="checkbox" checked={tous} onChange={toutBasculer}
               aria-label={tous ? t("rent.tout_decocher") : t("rent.tout_cocher")} title={tous ? t("rent.tout_decocher") : t("rent.tout_cocher")} /></th>

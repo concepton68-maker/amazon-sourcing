@@ -46,7 +46,9 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 
 | (lot messagerie) | Chantier 5/5, partie 2 : envoi du bon depuis la messagerie Microsoft du vendeur (connexion par code + PKCE, envoi seul, aperçu puis envoi, traces en ajout seul, incertain jamais repris) ; bascule jour / nuit en icônes seules | RM-AMZ-129 à 131 | 1.20 |
 
-Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 131) · décisions `docs/decisions/registre.md`
+| (lot analyse-catalogues) | « Analyser tous mes catalogues » (l'un après l'autre, résultats au fil de l'eau), textes clairs de la recherche Amazon → fournisseurs et de la liste vide. Cause du « rien » de Sam : ses analyses lancées avant 13 h le 14/11 n'avaient rien rangé (droit manquant, corrigé par la PR #49) ; à relancer | RM-AMZ-132 | — |
+
+Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 132) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 033).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)
@@ -77,8 +79,8 @@ Index : `docs/recherches/README.md`.
 - **Pas d'aspiration de pages** (D-AMZ-027), **pas de Keepa pour Sam** (D-AMZ-026), **pas de revente de données
   Amazon** (règlement SP-API 4.3 et 4.4).
 - **Indices de déboîtage** (D-AMZ-030, pour Sam seul, hors application) : https://claude.ai/artifact/UjiGRcjK2FnL99xcVUFbL8 ,
-  source `docs/indices/indices-deboitage.html`. **À republier à la même adresse dans chaque livraison qui change une note**
-  (bloc `donnees` : note, fait, manque, gains, historique).
+  source `docs/indices/indices-deboitage.html`. **À mettre à jour et republier à la même adresse à CHAQUE livraison** (consigne répétée par Sam le 14/11) :
+  bloc `donnees` ; chaque livraison = une nouvelle strate (`strates`), les notes qui bougent dans `notes`, une ligne dans `historique` ; la dernière strate s'affiche en orange.
 - **Traçabilité** : chaque recherche est enregistrée dans `docs/recherches/`, chaque livraison dans ce fichier.
 
 ## 5. Vision (plan `docs/strategie/plan-action.md`, section 7 bis « copilote »)

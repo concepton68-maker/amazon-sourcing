@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import hashlib
 import pathlib
+import threading
 import uuid
 from collections import OrderedDict
 from datetime import date, datetime, timedelta, timezone
@@ -676,6 +677,50 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
                             "colisage": l.colisage, "minimum": l.minimum} for l in lignes[:50]]}
 
     # [RM-AMZ-103] analyse du catalogue enregistré
+    analyses_globales: dict[str, dict] = {}
+
+    @app.post("/api/fournisseurs/analyser-tout", status_code=202)
+    def analyser_tous_catalogues(d: DemandeAnalyseCatalogue, c: str = Depends(compte)):
+        """[RM-AMZ-132] Chaque catalogue chargé, l'un après l'autre, en arrière-plan."""
+        e = analyses_globales.get(c)
+        if (e and e.get("en_cours")) or traitements.en_cours(c):
+            raise HTTPException(409, "ANALYSE_EN_COURS")
+        avec = [f for f in depot.fournisseurs(c) if depot.catalogue(c, f.id)]
+        if not avec:
+            raise HTTPException(409, "AUCUN_CATALOGUE")
+        fx = sources(c)
+        if not fx.catalogue:
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        mp = _place(d.marketplace)
+        a_faire = [f for f in avec if A.analysable(f)]
+        etat = {"en_cours": True, "faits": 0, "total": len(a_faire), "courant": None,
+                "sautes": [f.nom for f in avec if not A.analysable(f)]}
+        analyses_globales[c] = etat
+
+        def travail():
+            try:
+                for f in a_faire:
+                    etat["courant"] = f.nom
+                    cat = depot.catalogue(c, f.id)
+                    p = params(c)
+                    if f.port_unitaire is not None:
+                        from dataclasses import replace as _remplacer
+                        p = _remplacer(p, port_fournisseur=float(f.port_unitaire))
+                    try:
+                        traitements.lancer(c, fich.Preparation(cat[1], [], []), mp, fx, depot, p.regime(mp.code),
+                                           d.achat_ttc, p.seuils(), en_fond=False, parametres=p,
+                                           origine=(f"FOURNISSEUR:{f.id}", f.nom))
+                    except Exception:      # un catalogue en erreur n'arrête pas les suivants
+                        pass
+                    etat["faits"] += 1
+            finally:
+                etat["en_cours"], etat["courant"] = False, None
+        if traitement_en_fond:
+            threading.Thread(target=travail, daemon=True).start()
+        else:
+            travail()
+        return {k: etat[k] for k in ("total", "sautes")}
+
     @app.post("/api/fournisseurs/{fid}/analyse", status_code=201)
     def analyser_tarif(fid: str, d: DemandeAnalyseCatalogue, c: str = Depends(compte)):
         f = _fournisseur(c, fid)
@@ -1192,6 +1237,9 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         out = []
         for t in traitements.en_cours(c):
             out.append({"type": "ANALYSE", "nom": t.origine[1] if t.origine else None, "faits": t.faits, "total": t.total})
+        g = analyses_globales.get(c)
+        if g and g.get("en_cours"):
+            out.append({"type": "ANALYSE_TOUT", "nom": g.get("courant"), "faits": g["faits"], "total": g["total"]})
         prog = correspondances.en_cours.get(c)
         if prog:
             out.append({"type": "CORRESPONDANCE", "nom": None, "faits": prog[0], "total": prog[1], "phase": prog[2]})
@@ -1230,6 +1278,7 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         origines = sorted({(o.origine, o.origine_nom) for o in ops}, key=lambda x: x[1].lower())
         return {
             "total": len(ops), "nombre": len(liste),
+            "catalogues": sum(1 for f in depot.fournisseurs(c) if depot.catalogue(c, f.id)),      # [RM-AMZ-132]
             "compteurs": {n: sum(1 for o in ops if o.vendabilite == n) for n in OP.NIVEAUX},
             "origines": [{"cle": k, "nom": n} for k, n in origines],
             "produits": [{k: getattr(o, k) for k in ("origine", "origine_nom", "marketplace", "code", "asin", "titre",

@@ -149,5 +149,37 @@ class TestCorrespondance(unittest.TestCase):
             "/api/correspondance").status_code, 503)
 
 
+    def test_bilan_correspondance_catalogues(self):
+        """[RM-AMZ-132] Le bilan dit combien de catalogues ont été parcourus."""
+        d, c, demo, cl = client()
+        fournisseur(cl, "Grossiste D", "EAN;Prix HT\n3700000000017;8,00\n")
+        fournisseur(cl, "Grossiste E", "EAN;Prix HT\n3700000000024;5,00\n")
+        d.ajouter_suivi(c, "FR", "B0DEMO0001")
+        import sourcing.correspondance as mod
+        ancien, mod.PAUSE_CATALOGUE = mod.PAUSE_CATALOGUE, 0
+        try:
+            cl.post("/api/correspondance")
+        finally:
+            mod.PAUSE_CATALOGUE = ancien
+        self.assertGreaterEqual(cl.get("/api/correspondance").json()["bilan"]["catalogues_cherches"], 2)
+
+    def test_analyser_tous_catalogues(self):
+        """[RM-AMZ-132] Chaque catalogue analysé l'un après l'autre, revente interdite sautée, résultats rangés."""
+        d, c, demo, cl = client()
+        avant = cl.get("/api/opportunites").json()
+        fournisseur(cl, "Grossiste D", "EAN;Prix HT\n3700000000017;8,00\n")
+        fournisseur(cl, "Grossiste E", "EAN;Prix HT\n3700000000024;5,00\n")
+        fournisseur(cl, "Interdit", "EAN;Prix HT\n3700000000017;5,00\n", revente="INTERDITE")
+        self.assertEqual(cl.get("/api/opportunites").json()["catalogues"], avant["catalogues"] + 3)
+        r = cl.post("/api/fournisseurs/analyser-tout", json={})
+        self.assertEqual(r.status_code, 202, r.text)
+        self.assertEqual(r.json()["sautes"], ["Interdit"])
+        noms = {p["origine_nom"] for p in cl.get("/api/opportunites").json()["produits"]}
+        self.assertTrue({"Grossiste D", "Grossiste E"} <= noms)
+        self.assertNotIn("Interdit", noms)
+        self.assertEqual(TestClient(creer_app(d, c, servir_interface=False, fournisseurs=Fournisseurs())).post(
+            "/api/fournisseurs/analyser-tout", json={}).status_code, 503)
+
+
 if __name__ == "__main__":
     unittest.main()
