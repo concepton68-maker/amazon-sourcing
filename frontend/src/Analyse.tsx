@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Analyse, OffreAchat, Params, Place, analyser, creerLot, lireParametres, listerPlaces, ouAcheter, suivreProduit } from "./api";
+import { Analyse, DemandeAnalyse, OffreAchat, Params, Pays, Place, analyser, comparerPays, creerLot, lireParametres, listerPlaces, ouAcheter, suivreProduit } from "./api";
 import { Msg, message, monnaie, pourcent, t } from "./i18n";
 
 const REGIMES = ["assujetti", "non_assujetti"];
@@ -118,7 +118,44 @@ function OuAcheter({ asin, marketplace, devise }: { asin: string; marketplace: s
   );
 }
 
-function Resultat({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
+// [RM-AMZ-117] le même produit dans les autres pays européens
+function AutresPays({ demande, places }: { demande: DemandeAnalyse; places: Place[] }) {
+  const [pays, setPays] = useState<Pays[] | null>(null);
+  const [encours, setEncours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const domaine = (c: string) => places.find((p) => p.code === c)?.domaine ?? c;
+  const lancer = () => { setEncours(true); setErreur(null);
+    comparerPays(demande).then((r) => setPays(r.pays)).catch((e) => setErreur((e as Error).message)).finally(() => setEncours(false)); };
+  const notes = [...new Set((pays ?? []).flatMap((p) => (p.hypotheses ?? []).map((h) => message(h, p.devise))))];
+  return (
+    <div className="carte">
+      <div className="entete-vue"><h3>{t("pays.titre")}</h3>
+        <button type="button" className="secondaire" disabled={encours} onClick={lancer}>{encours ? t("pays.en_cours") : pays ? t("pays.relancer") : t("pays.lancer")}</button></div>
+      {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
+      {pays && <div className="defile"><table className="table-compacte">
+        <thead><tr><th scope="col">{t("pays.pays")}</th><th scope="col" className="num">{t("rent.col.prix_vente")}</th>
+          <th scope="col" className="num">{t("rent.col.profit")}</th><th scope="col" className="num">{t("rent.col.roi")}</th>
+          <th scope="col" className="num">{t("rent.col.achat_max")}</th><th scope="col" className="num">{t("rent.col.vendeurs")}</th>
+          <th scope="col">{t("rent.col.vendabilite")}</th><th scope="col">{t("rent.col.verdict")}</th></tr></thead>
+        <tbody>{pays.map((p, i) => p.erreur ? (
+          <tr key={p.marketplace}><td>{domaine(p.marketplace)}</td><td colSpan={7} className="meta">{t(`erreur.${p.erreur}`)}</td></tr>) : (
+          <tr key={p.marketplace} className={i === 0 && p.devise === "EUR" ? "choisie" : undefined}>
+            <td><strong>{domaine(p.marketplace)}</strong>{i === 0 && p.devise === "EUR" && <span className="nouveau">{t("pays.meilleur")}</span>}</td>
+            <td className="num">{p.prix_vente == null ? "—" : monnaie(String(p.prix_vente), p.devise)}</td>
+            <td className={`num ${(p.profit ?? 0) > 0 ? "positif" : "negatif"}`}>{p.profit == null ? "—" : monnaie(String(p.profit), p.devise, true)}</td>
+            <td className="num">{p.roi == null ? "—" : pourcent(String(p.roi))}</td>
+            <td className="num">{p.prix_achat_max == null ? "—" : monnaie(String(p.prix_achat_max), p.devise)}</td>
+            <td className="num">{p.vendeurs ?? "—"}{p.amazon_vend ? <span className="meta"> · Amazon</span> : null}</td>
+            <td>{p.autorise == null ? "—" : <span className="statut-point"><i className={`point ${p.autorise ? "v" : "r"}`} />{p.autorise ? t("vend.VENDABLE") : t("vend.NON_VENDABLE")}</span>}</td>
+            <td>{p.verdict && <span className={`verdict ${p.verdict}`}>{t(`verdict.${p.verdict}`)}</span>}</td>
+          </tr>))}</tbody>
+      </table></div>}
+      {notes.length > 0 && <ul className="msgs discret">{notes.map((n) => <li key={n}>{n}</li>)}</ul>}
+    </div>
+  );
+}
+
+function Resultat({ a, cree, demande, places }: { a: Analyse; cree: (id: string) => void; demande: DemandeAnalyse; places: Place[] }) {
   const r = a.rentabilite, h = a.historique, o = a.offres, d = a.devise;
   return (
     <section className="detail" aria-labelledby="titre-produit">
@@ -172,6 +209,7 @@ function Resultat({ a, cree }: { a: Analyse; cree: (id: string) => void }) {
         </div>
       </div>
       <OuAcheter asin={a.asin} marketplace={a.marketplace} devise={d} />
+      <AutresPays key={a.asin} demande={{ ...demande, code: a.asin }} places={places} />
     </section>
   );
 }
@@ -252,7 +290,9 @@ export function AnalyseVue({ lotCree, initial }: { lotCree: (id: string) => void
           ))}
         </div>
       )}
-      {analyses[choix] && <Resultat a={analyses[choix]} cree={lotCree} />}
+      {analyses[choix] && <Resultat a={analyses[choix]} cree={lotCree} places={places}
+        demande={{ code, marketplace: place, prix_achat: Number(prix.replace(",", ".")), achat_ttc: ttc, regime_tva: regime,
+          taux_tva: taux ? Number(taux.replace(",", ".")) / 100 : null, port_fournisseur: port ? Number(port.replace(",", ".")) : null }} />}
     </div>
   );
 }

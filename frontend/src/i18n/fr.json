@@ -758,5 +758,13 @@
   "activite.ANALYSE": "Analyse du catalogue {nom} : {f}/{t}",
   "activite.CORRESPONDANCE": "Recherche chez vos fournisseurs : {f}/{t}",
   "activite.NUIT_MANUELLE": "Travaux lancés à la main ({nom}) : {f}/{t}",
-  "activite.direct": "Les produits trouvés s'ajoutent à la liste en direct."
+  "activite.direct": "Les produits trouvés s'ajoutent à la liste en direct.",
+  "msg.HYP_STOCK_PAYS": "Frais pour un stock dans ce pays ; stock resté en France : frais transfrontaliers (EFN) en plus, non calculés",
+  "msg.HYP_STOCK_PAYS_UK": "Royaume-Uni : stock séparé obligatoire (pas d'expédition FBA entre l'UE et le Royaume-Uni)",
+  "pays.titre": "Dans les autres pays européens",
+  "pays.lancer": "Comparer les pays",
+  "pays.relancer": "Recalculer",
+  "pays.en_cours": "Calcul pays par pays…",
+  "pays.pays": "Pays",
+  "pays.meilleur": "Meilleur"
 }

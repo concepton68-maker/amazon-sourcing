@@ -341,3 +341,9 @@ export const lancerSynchroManuelle = (taches: string[]) => requete<{ lancee: boo
 // Activités en cours [RM-AMZ-116]
 export interface Activite { type: "ANALYSE" | "CORRESPONDANCE" | "NUIT_MANUELLE"; nom: string | null; faits: number; total: number; phase?: string }
 export const lireActivite = () => lire<{ activites: Activite[] }>("/api/activite");
+
+// Comparaison entre pays européens [RM-AMZ-117]
+export interface Pays { marketplace: string; devise: string; erreur?: string; asin?: string; titre?: string | null;
+  prix_vente?: number | null; profit?: number | null; roi?: number | null; marge?: number | null; prix_achat_max?: number | null;
+  verdict?: string; autorise?: boolean | null; vendeurs?: number | null; amazon_vend?: boolean | null; hypotheses?: Msg[] }
+export const comparerPays = (d: DemandeAnalyse) => envoyer<{ pays: Pays[] }>("/api/analyse/pays", d);
