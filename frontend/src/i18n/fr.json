@@ -473,5 +473,6 @@
   "synchro.REMBOURSEMENTS": "Remboursements",
   "connexion.champ.seller_id": "Jeton de marchand (facultatif)",
   "connexion.ou_trouver": "Où le trouver chez Amazon",
-  "msg.A_ASIN_PARENT": "Produit parent ({n} variantes) : analysez la variante précise (taille, couleur)"
+  "msg.A_ASIN_PARENT": "Produit parent ({n} variantes) : analysez la variante précise (taille, couleur)",
+  "sourcing.ignorer": "— Ignorer"
 }
