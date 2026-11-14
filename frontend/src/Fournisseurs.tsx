@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Bon, FournisseurBilan, Place, actionBon, ajouterLigneBon, creerBon, creerFournisseur, listerBons,
-  listerFournisseurs, listerPlaces, recevoirBon, retirerLigneBon } from "./api";
+import { Bon, Colonnes, Fichier, FournisseurBilan, Place, Reference, actionBon, ajouterLigneBon, ajouterReference,
+  analyserTarif, creerBon, creerFournisseur, deposerTarif, enregistrerTarif, lireAnnuaire, listerBons,
+  listerFournisseurs, listerPlaces, modifierFournisseur, recevoirBon, retirerLigneBon } from "./api";
 import { dateCourte, monnaie, pourcent, t } from "./i18n";
 
 const n = (v: number | null) => (v === null ? null : String(v));
@@ -72,7 +73,133 @@ function DetailBon({ b, maj, voirLot }: { b: Bon; maj: (b: Bon) => void; voirLot
   );
 }
 
-export function FournisseursVue({ bonInitial, voirLot }: { bonInitial?: string; voirLot: (id: string) => void }) {
+const ROLES = ["code", "prix", "designation", "colisage", "minimum"];
+const REVENTE_TON: Record<string, string> = { AUTORISEE: "v", INTERDITE: "r", A_VERIFIER: "a" };
+
+function Revente({ r, extrait }: { r: string; extrait?: boolean }) {
+  return <span className={`pill ${REVENTE_TON[r]}`}>{t(`revente.${r}`)}{extrait ? ` · ${t("revente.a_relire")}` : ""}</span>;
+}
+
+// [RM-AMZ-102, 103] catalogue par fichier, colonnes mémorisées, analyse
+function Catalogue({ f, changer, analyser }: { f: FournisseurBilan; changer: () => void; analyser: (tid: string) => void }) {
+  const [fichier, setFichier] = useState<Fichier | null>(null);
+  const [colonnes, setColonnes] = useState<Colonnes>({});
+  const [carton, setCarton] = useState(false);
+  const [bilan, setBilan] = useState<string | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const deposer = (fl?: File) => { if (!fl) return; setErreur(null); setBilan(null);
+    deposerTarif(f.id, fl).then((x) => { setFichier(x); setColonnes(x.colonnes); }).catch((e) => setErreur(e.message)); };
+  const enregistrer = () => fichier && enregistrerTarif(f.id, fichier.fichier_id, colonnes, carton).then((r) => {
+    setBilan(t("catalogue.bilan", { lignes: r.lignes, rejets: r.rejets.length, doublons: r.doublons })); setFichier(null); changer();
+  }).catch((e) => setErreur(e.message));
+  return (
+    <div className="bloc-catalogue">
+      <h3>{t("catalogue.titre")}</h3>
+      {f.catalogue ? <p className="meta">{t("catalogue.etat", { lignes: f.catalogue.lignes, rejets: f.catalogue.rejets,
+        fichier: f.catalogue.nom_fichier, date: dateCourte(f.catalogue.maj) })}</p> : <p className="meta">{t("catalogue.aucun")}</p>}
+      <div className="actions">
+        <label className="bouton-lien fichier-bouton">{f.catalogue ? t("catalogue.remplacer") : t("catalogue.charger")}
+          <input type="file" accept=".csv,.txt,.xlsx" className="masque" onChange={(e) => deposer(e.target.files?.[0])} /></label>
+        {f.catalogue && <button type="button" className="principal" disabled={!f.analysable}
+          title={f.analysable ? undefined : t("erreur.REVENTE_INTERDITE")}
+          onClick={() => analyserTarif(f.id).then((r) => analyser(r.traitement_id)).catch((e) => setErreur(e.message))}>
+          {t("catalogue.analyser", { n: f.catalogue.lignes })}</button>}
+      </div>
+      {fichier && (
+        <div className="colonnes-tarif">
+          <p className="meta">{fichier.nom} · {t("catalogue.lignes_fichier", { n: fichier.nb_lignes })}</p>
+          <div className="grille-roles">
+            {ROLES.map((r) => (
+              <label key={r}>{t(`role.${r}`)}{r === "code" || r === "prix" ? " *" : ""}
+                <select value={colonnes[r] ?? ""} onChange={(e) => setColonnes({ ...colonnes, [r]: e.target.value === "" ? null : Number(e.target.value) })}>
+                  <option value="">{t("sourcing.ignorer")}</option>
+                  {fichier.entetes.map((h, i) => <option key={i} value={i}>{h || `#${i + 1}`}</option>)}
+                </select></label>))}
+          </div>
+          <label className="case"><input type="checkbox" checked={carton} onChange={(e) => setCarton(e.target.checked)} />{t("catalogue.prix_carton")}</label>
+          <button type="button" className="principal" disabled={colonnes.code == null || colonnes.prix == null} onClick={enregistrer}>
+            {t("catalogue.enregistrer")}</button>
+        </div>)}
+      {bilan && <p role="status" className="succes">{bilan}</p>}
+      {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
+    </div>
+  );
+}
+
+// [RM-AMZ-100] fiche
+function Fiche({ f, changer, analyser }: { f: FournisseurBilan; changer: () => void; analyser: (tid: string) => void }) {
+  const [v, setV] = useState({ pays: f.pays ?? "", site: f.site ?? "", courriel: f.courriel ?? "", delai: String(f.delai_jours),
+    port: f.port_unitaire === null ? "" : String(f.port_unitaire).replace(".", ","), revente: f.revente,
+    source: f.revente_source ?? "", notes: f.notes ?? "" });
+  const [etat, setEtat] = useState<string | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  useEffect(() => setV({ pays: f.pays ?? "", site: f.site ?? "", courriel: f.courriel ?? "", delai: String(f.delai_jours),
+    port: f.port_unitaire === null ? "" : String(f.port_unitaire).replace(".", ","), revente: f.revente,
+    source: f.revente_source ?? "", notes: f.notes ?? "" }), [f.id]);  // eslint-disable-line
+  const enregistrer = (e: FormEvent) => {
+    e.preventDefault(); setErreur(null); setEtat(null);
+    modifierFournisseur(f.id, { pays: v.pays, site: v.site, courriel: v.courriel, delai_jours: Number(v.delai),
+      port_unitaire: v.port === "" ? null : Number(v.port.replace(",", ".")), revente: v.revente as FournisseurBilan["revente"],
+      revente_source: v.source, notes: v.notes }).then(() => { setEtat(t("fiche.enregistree")); changer(); })
+      .catch((x) => setErreur(x.message));
+  };
+  const champ = (k: keyof typeof v, type = "text") => (
+    <label>{t(`fiche.${k}`)}<input type={type} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} /></label>);
+  return (
+    <section className="carte fiche-fournisseur" aria-label={f.nom}>
+      <header className="detail-tete"><div><h2>{f.nom}</h2>
+        <p className="meta">{[f.pays, f.reference ? t("fiche.depuis_annuaire") : null].filter(Boolean).join(" · ")}</p></div>
+        <Revente r={f.revente} /></header>
+      <form className="grille-fiche" onSubmit={enregistrer}>
+        {champ("pays")}{champ("site", "url")}{champ("courriel", "email")}{champ("delai", "number")}{champ("port")}
+        <label>{t("fiche.revente")}<select value={v.revente} onChange={(e) => setV({ ...v, revente: e.target.value as FournisseurBilan["revente"] })}>
+          {["AUTORISEE", "A_VERIFIER", "INTERDITE"].map((r) => <option key={r} value={r}>{t(`revente.${r}`)}</option>)}</select></label>
+        <label className="large">{t("fiche.source")}<input type="url" value={v.source} onChange={(e) => setV({ ...v, source: e.target.value })} /></label>
+        <label className="large">{t("fiche.notes")}<textarea rows={2} value={v.notes} onChange={(e) => setV({ ...v, notes: e.target.value })} /></label>
+        <div className="actions"><button type="submit" className="secondaire">{t("fiche.enregistrer")}</button>
+          {etat && <span role="status" className="succes">{etat}</span>}
+          {erreur && <span role="alert" className="alerte">{t(`erreur.${erreur}`)}</span>}</div>
+      </form>
+      <Catalogue f={f} changer={changer} analyser={analyser} />
+    </section>
+  );
+}
+
+// [RM-AMZ-101] annuaire
+function Annuaire({ ajoute }: { ajoute: () => void }) {
+  const [refs, setRefs] = useState<Reference[]>([]);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const lire = () => lireAnnuaire().then(setRefs).catch((e) => setErreur(e.message));
+  useEffect(() => { lire(); }, []);
+  return (
+    <section className="carte">
+      <p className="meta">{t("annuaire.intro", { date: refs[0] ? dateCourte(refs[0].date_lecture) : "" })}</p>
+      {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
+      <div className="defile"><table>
+        <thead><tr><th scope="col">{t("fournisseurs.nom")}</th><th scope="col">{t("fiche.revente")}</th>
+          <th scope="col">{t("annuaire.connexion")}</th><th scope="col">{t("annuaire.acces")}</th><th scope="col" /></tr></thead>
+        <tbody>{refs.map((r) => (
+          <tr key={r.code}>
+            <td><a className="produit" href={r.site} target="_blank" rel="noreferrer">{r.nom}</a>
+              <div className="meta">{[r.pays, ...r.categories.map((c) => t(`rayon.${c}`))].join(" · ")}</div>
+              <div className="meta">{r.note}</div></td>
+            <td><Revente r={r.revente} extrait={r.verification === "EXTRAIT"} />
+              {r.source && <div><a className="meta" href={r.source} target="_blank" rel="noreferrer">{t("annuaire.source")}</a></div>}</td>
+            <td>{t(`connexion.mode.${r.connexion}`)}{r.api ? <div className="meta">{t("annuaire.api_a_brancher")}</div> : null}</td>
+            <td className="meta">{r.acces}</td>
+            <td>{r.ajoute ? <span className="meta">✓ {t("annuaire.ajoute")}</span>
+              : <button type="button" className="secondaire" onClick={() => ajouterReference(r.code).then(() => { lire(); ajoute(); })
+                .catch((e) => setErreur(e.message))}>{t("annuaire.ajouter")}</button>}</td>
+          </tr>))}</tbody>
+      </table></div>
+    </section>
+  );
+}
+
+export function FournisseursVue({ bonInitial, voirLot, analyserTraitement }: { bonInitial?: string; voirLot: (id: string) => void;
+  analyserTraitement: (tid: string) => void }) {
+  const [onglet, setOnglet] = useState<"mes" | "annuaire" | "bons">(bonInitial ? "bons" : "mes");
+  const [fiche, setFiche] = useState<string | null>(null);
   const [fs, setFs] = useState<FournisseurBilan[]>([]);
   const [bons, setBons] = useState<Bon[]>([]);
   const [choisi, setChoisi] = useState<string | undefined>(bonInitial);
@@ -93,20 +220,28 @@ export function FournisseursVue({ bonInitial, voirLot }: { bonInitial?: string; 
   return (
     <div className="vue">
       <h1>{t("fournisseurs.titre")}</h1>
+      <div className="barre-filtres"><div className="onglets-ligne" role="tablist">
+        {(["mes", "annuaire", "bons"] as const).map((o) => <button key={o} type="button" role="tab" aria-selected={onglet === o}
+          onClick={() => setOnglet(o)}>{t(`fournisseurs.onglet.${o}`)}</button>)}</div></div>
+      {onglet === "annuaire" && <Annuaire ajoute={() => listerFournisseurs().then(setFs)} />}
+      {onglet === "mes" && <>
       <section className="carte" aria-labelledby="t-f">
-        <h3 id="t-f">{t("fournisseurs.liste")}</h3>
         <div className="defile">
           <table>
-            <thead><tr><th scope="col">{t("fournisseurs.nom")}</th><th scope="col" className="num">{t("fournisseurs.achete")}</th>
+            <thead><tr><th scope="col">{t("fournisseurs.nom")}</th><th scope="col">{t("fiche.revente")}</th>
+              <th scope="col">{t("catalogue.titre")}</th><th scope="col" className="num">{t("fournisseurs.achete")}</th>
               <th scope="col" className="num">{t("fournisseurs.roi")}</th><th scope="col" className="num">{t("fournisseurs.delai_reel")}</th>
               <th scope="col"><span className="masque">{t("fournisseurs.nouveau_bon")}</span></th></tr></thead>
             <tbody>{fs.map((f) => (
-              <tr key={f.id}>
-                <td><div className="produit">{f.nom}</div><div className="meta">{t("fournisseurs.lots", { n: f.lots })} · {t("jours", { n: f.delai_jours })}</div></td>
+              <tr key={f.id} className={fiche === f.id ? "choisie" : undefined}>
+                <td><button type="button" className="lien produit" onClick={() => setFiche(fiche === f.id ? null : f.id)}>{f.nom}</button>
+                  <div className="meta">{[f.pays, t("fournisseurs.lots", { n: f.lots }), t("jours", { n: f.delai_jours })].filter(Boolean).join(" · ")}</div></td>
+                <td><Revente r={f.revente} /></td>
+                <td className="meta">{f.catalogue ? t("catalogue.court", { n: f.catalogue.lignes, date: dateCourte(f.catalogue.maj) }) : "—"}</td>
                 <td className="num">{monnaie(n(f.achete_12_mois), f.devise)}</td>
                 <td className="num">{pourcent(n(f.roi_prevu))} → <span className={f.roi_reel !== null && f.roi_prevu !== null && f.roi_reel < f.roi_prevu ? "negatif" : ""}>{pourcent(n(f.roi_reel))}</span></td>
                 <td className="num">{f.delai_reel_jours === null ? "—" : t("jours", { n: f.delai_reel_jours })}</td>
-                <td><button type="button" className="lien" onClick={() => creerBon(f.id).then(maj).catch((e) => setErreur(e.message))}>{t("fournisseurs.nouveau_bon")}</button></td>
+                <td><button type="button" className="lien" onClick={() => creerBon(f.id).then((b) => { maj(b); setOnglet("bons"); }).catch((e) => setErreur(e.message))}>{t("fournisseurs.nouveau_bon")}</button></td>
               </tr>))}</tbody>
           </table>
         </div>
@@ -117,7 +252,10 @@ export function FournisseursVue({ bonInitial, voirLot }: { bonInitial?: string; 
         </form>
         {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
       </section>
-      <div className="contenu sans-marge">
+      {fiche && fs.find((f) => f.id === fiche) && <Fiche f={fs.find((f) => f.id === fiche)!} changer={() => listerFournisseurs().then(setFs)}
+        analyser={analyserTraitement} />}
+      </>}
+      {onglet === "bons" && <div className="contenu sans-marge">
         <aside className="colonne" aria-labelledby="t-b">
           <h2 id="t-b" className="h-colonne">{t("bons.titre")}</h2>
           <div role="group" className="onglets" aria-label={t("bons.titre")}>
@@ -134,7 +272,7 @@ export function FournisseursVue({ bonInitial, voirLot }: { bonInitial?: string; 
           )}
         </aside>
         <div className="detail">{bon && <DetailBon b={bon} maj={maj} voirLot={voirLot} />}</div>
-      </div>
+      </div>}
     </div>
   );
 }

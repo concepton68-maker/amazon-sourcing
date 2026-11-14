@@ -27,6 +27,7 @@ from . import exploration as EX
 from . import historique as H
 from . import tableau as TB
 from . import frais_fba as FF
+from . import annuaire as AN
 from . import remboursements as RB
 from . import fichier as fich
 from .analyse import AnalyseProduit, Fournisseurs, Seuils, analyser_asin, resoudre_asins
@@ -100,6 +101,17 @@ class DemandeAnalyse(BaseModel):
     port_fournisseur: Optional[float] = Field(default=None, ge=0, le=1000)   # [RM-AMZ-098] remplace le défaut
 
 
+class DemandeCatalogue(BaseModel):
+    fichier_id: str
+    colonnes: dict[str, Optional[int]]
+    prix_par_carton: bool = False
+
+
+class DemandeAnalyseCatalogue(BaseModel):
+    marketplace: str = "FR"
+    achat_ttc: bool = False
+
+
 class DemandeTraitement(BaseModel):
     colonnes: dict[str, Optional[int]]
     marketplace: str = "FR"
@@ -150,7 +162,9 @@ class DemandeBonStock(BaseModel):
 
 
 ERREURS_SAISIE = {"NOM_FOURNISSEUR_INVALIDE", "DELAI_INVALIDE", "DEVISE_INVALIDE", "COURRIEL_INVALIDE",
-                  "QUANTITE_INVALIDE", "PRIX_INVALIDE", "QUANTITE_RECUE_INVALIDE", "DEVISE_DIFFERENTE"}
+                  "QUANTITE_INVALIDE", "PRIX_INVALIDE", "QUANTITE_RECUE_INVALIDE", "DEVISE_DIFFERENTE",
+                  "CHAMP_INCONNU", "CHAMP_INVALIDE", "REVENTE_INVALIDE", "CONNEXION_INVALIDE", "PORT_INVALIDE",
+                  "TEXTE_TROP_LONG", "SITE_INVALIDE"}
 
 
 def _erreur_achat(e: Exception) -> HTTPException:
@@ -472,10 +486,126 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
     @app.get("/api/fournisseurs")
     def lister_fournisseurs(c: str = Depends(compte)):
         bs = A.bilans(depot.fournisseurs(c), depot.lots(c), depot.ventes(c), depot.bons(c), date.today())
-        return [{"id": b.fournisseur.id, "nom": b.fournisseur.nom, "devise": b.fournisseur.devise,
-                 "delai_jours": b.fournisseur.delai_jours, "courriel": b.fournisseur.courriel, "lots": b.lots,
+        return [{**_fiche_json(c, b.fournisseur), "lots": b.lots,
                  "achete_12_mois": _num(b.achete_12_mois), "roi_prevu": _num(b.roi_prevu), "roi_reel": _num(b.roi_reel),
                  "delai_reel_jours": b.delai_reel_jours} for b in bs]
+
+    def _fiche_json(c: str, f) -> dict:
+        cat = depot.catalogue(c, f.id)
+        return {"id": f.id, "nom": f.nom, "devise": f.devise, "delai_jours": f.delai_jours, "courriel": f.courriel,
+                "pays": f.pays, "site": f.site, "categories": list(f.categories), "port_unitaire": _num(f.port_unitaire),
+                "revente": f.revente, "revente_source": f.revente_source, "connexion": f.connexion, "notes": f.notes,
+                "reference": f.reference, "colonnes": f.colonnes, "analysable": A.analysable(f),
+                "catalogue": None if not cat else {"nom_fichier": cat[0]["nom_fichier"], "lignes": cat[0]["lignes"],
+                                                   "rejets": cat[0]["rejets"], "maj": cat[0]["maj"].isoformat()}}
+
+    def _fournisseur(c: str, fid: str):
+        f = next((x for x in depot.fournisseurs(c) if x.id == fid), None)
+        if f is None:
+            raise HTTPException(404, "FOURNISSEUR_INTROUVABLE")
+        return f
+
+    # [RM-AMZ-101] annuaire de référence
+    @app.get("/api/annuaire")
+    def annuaire(c: str = Depends(compte)):
+        mes = {f.reference for f in depot.fournisseurs(c) if f.reference}
+        return [{**r.to_dict(), "ajoute": r.code in mes} for r in AN.REFERENCES]
+
+    @app.post("/api/annuaire/{code}/ajouter", status_code=201)
+    def ajouter_depuis_annuaire(code: str, c: str = Depends(compte)):
+        ref = AN.PAR_CODE.get(code)
+        if ref is None:
+            raise HTTPException(404, "REFERENCE_INCONNUE")
+        try:
+            f = A.depuis_reference(c, ref, depot.fournisseurs(c))
+            depot.enregistrer_fournisseur(c, f)
+        except (A.ErreurAchat, ValueError) as e:
+            raise _erreur_achat(e) from None
+        return _fiche_json(c, f)
+
+    # [RM-AMZ-100] fiche
+    @app.put("/api/fournisseurs/{fid}")
+    def modifier_fournisseur(fid: str, brut: dict, c: str = Depends(compte)):
+        try:
+            f = A.modifier_fiche(_fournisseur(c, fid), **brut)
+            depot.enregistrer_fournisseur(c, f)
+        except (A.ErreurAchat, ValueError, TypeError) as e:
+            raise _erreur_achat(e if not isinstance(e, TypeError) else A.ErreurAchat("CHAMP_INVALIDE")) from None
+        return _fiche_json(c, f)
+
+    # [RM-AMZ-102] catalogue par fichier
+    @app.post("/api/fournisseurs/{fid}/fichier", status_code=201)
+    async def deposer_tarif(fid: str, fichier: UploadFile = File(...), c: str = Depends(compte)):
+        f = _fournisseur(c, fid)
+        contenu = await fichier.read(fich.MAX_OCTETS + 1)
+        try:
+            table = fich.lire(contenu, fichier.filename or "")
+        except fich.FichierInvalide as e:
+            raise HTTPException(422, e.args[0]) from None
+        fid_t = str(uuid.uuid4())
+        fichiers[fid_t] = (c, fichier.filename or "", table)
+        while len(fichiers) > 50:
+            fichiers.popitem(last=False)
+        proposees = fich.proposer_colonnes(table.entetes)
+        if f.colonnes and all(k in fich.ROLES for k in f.colonnes):       # mémorisées : par nom d'en-tête
+            for role, entete in f.colonnes.items():
+                if entete in table.entetes:
+                    proposees[role] = table.entetes.index(entete)
+        return {"fichier_id": fid_t, "nom": fichier.filename, "entetes": table.entetes, "apercu": table.lignes[:5],
+                "nb_lignes": len(table.lignes), "colonnes": proposees}
+
+    @app.post("/api/fournisseurs/{fid}/catalogue", status_code=201)
+    def enregistrer_tarif(fid: str, d: DemandeCatalogue, c: str = Depends(compte)):
+        f = _fournisseur(c, fid)
+        t = fichiers.get(d.fichier_id)
+        if t is None or t[0] != c:
+            raise HTTPException(404, "FICHIER_EXPIRE")
+        colonnes = {r: d.colonnes.get(r) for r in fich.ROLES}
+        try:
+            prep = fich.preparer(t[2], colonnes, d.prix_par_carton)
+        except fich.FichierInvalide as e:
+            raise HTTPException(422, e.args[0]) from None
+        depot.enregistrer_catalogue(c, f.id, {"nom_fichier": t[1], "lignes": len(prep.lignes),
+                                              "rejets": len(prep.rejets) + len(prep.doublons)}, prep.lignes)
+        memo = {r: t[2].entetes[i] for r, i in colonnes.items() if i is not None}
+        depot.enregistrer_fournisseur(c, A.modifier_fiche(f, colonnes=memo, connexion="FICHIER" if f.connexion == "AUCUNE"
+                                                          else f.connexion))
+        return {"lignes": len(prep.lignes), "rejets": [{"ligne": n, "message": x.to_dict()} for n, x in prep.rejets],
+                "doublons": len(prep.doublons)}
+
+    @app.get("/api/fournisseurs/{fid}/catalogue")
+    def lire_tarif(fid: str, c: str = Depends(compte)):
+        _fournisseur(c, fid)
+        cat = depot.catalogue(c, fid)
+        if cat is None:
+            raise HTTPException(404, "CATALOGUE_ABSENT")
+        meta, lignes = cat
+        return {"nom_fichier": meta["nom_fichier"], "lignes": meta["lignes"], "rejets": meta["rejets"],
+                "maj": meta["maj"].isoformat(),
+                "apercu": [{"code": l.code, "designation": l.designation, "prix": _num(l.prix_unitaire),
+                            "colisage": l.colisage, "minimum": l.minimum} for l in lignes[:50]]}
+
+    # [RM-AMZ-103] analyse du catalogue enregistré
+    @app.post("/api/fournisseurs/{fid}/analyse", status_code=201)
+    def analyser_tarif(fid: str, d: DemandeAnalyseCatalogue, c: str = Depends(compte)):
+        f = _fournisseur(c, fid)
+        if not A.analysable(f):
+            raise HTTPException(409, "REVENTE_INTERDITE")
+        cat = depot.catalogue(c, fid)
+        if cat is None:
+            raise HTTPException(404, "CATALOGUE_ABSENT")
+        fx = sources(c)
+        if not fx.catalogue:
+            raise HTTPException(503, "SOURCE_NON_CONFIGUREE")
+        mp = _place(d.marketplace)
+        p = params(c)
+        if f.port_unitaire is not None:
+            from dataclasses import replace as _remplacer
+            p = _remplacer(p, port_fournisseur=float(f.port_unitaire))
+        prep = fich.Preparation(cat[1], [], [])
+        t = traitements.lancer(c, prep, mp, fx, depot, p.regime(mp.code), d.achat_ttc, p.seuils(),
+                               en_fond=traitement_en_fond, parametres=p)
+        return {"traitement_id": t.id}
 
     @app.post("/api/fournisseurs", status_code=201)
     def creer_fournisseur(d: DemandeFournisseur, c: str = Depends(compte)):
