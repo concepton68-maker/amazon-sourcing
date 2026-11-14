@@ -40,8 +40,9 @@ def places_du_vendeur(client, region: str) -> list:
     return [m for m in de_region if m.marketplace_id in ids]
 
 
-class Arret(Exception):
-    """[RM-AMZ-136] Arrêt demandé pendant une attente."""
+class Arret(BaseException):
+    """[RM-AMZ-136] Arrêt demandé pendant une attente. Hérite de BaseException pour traverser les
+    « except Exception » des boucles qui comptent les erreurs sans s'arrêter."""
 
 
 def places_actives(depot, compte_id: str, places: list) -> list:
@@ -80,7 +81,13 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
             suivi and suivi(r.tache, r)
         return res
     principale = next((m for m in places if m.code == "FR"), places[0])
-    kw = {} if attendre is None else {"attendre": attendre}
+    dort = attendre or time.sleep
+
+    def attente(s):                                                       # [RM-AMZ-136] chaque pause regarde l'arrêt
+        if arret():
+            raise Arret()
+        dort(s)
+    kw = {"attendre": attente}
 
     def tache(nom, f):
         if nom not in voulues:
@@ -170,7 +177,8 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
 
     def historique():                                                     # [RM-AMZ-090]
         from . import historique as H
-        return H.executer(compte_id, client, places, depot, maintenant, **kw)
+        return H.executer(compte_id, client, places, depot, maintenant, **kw,
+                          progression=lambda texte: detail and detail("HISTORIQUE", texte))
 
     tache("HISTORIQUE", historique)
 

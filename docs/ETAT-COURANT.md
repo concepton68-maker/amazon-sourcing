@@ -58,6 +58,8 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 
 | (lot donnees) | Écran « Données » (produits analysés, marché, relevés jour par jour, autorisations, catalogues : recherche, filtres par colonne, tri, colonnes, export, clic/double-clic, ajout au plan) ; « Relever maintenant » dans Marché avec arrêt | RM-AMZ-140, 141 | 1.22 |
 
+| (lot arret-effectif) | L'arrêt agit aussi au milieu d'une tâche (à chaque pause entre deux appels à Amazon) ; l'historique de marché donne des nouvelles (fiches, offres et Buy Box n sur N) | RM-AMZ-134, 136 précisées | — |
+
 Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 141) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 035).
 
