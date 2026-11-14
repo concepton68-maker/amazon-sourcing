@@ -35,7 +35,8 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
                 <select value={v.region} onChange={(e) => setV({ ...v, region: e.target.value })}>
                   {regions.map((r) => <option key={r} value={r}>{t(`connexion.region.${r}`)}</option>)}</select></label>
             : <label key={c} className="ligne-reglage"><span>{t(`connexion.champ.${c}`)}
-                {s.source === "SPAPI" && OU_TROUVER[c] && <> · <a href={OU_TROUVER[c]} target="_blank" rel="noreferrer">{t("connexion.ou_trouver")}</a></>}</span>
+                {s.source === "SPAPI" && OU_TROUVER[c] && <a className="info" href={OU_TROUVER[c]} target="_blank" rel="noreferrer"
+                  title={t("connexion.ou_trouver")} aria-label={`${t("connexion.ou_trouver")} : ${t(`connexion.champ.${c}`)}`}>i</a>}</span>
                 <input type={c === "seller_id" ? "text" : "password"} autoComplete="new-password" spellCheck={false} maxLength={2000}
                   required={!s.enregistree_le && c !== "seller_id"}
                   placeholder={s.enregistree_le ? t("connexion.inchange") : undefined}
