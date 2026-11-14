@@ -183,3 +183,38 @@ class TestCorrespondance(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestArret(unittest.TestCase):
+    def test_arret_analyse(self):
+        """[RM-AMZ-136] Analyse arrêtée entre deux produits : statut ARRETE, déjà fait gardé."""
+        from sourcing import traitement as TR
+        from sourcing.fichier import LigneFournisseur, Preparation
+        from decimal import Decimal
+        d, c, demo, cl = client()
+        lignes = [LigneFournisseur(i + 2, "3700000000017", Decimal("8")) for i in range(5)]
+        t = TR.Traitement("x", c, "FR", 5)
+        appels = {"n": 0}
+        vrai = TR._asins
+
+        def compte(*a, **k):
+            appels["n"] += 1
+            if appels["n"] == 2:
+                t.arret = True
+            return vrai(*a, **k)
+        import unittest.mock as um
+        with um.patch.object(TR, "_asins", compte):
+            TR.executer(t, Preparation(lignes, [], []), FR, Fournisseurs([demo], demo, demo, demo, demo), d)
+        self.assertEqual((t.statut, t.faits), ("ARRETE", 2))
+
+    def test_arret_correspondance(self):
+        """[RM-AMZ-136] Recherche arrêtée avant le premier paquet : bilan « arrêtée »."""
+        d, c, demo, cl = client()
+        fournisseur(cl, "Grossiste D", "EAN;Prix HT\n3700000000017;8,00\n")
+        d.ajouter_suivi(c, "FR", "B0DEMO0001")
+        from sourcing.parametres import Parametres
+        b = CO.executer(c, FR, Fournisseurs([demo], demo, demo, demo, demo), d, Parametres(), "assujetti",
+                        attendre=lambda s: None, arret=lambda: True)
+        self.assertTrue(b["arretee"])
+        self.assertEqual(b["correspondances"], 0)
+        self.assertEqual(cl.post("/api/travaux/arreter").json(), {"manuels": False, "analyses": 0, "correspondance": False})

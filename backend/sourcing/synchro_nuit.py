@@ -40,6 +40,10 @@ def places_du_vendeur(client, region: str) -> list:
     return [m for m in de_region if m.marketplace_id in ids]
 
 
+class Arret(Exception):
+    """[RM-AMZ-136] Arrêt demandé pendant une attente."""
+
+
 def places_actives(depot, compte_id: str, places: list) -> list:
     """[RM-AMZ-133] Places où le compte a du stock (dernière photo), des ventes ou des lots."""
     codes = set()
@@ -55,7 +59,8 @@ def places_actives(depot, compte_id: str, places: list) -> list:
 
 def executer_compte(compte_id: str, client, region: str, depot, maintenant: datetime,
                     horloge: Callable[[], datetime] = None, attendre=None, taches: Optional[set] = None,
-                    suivi: Optional[Callable] = None, detail: Optional[Callable] = None) -> list[ResultatTache]:
+                    suivi: Optional[Callable] = None, detail: Optional[Callable] = None,
+                    arret: Callable[[], bool] = lambda: False) -> list[ResultatTache]:
     """`taches` : sous-ensemble à exécuter (None = toutes) ; `suivi(tache, resultat|None)` : début et fin de chaque
     tâche, pour l'avancement réel [RM-AMZ-115]."""
     horloge = horloge or (lambda: datetime.now(maintenant.tzinfo))
@@ -80,11 +85,18 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
     def tache(nom, f):
         if nom not in voulues:
             return
+        if arret():                                                       # [RM-AMZ-136] tâche non faite
+            r = ResultatTache(nom, horloge(), horloge(), False, "arrêtée")
+            res.append(r)
+            suivi and suivi(nom, r)
+            return
         suivi and suivi(nom, None)
         d = horloge()
         try:
             msg = f() or ""
             r = ResultatTache(nom, d, horloge(), True, msg)
+        except Arret:
+            r = ResultatTache(nom, d, horloge(), False, "arrêtée")
         except Exception as e:
             r = ResultatTache(nom, d, horloge(), False, _message(e))
         res.append(r)
@@ -128,6 +140,8 @@ def executer_compte(compte_id: str, client, region: str, depot, maintenant: date
                     dort, debut = k.pop("attendre", None) or attendre or time.sleep, time.monotonic()
 
                     def attente(s):                                   # [RM-AMZ-134] signe de vie pendant qu'Amazon prépare
+                        if arret():
+                            raise Arret()
                         dort(s)
                         minutes = int((time.monotonic() - debut) // 60)
                         detail and detail("REMBOURSEMENTS", f"{lib} · Amazon prépare le rapport ({minutes} min)")
@@ -217,7 +231,7 @@ class SynchrosManuelles:
         def travail():
             try:
                 executer_compte(compte_id, client, region, depot, datetime.now(timezone.utc), attendre=attendre,
-                                taches=set(voulues), suivi=suivi, detail=signe)
+                                taches=set(voulues), suivi=suivi, detail=signe, arret=lambda: bool(etat.get("arret")))
             except Exception as e:  # garde-fou : l'état ne reste jamais « en cours »
                 etat["terminees"].append({"tache": etat.get("courante") or "?", "ok": False, "message": _message(e),
                                           "fin": datetime.now(timezone.utc).isoformat()})
@@ -230,6 +244,14 @@ class SynchrosManuelles:
             travail()
         return True
 
+
+    def arreter(self, compte_id: str) -> bool:
+        """[RM-AMZ-136]"""
+        e = self.etats.get(compte_id)
+        if not e or not e.get("en_cours"):
+            return False
+        e["arret"] = True
+        return True
 
 def executer(comptes: list[tuple[str, dict]], depot, maintenant: datetime, fabrique: Optional[Callable] = None,
              attendre=None) -> dict[str, list[ResultatTache]]:

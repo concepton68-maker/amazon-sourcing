@@ -711,6 +711,8 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         def travail():
             try:
                 for f in a_faire:
+                    if etat.get("arret"):                          # [RM-AMZ-136]
+                        break
                     etat["courant"] = f.nom
                     cat = depot.catalogue(c, f.id)
                     p = params(c)
@@ -1128,6 +1130,16 @@ def creer_app(depot, compte_demo: Optional[str] = None, servir_interface: bool =
         return [_tentative_json(x) for x in depot.envois_bon(c, b.id)]
 
     # ------------------------------------------------------------- travaux de nuit lancés à la main [RM-AMZ-115]
+    @app.post("/api/travaux/arreter")
+    def arreter_travaux(c: str = Depends(compte)):
+        """[RM-AMZ-136] Arrête tout travail long du compte à la prochaine étape sûre."""
+        g = analyses_globales.get(c)
+        if g and g.get("en_cours"):
+            g["arret"] = True
+        n = traitements.arreter(c)
+        return {"manuels": manuelles.arreter(c), "analyses": n + (1 if g and g.get("en_cours") else 0),
+                "correspondance": correspondances.arreter(c)}
+
     @app.get("/api/synchro/manuelle")
     def etat_synchro_manuelle(c: str = Depends(compte)):
         e = manuelles.etats.get(c)

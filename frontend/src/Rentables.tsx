@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activite, ajouterAuPlan, analyserTousCatalogues, EtatCorrespondance, ResultatPlan, ListeRentables, lireActivite, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
+import { Activite, ajouterAuPlan, analyserTousCatalogues, arreterTravaux, EtatCorrespondance, ResultatPlan, ListeRentables, lireActivite, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
 import { FiltreMultiple } from "./Filtre";
 import { monnaie, pourcent, t } from "./i18n";
 
@@ -115,7 +115,8 @@ export function RentablesVue({ analyser, voirBon }: { analyser: (code: string, p
       {activites.length > 0 && <div className="bandeau-activite" role="status">
         <span className="point-pulse" aria-hidden="true" />
         {activites.map((a, i) => <span key={i}>{t(`activite.${a.type}`, { nom: a.nom ? t(`synchro.${a.nom}`) === `synchro.${a.nom}` ? a.nom : t(`synchro.${a.nom}`) : "", f: a.faits, t: a.total })}</span>)}
-        <span className="meta">{t("activite.direct")}</span></div>}
+        <span className="meta">{t("activite.direct")}</span>
+        <button type="button" className="lien" onClick={() => arreterTravaux().catch(() => undefined)} title={t("arret.info")}>{t("arret.bouton")}</button></div>}
       {corr?.bilan && !corr.en_cours && <p className="meta">{corr.bilan.erreur ? t("corr.erreur")
         : t(corr.bilan.correspondances ? "corr.bilan" : "corr.bilan_vide", { c: corr.bilan.candidats ?? 0, n: corr.bilan.correspondances ?? 0,
             f: corr.bilan.fournisseurs ?? 0, k: corr.bilan.catalogues_cherches ?? 0 })}</p>}
