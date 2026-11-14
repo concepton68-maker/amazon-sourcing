@@ -58,6 +58,8 @@ class TestLecture(unittest.TestCase):
         """[RM-AMZ-031] Synonymes reconnus ; deux candidates exactes → rien n'est deviné."""
         p = F.proposer_colonnes(["Réf. EAN", "Désignation article", "PU HT", "Colisage", "Mini cde"])
         self.assertEqual(p, {"code": 0, "prix": 2, "designation": 1, "colisage": 3, "minimum": 4})
+        self.assertEqual(F.proposer_colonnes(["Code", "Désignation", "Prix HT", "Colisage"]),
+                         {"code": 0, "prix": 2, "designation": 1, "colisage": 3, "minimum": None})
         p = F.proposer_colonnes(["EAN", "GTIN", "Price"])
         self.assertIsNone(p["code"])
         self.assertEqual(p["prix"], 2)
@@ -66,6 +68,9 @@ class TestLecture(unittest.TestCase):
         """[RM-AMZ-032] Prix FR/EN, rejets motivés, clé fausse = avertissement, doublons, zéros de tête."""
         self.assertEqual([F.lire_prix(x) for x in ["1 234,56 €", "1.234,56", "1,234.56", "12.5", "8,50", "abc", ""]],
                          [Decimal("1234.56")] * 3 + [Decimal("12.5"), Decimal("8.50"), None, None])
+        # jamais un nombre tiré d'un texte (colonne « Désignation » prise pour le prix)
+        self.assertEqual([F.lire_prix(x) for x in ["Colle forte gel 50 g", "Eau Evian 1,5 L", "lot de 6", "3,40 € HT", "EUR 2,10"]],
+                         [None, None, None, Decimal("3.40"), Decimal("2.10")])
         self.assertTrue(F.cle_gs1_valide("2000000000015"))
         self.assertTrue(F.cle_gs1_valide("036000291452"))           # UPC-A, exemple d'école
         self.assertFalse(F.cle_gs1_valide("2000000000016"))
