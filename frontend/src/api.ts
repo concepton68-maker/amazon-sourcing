@@ -337,3 +337,7 @@ export interface EtatManuel { en_cours: boolean; debut: string; fin?: string; ta
   terminees: { tache: string; ok: boolean; message: string; fin: string }[] }
 export const lireSynchroManuelle = () => lire<{ taches: string[]; etat: EtatManuel | null }>("/api/synchro/manuelle");
 export const lancerSynchroManuelle = (taches: string[]) => requete<{ lancee: boolean }>("POST", "/api/synchro/manuelle", { taches });
+
+// Activités en cours [RM-AMZ-116]
+export interface Activite { type: "ANALYSE" | "CORRESPONDANCE" | "NUIT_MANUELLE"; nom: string | null; faits: number; total: number; phase?: string }
+export const lireActivite = () => lire<{ activites: Activite[] }>("/api/activite");

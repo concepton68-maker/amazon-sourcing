@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { EtatCorrespondance, ListeRentables, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
+import { Activite, EtatCorrespondance, ListeRentables, lireActivite, ProduitRentable, lancerCorrespondance, lireCorrespondance, lireRentables } from "./api";
 import { FiltreMultiple } from "./Filtre";
 import { monnaie, pourcent, t } from "./i18n";
 
@@ -19,10 +19,11 @@ function Entete({ cle, tri, ordre, trier, num = true }: { cle: string; tri: stri
   );
 }
 
-function Ligne({ p, analyser }: { p: ProduitRentable; analyser: (code: string, prix: number) => void }) {
+function Ligne({ p, analyser, nouveau }: { p: ProduitRentable; analyser: (code: string, prix: number) => void; nouveau: boolean }) {
   return (
-    <tr>
+    <tr className={nouveau ? "arrivee" : undefined}>
       <td><button type="button" className="lien produit" onClick={() => analyser(p.asin, p.cout_achat ?? 0)}>{p.titre ?? p.designation ?? p.asin}</button>
+        {nouveau && <span className="nouveau">{t("vendable.nouveau")}</span>}
         <div className="meta">{p.asin} · {p.origine_nom}{p.unites_lot > 1 ? ` · ${t("rent.lot", { n: p.unites_lot })}` : ""}</div></td>
       <td className="num">{eur(p.cout_achat)}</td>
       <td className="num">{eur(p.prix_vente)}</td>
@@ -44,6 +45,8 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
   const [l, setL] = useState<ListeRentables | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [corr, setCorr] = useState<EtatCorrespondance | null>(null);
+  const [ouverture] = useState(() => new Date().toISOString());
+  const [activites, setActivites] = useState<Activite[]>([]);
   const [rafraichir, setRafraichir] = useState(0);
   const [tri, setTri] = useState("profit"); const [ordre, setOrdre] = useState("desc");
   const [niveaux, setNiveaux] = useState<string[]>(NIVEAUX);
@@ -64,11 +67,19 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
   }, [tri, ordre, niveaux, roi, profit, marge, origine, verdict, sansAmazon, rafraichir]);
   const lireCorr = () => lireCorrespondance().then((x) => { setCorr((avant) => { if (avant?.en_cours && !x.en_cours) setRafraichir((n) => n + 1); return x; }); }).catch(() => undefined);
   useEffect(() => { lireCorr(); }, []);
-  useEffect(() => {                                                       // [RM-AMZ-114] résultats au fil de l'eau
-    if (!corr?.en_cours) return;
-    const id = setTimeout(() => { lireCorr(); if (corr.phase === "ANALYSE") setRafraichir((n) => n + 1); }, 3000);
-    return () => clearTimeout(id);
-  }, [corr]);
+  useEffect(() => {                                                       // [RM-AMZ-116] temps réel
+    let actif = true;
+    const tour = () => lireActivite().then((x) => {
+      if (!actif) return;
+      setActivites((avant) => {
+        if (x.activites.length || avant.length) { setRafraichir((n) => n + 1); lireCorr(); }
+        return x.activites;
+      });
+    }).catch(() => undefined);
+    tour();
+    const id = setInterval(tour, 3000);
+    return () => { actif = false; clearInterval(id); };
+  }, []);
   const chercher = () => { setErreur(null); lancerCorrespondance().then(lireCorr).catch((x) => setErreur((x as Error).message)); };
   const trier = (c: string) => { if (c === tri) setOrdre(ordre === "desc" ? "asc" : "desc"); else { setTri(c); setOrdre("desc"); } };
   const e = (c: string, num = true) => <Entete cle={c} tri={tri} ordre={ordre} trier={trier} num={num} />;
@@ -80,6 +91,10 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
           <button type="button" className="principal" disabled={corr?.en_cours} onClick={chercher} title={t("corr.info")}>
             {corr?.en_cours ? t(corr.phase === "ANALYSE" ? "corr.analyse" : "corr.en_cours", { f: corr.progression?.[0] ?? 0, t: corr.progression?.[1] ?? 0 }) : t("corr.lancer")}</button>
         </div></div>
+      {activites.length > 0 && <div className="bandeau-activite" role="status">
+        <span className="point-pulse" aria-hidden="true" />
+        {activites.map((a, i) => <span key={i}>{t(`activite.${a.type}`, { nom: a.nom ? t(`synchro.${a.nom}`) === `synchro.${a.nom}` ? a.nom : t(`synchro.${a.nom}`) : "", f: a.faits, t: a.total })}</span>)}
+        <span className="meta">{t("activite.direct")}</span></div>}
       {corr?.bilan && !corr.en_cours && <p className="meta">{corr.bilan.erreur ? t("corr.erreur")
         : t("corr.bilan", { c: corr.bilan.candidats ?? 0, n: corr.bilan.correspondances ?? 0, f: corr.bilan.fournisseurs ?? 0 })}</p>}
       {erreur && <p role="alert" className="alerte">{t(`erreur.${erreur}`)}</p>}
@@ -102,7 +117,7 @@ export function RentablesVue({ analyser }: { analyser: (code: string, prix: numb
               <th scope="col" className="num">{t("rent.col.achat_max")}</th>{e("rotation")}{e("bsr")}
               <th scope="col" className="num">{t("rent.col.vendeurs")}</th><th scope="col">{t("rent.col.vendabilite")}</th>
               <th scope="col">{t("rent.col.verdict")}</th></tr></thead>
-            <tbody>{l.produits.map((p) => <Ligne key={`${p.origine}|${p.asin}|${p.code}`} p={p} analyser={analyser} />)}</tbody>
+            <tbody>{l.produits.map((p) => <Ligne key={`${p.origine}|${p.asin}|${p.code}`} p={p} analyser={analyser} nouveau={!!p.analyse_le && p.analyse_le > ouverture} />)}</tbody>
           </table></div>}
       </section>
     </div>

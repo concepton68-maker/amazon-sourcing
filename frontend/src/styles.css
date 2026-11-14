@@ -439,3 +439,9 @@ button.tri.actif { color: var(--accent); }
 tr.cliquable { cursor: pointer; } tr.cliquable:hover td { background: #f6f8fb; } tr.cliquable.choisie:hover td { background: var(--accent-doux); }
 .nouveau { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: var(--positif-doux); color: var(--positif); font: 700 11px Inter, sans-serif; text-transform: uppercase; letter-spacing: .04em; vertical-align: middle; }
 .en-cours { color: var(--accent); font-weight: 600; }
+.bandeau-activite { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 12px; background: var(--accent-doux); color: var(--accent); font-weight: 600; font-size: 14px; }
+.bandeau-activite .meta { margin: 0 0 0 auto; }
+.point-pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+tr.arrivee td { background: #f2fbf6; }
+@media (prefers-reduced-motion: reduce) { .point-pulse { animation: none; } }

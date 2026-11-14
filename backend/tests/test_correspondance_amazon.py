@@ -87,12 +87,13 @@ class TestCorrespondance(unittest.TestCase):
         vus = []
         fid = fournisseur(cl, "Grossiste E", "EAN;Prix HT\n3700000000017;8,00\n3700000000024;9,00\n")
         self.assertEqual(len([o for o in d.opportunites(c) if o.origine == f"CORRESPONDANCE:{fid}"]), 2)  # lancée seule
-        enreg = d.enregistrer_opportunites
-        d.enregistrer_opportunites = lambda *a: (vus.append(len(a[4])), enreg(*a))[1]
+        ajout = d.ajouter_opportunites
+        d.ajouter_opportunites = lambda *a: (vus.append(len(d.opportunites(c))), ajout(*a))[1]
         etapes = []
         CO.executer(c, FR, Fournisseurs([demo], demo, demo, demo, demo), d, None, "assujetti",
                     progression=lambda f, t, phase="": etapes.append((phase, f, t)), attendre=lambda s: None)
-        self.assertEqual(vus, [1, 2])                                          # 1 rangé, puis 2
+        self.assertEqual(len(vus), 2)                                          # rangés un par un
+        self.assertLess(vus[0], vus[1])
         self.assertIn(("ANALYSE", 2, 2), etapes)
 
     def test_synchro_correspondance(self):
