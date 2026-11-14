@@ -899,5 +899,8 @@
   "corr.bilan_vide": "Dernière recherche : {c} produits Amazon cherchés dans {k} {k|catalogue|catalogues}, aucun n'y figure. Pour voir ce que vos fournisseurs proposent de rentable, analysez leurs catalogues.",
   "activite.ANALYSE_TOUT": "Analyse de tous les catalogues ({nom}) : {f} sur {t}",
   "erreur.ANALYSE_EN_COURS": "Une analyse est déjà en cours.",
-  "erreur.AUCUN_CATALOGUE": "Aucun catalogue chargé."
+  "erreur.AUCUN_CATALOGUE": "Aucun catalogue chargé.",
+  "manuel.voir": "voir",
+  "manuel.depuis": "depuis {d}",
+  "manuel.vu": "dernière nouvelle il y a {d}"
 }

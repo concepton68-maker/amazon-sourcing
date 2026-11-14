@@ -14,7 +14,7 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 - Nuit (UTC) : 02:15 sauvegarde · 02:45 purge · 03:15 tâches de nuit dans l'ordre : ventes, stock, remboursements, contrôle des prix (plancher),
   sondage des rayons (chaque nuit), historique de marché, correspondance fournisseurs. Elles peuvent aussi être
   lancées à la main (Paramètres › Connexions et synchronisation).
-- **Remboursements lancés à la main le 14/11 à 12 h 24** : coupés à 12 h 25 par la mise à jour automatique (fusion de la PR #47), donc sans résultat ; à relancer. Amélioration à faire : la mise à jour automatique doit attendre la fin d'un travail en cours.
+- **Remboursements lancés à la main le 14/11 à 12 h 24** : coupés à 12 h 25 par la mise à jour automatique (fusion de la PR #47), donc sans résultat ; à relancer. Corrigé le 14/11 (RM-AMZ-135) : la mise à jour attend la fin d'un travail.
 - **À vérifier le 15/11 au matin** : la première nuit complète sur le vrai compte (sondage, historique,
   correspondance) ; et les remboursements, qui ont échoué la nuit du 14/11 avant la correction « CANCELLED = vide ».
 
@@ -48,7 +48,9 @@ Mis à jour le 14/11/2026, 14 h 30 (heure de Paris). **À mettre à jour dans la
 
 | (lot analyse-catalogues) | « Analyser tous mes catalogues » (l'un après l'autre, résultats au fil de l'eau), textes clairs de la recherche Amazon → fournisseurs et de la liste vide. Cause du « rien » de Sam : ses analyses lancées avant 13 h le 14/11 n'avaient rien rangé (droit manquant, corrigé par la PR #49) ; à relancer | RM-AMZ-132 | — |
 
-Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 132) · décisions `docs/decisions/registre.md`
+| (lot remboursements-rapides) | Remboursements seulement sur les places actives (avant : 3 rapports × chaque pays ouvert, des heures), avancement en direct (« FR · rapport 2 sur 3 · Amazon prépare le rapport (4 min) », depuis, dernière nouvelle, lien « voir »), mise à jour automatique reportée tant qu'un travail tourne (3 h au plus) | RM-AMZ-133 à 135 | — |
+
+Registres : règles `docs/regles/registre.md` (RM-AMZ-001 à 135) · décisions `docs/decisions/registre.md`
 (D-AMZ-001 à 033).
 
 ## 3. Études (sources officielles, statut VÉRIFIÉ / extrait / NON VÉRIFIÉ dans chaque fichier)

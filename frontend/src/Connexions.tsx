@@ -65,12 +65,19 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
   );
 }
 
+// Où voir les données de chaque tâche, une fois finie [RM-AMZ-134]
+const DESTINATION: Record<string, string> = { VENTES: "#tableau", STOCK: "#stock", REMBOURSEMENTS: "#remboursements",
+  PRIX: "#stock", EXPLORATION: "#vendable", HISTORIQUE: "#marche", CORRESPONDANCE: "#rentables" };
+const duree = (s: number) => (s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`);
+
 // [RM-AMZ-115] lancer les travaux de nuit maintenant, avancement réel
 function TravauxManuels({ fini }: { fini: () => void }) {
   const [taches, setTaches] = useState<string[]>([]);
   const [choix, setChoix] = useState<string[]>([]);
   const [etat, setEtat] = useState<EtatManuel | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [maintenant, setMaintenant] = useState(Date.now());
+  useEffect(() => { if (!etat?.en_cours) return; const id = setInterval(() => setMaintenant(Date.now()), 1000); return () => clearInterval(id); }, [etat?.en_cours]);
   const lire = () => lireSynchroManuelle().then((x) => {
     setTaches(x.taches); setChoix((c) => (c.length ? c : x.taches));
     setEtat((avant) => { if (avant?.en_cours && x.etat && !x.etat.en_cours) fini(); return x.etat; });
@@ -82,8 +89,14 @@ function TravauxManuels({ fini }: { fini: () => void }) {
   const statut = (x: string) => {
     if (!etat || !etat.taches.includes(x)) return null;
     const r = etat.terminees.find((y) => y.tache === x);
-    if (r) return <span className={r.ok ? "positif" : "negatif"} title={r.message}>{r.ok ? "✓" : "✗"} {r.message}</span>;
-    return etat.courante === x ? <span className="en-cours">⏳ {t("manuel.en_cours")}</span> : <span className="meta">{etat.en_cours ? t("manuel.attente") : ""}</span>;
+    if (r) return <span className={r.ok ? "positif" : "negatif"}>{r.ok ? "✓" : "✗"} {r.message}
+      {r.ok && DESTINATION[x] && <> · <a href={DESTINATION[x]}>{t("manuel.voir")}</a></>}</span>;
+    if (etat.courante !== x) return <span className="meta">{etat.en_cours ? t("manuel.attente") : ""}</span>;
+    const depuis = etat.debut_tache ? Math.max(0, Math.round((maintenant - Date.parse(etat.debut_tache)) / 1000)) : null;
+    const vu = etat.vu ? Math.max(0, Math.round((maintenant - Date.parse(etat.vu)) / 1000)) : null;
+    return <span className="en-cours"><span className="point-pulse" aria-hidden="true" /> {etat.detail ?? t("manuel.en_cours")}
+      {depuis !== null && <span className="meta"> · {t("manuel.depuis", { d: duree(depuis) })}</span>}
+      {vu !== null && <span className="meta"> · {t("manuel.vu", { d: duree(vu) })}</span>}</span>;
   };
   return (
     <section className="carte" aria-label={t("manuel.titre")}>
@@ -98,7 +111,7 @@ function TravauxManuels({ fini }: { fini: () => void }) {
         {taches.map((x) => (
           <tr key={x} className={`cliquable ${choix.includes(x) ? "choisie" : ""}`} onClick={(e) => { if (!(e.target as HTMLElement).closest("input")) basculer(x); }}>
             <td className="case-suivi"><input type="checkbox" aria-label={t(`synchro.${x}`)} checked={choix.includes(x)} onChange={() => basculer(x)} /></td>
-            <td>{t(`synchro.${x}`)}</td><td className="tronque">{statut(x)}</td>
+            <td>{t(`synchro.${x}`)}</td><td className="etat-tache">{statut(x)}</td>
           </tr>))}
       </tbody></table>
       {etat?.fin && !etat.en_cours && <p className="meta">{t("manuel.fini", { date: new Date(etat.fin).toLocaleString("fr-FR") })}</p>}

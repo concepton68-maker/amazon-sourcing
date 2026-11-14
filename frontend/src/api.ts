@@ -356,7 +356,7 @@ export const analyserTousCatalogues = () => requete<{ total: number; sautes: str
 export const lancerCorrespondance = () => requete<{ lancee: boolean }>("POST", "/api/correspondance", {});
 
 // Travaux de nuit lancés à la main [RM-AMZ-115]
-export interface EtatManuel { en_cours: boolean; debut: string; fin?: string; taches: string[]; courante: string | null;
+export interface EtatManuel { en_cours: boolean; debut: string; fin?: string; taches: string[]; courante: string | null; detail?: string | null; vu?: string; debut_tache?: string;
   terminees: { tache: string; ok: boolean; message: string; fin: string }[] }
 export const lireSynchroManuelle = () => lire<{ taches: string[]; etat: EtatManuel | null }>("/api/synchro/manuelle");
 export const lancerSynchroManuelle = (taches: string[]) => requete<{ lancee: boolean }>("POST", "/api/synchro/manuelle", { taches });

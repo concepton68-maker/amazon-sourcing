@@ -38,11 +38,40 @@ class Faux:
         return {"payload": {"inventorySummaries": [{"sellerSku": "S1", "asin": "B0X", "productName": "X",
                 "inventoryDetails": {"fulfillableQuantity": 4}}]}}
 
-    def rapport(self, mp, type_rapport, debut=None, fin=None, options=None):
+    def rapport(self, mp, type_rapport, debut=None, fin=None, options=None, attendre=None):
+        self.appels.append(("rapport", mp.code, type_rapport))
+        if attendre:
+            attendre(0)                          # une attente simulée : signe de vie
         return ""
 
     def envois_fermes(self, mp, debut, fin):
         return []
+
+
+class TestPlacesActives(unittest.TestCase):
+    def test_remboursements_places_actives(self):
+        """[RM-AMZ-133] Rapports seulement pour les places actives ; sans activité : réponse immédiate."""
+        from sourcing.depot import DepotMemoire
+        vide, f = DepotMemoire(), Faux()
+        r = SN.executer_compte("00000000-0000-4000-8000-0000000000cc", f, "EU", vide, NUIT, attendre=lambda s: None,
+                               taches={"REMBOURSEMENTS"})
+        self.assertEqual((r[0].ok, r[0].message), (True, "aucune activité FBA : rien à vérifier"))
+        self.assertFalse([a for a in f.appels if a[0] == "rapport"])
+        d, c = construire()
+        f = Faux()
+        SN.executer_compte(c, f, "EU", d, NUIT, attendre=lambda s: None, taches={"REMBOURSEMENTS"})
+        places = {a[1] for a in f.appels if a[0] == "rapport"}
+        self.assertTrue(places and places <= {m.code for m in SN.places_actives(d, c, [get_marketplace("FR"), get_marketplace("DE")])})
+
+    def test_detail_avancement(self):
+        """[RM-AMZ-134] « FR (1/1) · rapport n sur 3 », puis signe de vie pendant l'attente."""
+        d, c = construire()
+        details = []
+        SN.executer_compte(c, Faux(), "EU", d, NUIT, attendre=lambda s: None, taches={"REMBOURSEMENTS"},
+                           detail=lambda t, x: details.append(x))
+        self.assertTrue(any("rapport 1 sur 3" in x for x in details))
+        self.assertTrue(any("rapport 3 sur 3" in x for x in details))
+        self.assertTrue(any("Amazon prépare le rapport" in x for x in details))
 
 
 class TestSynchro(unittest.TestCase):

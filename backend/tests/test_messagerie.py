@@ -219,3 +219,21 @@ class TestAdresseRetour(unittest.TestCase):
                          "https://vente.concepton.fr/api/messagerie/microsoft/retour")
         self.assertEqual(cl.get("/api/messagerie", headers={"host": "127.0.0.1:8820"}).json()["adresse_retour"],
                          "http://127.0.0.1:8820/api/messagerie/microsoft/retour")
+
+
+
+class TestOccupe(unittest.TestCase):
+    def test_occupe(self):
+        """[RM-AMZ-135] La mise à jour lit « occupé » tant qu'un travail tourne."""
+        from sourcing import traitement as TR
+        d, _, _ = preparer()
+        cl = TestClient(creer_app(d, C, servir_interface=False))
+        self.assertEqual(cl.get("/api/occupe").json(), {"occupe": False})
+
+        class Occupes(TR.Traitements):
+            def __init__(self):
+                super().__init__()
+                self._t["x"] = TR.Traitement("x", C, "FR", 10)
+        with mock.patch("sourcing.api.Traitements", Occupes):
+            cl2 = TestClient(creer_app(d, C, servir_interface=False))
+        self.assertEqual(cl2.get("/api/occupe").json(), {"occupe": True})

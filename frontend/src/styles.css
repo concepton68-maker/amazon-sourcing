@@ -499,3 +499,4 @@ textarea { background: var(--carte); color: var(--encre); }
 .liste-envois li.ENVOYE strong { color: var(--positif); } .liste-envois li.ECHEC strong { color: var(--rouge-texte); } .liste-envois li.INCERTAIN strong { color: var(--negatif-texte); }
 .code-copie { display: inline-flex; gap: 8px; align-items: center; min-width: 0; } .code-copie code { font: 12px var(--chiffre); overflow-wrap: anywhere; }
 .vide-action { display: grid; gap: 12px; justify-items: start; padding: 8px 0; } .vide-action p { margin: 0; max-width: 70ch; }
+.etat-tache { font-size: 13px; overflow-wrap: anywhere; } .etat-tache .point-pulse { vertical-align: middle; }
