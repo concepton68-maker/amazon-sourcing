@@ -2,6 +2,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { Connexions, EtapeTest, TacheSynchro, lireJournalSynchro, SourceConnexion, ecrireConnexion, lireConnexions, retirerConnexion, testerConnexion } from "./api";
 import { dateCourte, t } from "./i18n";
 
+// Où trouver chaque code chez Amazon (adresses données par Sam et par la documentation Amazon)
+const OU_TROUVER: Record<string, string> = {
+  seller_id: "https://sellercentral.amazon.fr/global-dashboard/business-information",
+  client_id: "https://solutionproviderportal.amazon.com/",
+  client_secret: "https://solutionproviderportal.amazon.com/",
+  refresh_token: "https://solutionproviderportal.amazon.com/",
+};
+
 function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; maj: () => void }) {
   const vide = () => Object.fromEntries(s.champs.map((c) => [c, c === "region" ? "EU" : ""]));
   const [v, setV] = useState<Record<string, string>>(vide);
@@ -26,7 +34,8 @@ function Source({ s, regions, maj }: { s: SourceConnexion; regions: string[]; ma
             ? <label key={c} className="ligne-reglage">{t("connexion.champ.region")}
                 <select value={v.region} onChange={(e) => setV({ ...v, region: e.target.value })}>
                   {regions.map((r) => <option key={r} value={r}>{t(`connexion.region.${r}`)}</option>)}</select></label>
-            : <label key={c} className="ligne-reglage">{t(`connexion.champ.${c}`)}
+            : <label key={c} className="ligne-reglage"><span>{t(`connexion.champ.${c}`)}
+                {s.source === "SPAPI" && OU_TROUVER[c] && <> · <a href={OU_TROUVER[c]} target="_blank" rel="noreferrer">{t("connexion.ou_trouver")}</a></>}</span>
                 <input type={c === "seller_id" ? "text" : "password"} autoComplete="new-password" spellCheck={false} maxLength={2000}
                   required={!s.enregistree_le && c !== "seller_id"}
                   placeholder={s.enregistree_le ? t("connexion.inchange") : undefined}

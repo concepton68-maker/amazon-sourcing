@@ -471,5 +471,6 @@
   "synchro.VENTES": "Ventes et frais",
   "synchro.STOCK": "Stock FBA",
   "synchro.REMBOURSEMENTS": "Remboursements",
-  "connexion.champ.seller_id": "Jeton de marchand (facultatif)"
+  "connexion.champ.seller_id": "Jeton de marchand (facultatif)",
+  "connexion.ou_trouver": "où le trouver"
 }
