@@ -12,6 +12,7 @@ Outil personnel d'abord, conçu pour devenir un SaaS multi-clients (Europe + Ét
 | `docs/maquettes/` | Maquette cliquable des 11 écrans |
 | `docs/regles/` | Registre des règles métier `RM-AMZ-nnn` (règle → source → test) |
 | `docs/decisions/` | Registre des décisions `D-AMZ-nnn` |
+| `docs/strategie/` | Plan de stratégie et ordre des lots |
 | `docs/recherches/` | Études de marché et de données, avec leurs notes sourcées |
 
 ## Méthode
